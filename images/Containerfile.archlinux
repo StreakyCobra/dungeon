@@ -1,0 +1,49 @@
+FROM docker.io/archlinux:latest
+
+# Update and install packages
+RUN --mount=type=cache,target=/var/cache/pacman/pkg \
+    pacman -Syu --noconfirm && \
+    pacman -S --noconfirm \
+      ca-certificates \
+      curl \
+      git \
+      less \
+      nvim \
+      python \
+      sudo
+
+# Setup user
+RUN groupadd -g 1000 dungeon && \
+    useradd -m -u 1000 -g 1000 -G wheel dungeon && \
+    echo "dungeon ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+USER dungeon
+
+# Setup git
+RUN git config --global user.name "dungeon" && \
+    git config --global user.email "dungeon@example.com"
+
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && rm -rf /home/dungeon/.cache
+
+# Install marimo
+RUN /home/dungeon/.local/bin/uv tool install marimo \
+    && rm -rf /home/dungeon/.cache
+
+# Setup node
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+RUN export NVM_DIR="$HOME/.nvm" \
+    && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" \
+    && nvm install 22 \
+    && rm -rf /home/dungeon/.nvm/.cache
+
+# Ensure nvm is loaded in shells
+RUN echo 'export NVM_DIR="$HOME/.nvm"' >> /home/dungeon/.bashrc && \
+    echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' >> /home/dungeon/.bashrc
+
+# Setup codex
+RUN mkdir -p /home/dungeon/.codex
+RUN export NVM_DIR="$HOME/.nvm" \
+    && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" \
+    && npm i -g @openai/codex \
+    && rm -rf /home/dungeon/.npm

@@ -1,0 +1,7 @@
+# Default group definitions.
+
+[codex]
+mounts = ["~/.codex:/home/dungeon/.codex:rw"]
+
+[marimo]
+mounts = ["~/.config/marimo:/home/dungeon/.config/marimo:rw"]

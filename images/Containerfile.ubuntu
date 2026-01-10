@@ -1,0 +1,52 @@
+FROM docker.io/ubuntu:latest
+
+# Update and install packages
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    apt-get update && \
+    apt-get install -y \
+      ca-certificates \
+      curl \
+      git \
+      less \
+      neovim \
+      python3 \
+      sudo
+
+# Setup user
+RUN groupmod -n dungeon "$(getent group 1000 | cut -d: -f1)" && \
+    usermod -l dungeon "$(getent passwd 1000 | cut -d: -f1)" && \
+    usermod -d /home/dungeon -m dungeon && \
+    usermod -g 1000 -aG sudo dungeon && \
+    echo "dungeon ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+USER dungeon
+
+# Setup git
+RUN git config --global user.name "dungeon" && \
+    git config --global user.email "dungeon@example.com"
+
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && rm -rf /home/dungeon/.cache
+
+# Install marimo
+RUN /home/dungeon/.local/bin/uv tool install marimo \
+    && rm -rf /home/dungeon/.cache
+
+# Setup node
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+RUN export NVM_DIR="$HOME/.nvm" \
+    && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" \
+    && nvm install 22 \
+    && rm -rf /home/dungeon/.nvm/.cache
+
+# Ensure nvm is loaded in shells
+RUN echo 'export NVM_DIR="$HOME/.nvm"' >> /home/dungeon/.bashrc && \
+    echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' >> /home/dungeon/.bashrc
+
+# Setup codex
+RUN mkdir -p /home/dungeon/.codex
+RUN export NVM_DIR="$HOME/.nvm" \
+    && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" \
+    && npm i -g @openai/codex \
+    && rm -rf /home/dungeon/.npm
