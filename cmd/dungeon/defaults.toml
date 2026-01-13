@@ -1,7 +1,18 @@
 # Default group definitions.
 
+[claude_code]
+mounts = ["~/.claude:/home/dungeon/.claude:rw"]
+
 [codex]
 mounts = ["~/.codex:/home/dungeon/.codex:rw"]
 
-[marimo]
-mounts = ["~/.config/marimo:/home/dungeon/.config/marimo:rw"]
+[gemini]
+mounts = ["~/.gemini:/home/dungeon/.gemini:rw"]
+
+[opencode]
+mounts = [
+  "~/.config/opencode:/home/dungeon/.config/opencode:rw",
+  "~/.local/share/opencode:/home/dungeon/.local/share/opencode:rw",
+  "~/.cache/opencode:/home/dungeon/.cache/opencode:rw",
+  "~/.opencode:/home/dungeon/.opencode:rw"
+]

@@ -44,9 +44,11 @@ RUN export NVM_DIR="$HOME/.nvm" \
 RUN echo 'export NVM_DIR="$HOME/.nvm"' >> /home/dungeon/.bashrc && \
     echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' >> /home/dungeon/.bashrc
 
-# Setup codex
-RUN mkdir -p /home/dungeon/.codex
+# Install AI agents
 RUN export NVM_DIR="$HOME/.nvm" \
     && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" \
-    && npm i -g @openai/codex \
+    && npm i -g @openai/codex@latest \
+    && npm i -g opencode-ai@latest \
+    && npm i -g @anthropic-ai/claude-code@latest \
+    && npm i -g @google/gemini-cli \
     && rm -rf /home/dungeon/.npm
