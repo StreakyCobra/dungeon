@@ -1,6 +1,6 @@
 # dungeon
 
-`dungeon` is a sandboxed development container system. It is build as a developer friendly wrapper over podman/docker.
+`dungeon` is a sandboxed development container system. It is build as a developer friendly wrapper over podman.
 
 It is quick to launch, it comes preconfigured for AI agents, and it is easy to configure and extend.
 
@@ -77,7 +77,7 @@ make ubuntu
 
 The latest built image will be the default image when non is manually specified.
 
-Note: the Containerfiles use `RUN --mount=type=cache` for package caches. Podman supports this; Docker requires BuildKit (`DOCKER_BUILDKIT=1 docker build ...`).
+Note: the Containerfiles use `RUN --mount=type=cache` for package caches. Podman supports this.
 
 ## CLI
 
