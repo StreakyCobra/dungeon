@@ -1,4 +1,4 @@
-[claude_code]
+[claude]
 mounts = ["~/.claude:/home/dungeon/.claude:rw"]
 
 [codex]
