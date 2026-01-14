@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"time"
+
+	"github.com/StreakyCobra/dungeon/internal/config"
 )
 
 const (
@@ -21,7 +23,7 @@ var version = "dev"
 type options struct {
 	runCommand string
 	resetCache bool
-	groupSpecs map[string]groupConfig
+	groupSpecs map[string]config.GroupConfig
 	groupOn    map[string]bool
 	image      string
 	ports      []string

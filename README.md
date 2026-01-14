@@ -106,9 +106,16 @@ Options:
 
 ## Config file
 
-Defaults live in `cmd/dungeon/defaults.toml` and are embedded at build time.
+Defaults live in `internal/config/defaults.toml` and are embedded at build time.
 User config overrides them at `~/.config/dungeon/config.toml` (or `$XDG_CONFIG_HOME/dungeon/config.toml`).
 Precedence is defaults < config < environment < CLI flags.
+Only provided values override earlier sources; groups replace entirely when set.
+Environment overrides use:
+- `DUNGEON_RUN`, `DUNGEON_IMAGE`, `DUNGEON_NETWORK`, `DUNGEON_NAME`
+- `DUNGEON_PORTS` (comma-separated)
+- `DUNGEON_PODMAN_ARGS` (comma-separated)
+- `DUNGEON_DEFAULT_GROUPS` (comma-separated)
+- `DUNGEON_RM` (true/false)
 
 Example:
 ```

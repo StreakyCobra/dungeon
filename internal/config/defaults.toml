@@ -1,5 +1,3 @@
-# Default group definitions.
-
 [claude_code]
 mounts = ["~/.claude:/home/dungeon/.claude:rw"]
 
