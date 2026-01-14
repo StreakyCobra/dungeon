@@ -30,10 +30,12 @@ func parseArgs(args []string) (options, []string, error) {
 		return options{}, nil, err
 	}
 
+	groupNames := sortedGroupNames(baseOptions.groupSpecs)
+
 	fs := flag.NewFlagSet("dungeon", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	fs.Usage = func() {
-		printUsage(fs)
+		printUsage(fs, groupNames)
 	}
 
 	runFlag := &stringFlag{value: baseOptions.runCommand}
@@ -51,7 +53,6 @@ func parseArgs(args []string) (options, []string, error) {
 	fs.Var(portsFlag, "port", "publish a container port (repeatable)")
 
 	groupFlags := make(map[string]*boolFlag, len(baseOptions.groupSpecs))
-	groupNames := sortedGroupNames(baseOptions.groupSpecs)
 	for _, name := range groupNames {
 		value := baseOptions.groupOn[name]
 		flagValue := &boolFlag{value: value}
@@ -109,10 +110,16 @@ func cliConfigFromFlags(runFlag *stringFlag, persistFlag *boolFlag, portsFlag *s
 	return cfg
 }
 
-func printUsage(fs *flag.FlagSet) {
+func printUsage(fs *flag.FlagSet, groupNames []string) {
 	w := fs.Output()
 	fmt.Fprintf(w, "Usage of %s:\n", fs.Name())
-	fs.VisitAll(func(f *flag.Flag) {
+
+	groupSet := make(map[string]struct{}, len(groupNames))
+	for _, name := range groupNames {
+		groupSet[name] = struct{}{}
+	}
+
+	formatFlag := func(f *flag.Flag) {
 		name := "--" + f.Name
 		usage := f.Usage
 		if isBoolFlag(f) {
@@ -123,6 +130,26 @@ func printUsage(fs *flag.FlagSet) {
 			usage = usage + " (default " + f.DefValue + ")"
 		}
 		fmt.Fprintf(w, "  %s\n    \t%s\n", name, usage)
+	}
+
+	fmt.Fprintln(w, "Options:")
+	fs.VisitAll(func(f *flag.Flag) {
+		if _, ok := groupSet[f.Name]; ok {
+			return
+		}
+		formatFlag(f)
+	})
+
+	if len(groupNames) == 0 {
+		return
+	}
+
+	fmt.Fprintln(w, "Groups:")
+	fs.VisitAll(func(f *flag.Flag) {
+		if _, ok := groupSet[f.Name]; !ok {
+			return
+		}
+		formatFlag(f)
 	})
 }
 
