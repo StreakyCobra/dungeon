@@ -27,10 +27,8 @@ type options struct {
 	groupOn    map[string]bool
 	image      string
 	ports      []string
-	network    string
-	name       string
-	remove     bool
-	removeSet  bool
+	cache      []string
+	persist    bool
 	showVersion bool
 	podmanArgs []string
 }

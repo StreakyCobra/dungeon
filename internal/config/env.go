@@ -21,11 +21,8 @@ func LoadFromEnv() (Config, error) {
 	if value, ok := os.LookupEnv(envPrefix + "PORTS"); ok {
 		cfg.Ports = splitEnvList(value)
 	}
-	if value, ok := os.LookupEnv(envPrefix + "NETWORK"); ok {
-		cfg.Network = strings.TrimSpace(value)
-	}
-	if value, ok := os.LookupEnv(envPrefix + "NAME"); ok {
-		cfg.Name = strings.TrimSpace(value)
+	if value, ok := os.LookupEnv(envPrefix + "CACHE"); ok {
+		cfg.Cache = splitEnvList(value)
 	}
 	if value, ok := os.LookupEnv(envPrefix + "PODMAN_ARGS"); ok {
 		cfg.PodmanArgs = splitEnvList(value)
@@ -33,12 +30,12 @@ func LoadFromEnv() (Config, error) {
 	if value, ok := os.LookupEnv(envPrefix + "DEFAULT_GROUPS"); ok {
 		cfg.DefaultGroups = splitEnvList(value)
 	}
-	if value, ok := os.LookupEnv(envPrefix + "RM"); ok {
+	if value, ok := os.LookupEnv(envPrefix + "PERSIST"); ok {
 		parsed, err := strconv.ParseBool(strings.TrimSpace(value))
 		if err != nil {
-			return Config{}, fmt.Errorf(envPrefix+"RM must be a boolean: %w", err)
+			return Config{}, fmt.Errorf(envPrefix+"PERSIST must be a boolean: %w", err)
 		}
-		cfg.Remove = &parsed
+		cfg.Persist = &parsed
 	}
 
 	return cfg, nil

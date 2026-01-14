@@ -19,19 +19,12 @@ func optionsFromConfig(cfg config.Config) (options, error) {
 		groupOn:    groupOn,
 		image:      strings.TrimSpace(cfg.Image),
 		ports:      cfg.Ports,
-		network:    strings.TrimSpace(cfg.Network),
-		name:       strings.TrimSpace(cfg.Name),
+		cache:      cfg.Cache,
 		podmanArgs: cfg.PodmanArgs,
 	}
-	if cfg.Remove == nil {
-		opts.remove = true
-		if opts.name != "" {
-			opts.remove = false
-		}
-	} else {
-		opts.remove = *cfg.Remove
+	if cfg.Persist != nil {
+		opts.persist = *cfg.Persist
 	}
-	opts.removeSet = cfg.Remove != nil
 
 	return opts, nil
 }

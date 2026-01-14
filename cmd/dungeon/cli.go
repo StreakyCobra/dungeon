@@ -44,14 +44,8 @@ func parseArgs(args []string) (options, []string, error) {
 	fs.BoolVar(&resetCache, "reset-cache", false, "delete the dungeon-cache volume before running")
 	fs.BoolVar(&showVersion, "version", false, "print version and exit")
 
-	nameFlag := &stringFlag{value: baseOptions.name}
-	fs.Var(nameFlag, "name", "assign a name to the container")
-
-	networkFlag := &stringFlag{value: baseOptions.network}
-	fs.Var(networkFlag, "network", "set the network mode")
-
-	rmFlag := &boolFlag{value: baseOptions.remove}
-	fs.Var(rmFlag, "rm", "remove the container after exit")
+	persistFlag := &boolFlag{value: baseOptions.persist}
+	fs.Var(persistFlag, "persist", "keep the container after exit")
 
 	portsFlag := &stringSliceFlag{values: append([]string{}, baseOptions.ports...)}
 	fs.Var(portsFlag, "port", "publish a container port (repeatable)")
@@ -69,7 +63,7 @@ func parseArgs(args []string) (options, []string, error) {
 		return options{}, nil, err
 	}
 
-	cliConfig := cliConfigFromFlags(runFlag, nameFlag, networkFlag, rmFlag, portsFlag, groupFlags, groupNames)
+	cliConfig := cliConfigFromFlags(runFlag, persistFlag, portsFlag, groupFlags, groupNames)
 	finalConfig := config.Reduce(baseConfig, cliConfig)
 	finalOptions, err := optionsFromConfig(finalConfig)
 	if err != nil {
@@ -82,23 +76,17 @@ func parseArgs(args []string) (options, []string, error) {
 	return finalOptions, fs.Args(), nil
 }
 
-func cliConfigFromFlags(runFlag, nameFlag, networkFlag *stringFlag, rmFlag *boolFlag, portsFlag *stringSliceFlag, groupFlags map[string]*boolFlag, groupNames []string) config.Config {
+func cliConfigFromFlags(runFlag *stringFlag, persistFlag *boolFlag, portsFlag *stringSliceFlag, groupFlags map[string]*boolFlag, groupNames []string) config.Config {
 	cfg := config.Config{}
 	if runFlag.set {
 		cfg.RunCommand = runFlag.value
 	}
-	if nameFlag.set {
-		cfg.Name = nameFlag.value
-	}
-	if networkFlag.set {
-		cfg.Network = networkFlag.value
-	}
 	if portsFlag.set {
 		cfg.Ports = append([]string{}, portsFlag.values...)
 	}
-	if rmFlag.set {
-		value := rmFlag.value
-		cfg.Remove = &value
+	if persistFlag.set {
+		value := persistFlag.value
+		cfg.Persist = &value
 	}
 
 	hasGroupOverride := false

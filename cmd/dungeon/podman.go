@@ -24,20 +24,19 @@ func buildPodmanCommand(opts options, paths []string) (*exec.Cmd, error) {
 		"-v", "dungeon-cache:" + userHome + "/.npm",
 	}
 
+	cacheSpecs := append([]string{}, opts.cache...)
 	envSpecs := []string{}
+	ports := append([]string{}, opts.ports...)
+	runCommand := strings.TrimSpace(opts.runCommand)
+	image := strings.TrimSpace(opts.image)
+
 	groupNames := sortedGroupNames(opts.groupSpecs)
 	for _, name := range groupNames {
 		if !opts.groupOn[name] {
 			continue
 		}
 		group := opts.groupSpecs[name]
-		for _, target := range group.Cache {
-			cacheTarget, mode, err := parseCacheMountSpec(target)
-			if err != nil {
-				return nil, err
-			}
-			mounts = append(mounts, "-v", "dungeon-cache:"+cacheTarget+mode)
-		}
+		cacheSpecs = append(cacheSpecs, group.Cache...)
 		for _, spec := range group.Mounts {
 			source, target, mode, err := parseHostMountSpec(spec)
 			if err != nil {
@@ -53,7 +52,24 @@ func buildPodmanCommand(opts options, paths []string) (*exec.Cmd, error) {
 			targetPath := containerPath(target)
 			mounts = append(mounts, "-v", hostPath+":"+targetPath+mode)
 		}
-		envSpecs = append(envSpecs, group.Env...)
+		envSpecs = append(envSpecs, group.EnvVars...)
+		if strings.TrimSpace(group.RunCommand) != "" {
+			runCommand = strings.TrimSpace(group.RunCommand)
+		}
+		if strings.TrimSpace(group.Image) != "" {
+			image = strings.TrimSpace(group.Image)
+		}
+		if len(group.Ports) > 0 {
+			ports = append(ports, group.Ports...)
+		}
+	}
+
+	for _, target := range cacheSpecs {
+		cacheTarget, mode, err := parseCacheMountSpec(target)
+		if err != nil {
+			return nil, err
+		}
+		mounts = append(mounts, "-v", "dungeon-cache:"+cacheTarget+mode)
 	}
 
 	envVars, err := buildEnvArgs(envSpecs)
@@ -85,17 +101,11 @@ func buildPodmanCommand(opts options, paths []string) (*exec.Cmd, error) {
 	}
 
 	args := []string{"run", "-it", "--userns=keep-id", "-w", workdir}
-	if opts.remove {
+	if !opts.persist {
 		args = append(args, "--rm")
 	}
-	if opts.name != "" {
-		args = append(args, "--name", opts.name)
-	}
-	if opts.network != "" {
-		args = append(args, "--network", opts.network)
-	}
 	args = append(args, envVars...)
-	for _, port := range opts.ports {
+	for _, port := range ports {
 		trimmed := strings.TrimSpace(port)
 		if trimmed == "" {
 			continue
@@ -104,12 +114,9 @@ func buildPodmanCommand(opts options, paths []string) (*exec.Cmd, error) {
 	}
 	args = append(args, opts.podmanArgs...)
 
-	runCommand := strings.TrimSpace(opts.runCommand)
-
 	args = append(args, mounts...)
-	image := defaultImage
-	if opts.image != "" {
-		image = opts.image
+	if image == "" {
+		image = defaultImage
 	}
 	args = append(args, image)
 

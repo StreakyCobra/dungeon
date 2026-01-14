@@ -17,9 +17,8 @@ func parseConfig(data []byte) (Config, error) {
 		"run":            true,
 		"image":          true,
 		"ports":          true,
-		"network":        true,
-		"name":           true,
-		"rm":             true,
+		"cache":          true,
+		"persist":        true,
 		"podman_args":    true,
 		"default_groups": true,
 		"mount_defaults": true,
@@ -45,24 +44,18 @@ func parseConfig(data []byte) (Config, error) {
 				return Config{}, err
 			}
 			cfg.Ports = values
-		case "network":
-			network, err := parseStringField("network", value)
+		case "cache":
+			values, err := parseStringSliceField("cache", value)
 			if err != nil {
 				return Config{}, err
 			}
-			cfg.Network = network
-		case "name":
-			name, err := parseStringField("name", value)
+			cfg.Cache = values
+		case "persist":
+			persist, err := parseBoolField("persist", value)
 			if err != nil {
 				return Config{}, err
 			}
-			cfg.Name = name
-		case "rm":
-			remove, err := parseBoolField("rm", value)
-			if err != nil {
-				return Config{}, err
-			}
-			cfg.Remove = &remove
+			cfg.Persist = &persist
 		case "podman_args":
 			values, err := parseStringSliceField("podman_args", value)
 			if err != nil {
@@ -133,12 +126,30 @@ func parseGroupConfig(name string, value interface{}) (GroupConfig, error) {
 				return GroupConfig{}, err
 			}
 			group.Cache = values
-		case "env":
-			values, err := parseStringSliceField(name+".env", value)
+		case "envvar":
+			values, err := parseStringSliceField(name+".envvar", value)
 			if err != nil {
 				return GroupConfig{}, err
 			}
-			group.Env = values
+			group.EnvVars = values
+		case "run":
+			run, err := parseStringField(name+".run", value)
+			if err != nil {
+				return GroupConfig{}, err
+			}
+			group.RunCommand = run
+		case "image":
+			image, err := parseStringField(name+".image", value)
+			if err != nil {
+				return GroupConfig{}, err
+			}
+			group.Image = image
+		case "ports":
+			values, err := parseStringSliceField(name+".ports", value)
+			if err != nil {
+				return GroupConfig{}, err
+			}
+			group.Ports = values
 		default:
 			return GroupConfig{}, fmt.Errorf("group %q has unknown key %q", name, key)
 		}

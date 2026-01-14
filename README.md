@@ -99,9 +99,7 @@ Options:
 - `--run` runs a command inside the container.
 - `--reset-cache` deletes the `dungeon-cache` volume before running.
 - `--port` publishes a container port (repeatable).
-- `--network` sets the container network mode.
-- `--name` assigns a container name and disables `--rm` unless explicitly set.
-- `--rm` removes the container after exit (default true unless `--name` is set).
+- `--persist` keeps the container after exit.
 - Groups defined in config become flags (example: `--codex`, `--obsidian`).
 
 ## Config file
@@ -109,22 +107,22 @@ Options:
 Defaults live in `internal/config/defaults.toml` and are embedded at build time.
 User config overrides them at `~/.config/dungeon/config.toml` (or `$XDG_CONFIG_HOME/dungeon/config.toml`).
 Precedence is defaults < config < environment < CLI flags.
-Only provided values override earlier sources; groups replace entirely when set.
+Only provided values override earlier sources; groups merge by name.
 Environment overrides use:
-- `DUNGEON_RUN`, `DUNGEON_IMAGE`, `DUNGEON_NETWORK`, `DUNGEON_NAME`
+- `DUNGEON_RUN`, `DUNGEON_IMAGE`
 - `DUNGEON_PORTS` (comma-separated)
+- `DUNGEON_CACHE` (comma-separated)
 - `DUNGEON_PODMAN_ARGS` (comma-separated)
 - `DUNGEON_DEFAULT_GROUPS` (comma-separated)
-- `DUNGEON_RM` (true/false)
+- `DUNGEON_PERSIST` (true/false)
 
 Example:
 ```
 run = "codex"
 image = "localhost/dungeon"
 ports = ["127.0.0.1:8888:8888"]
-network = "host"
-name = "dungeon-dev"
-rm = false
+cache = [".cache/pip:rw"]
+persist = true
 podman_args = ["--cap-add=SYS_PTRACE"]
 default_groups = ["codex"]
 
@@ -135,8 +133,9 @@ mounts = ["~/.codex:/home/dungeon/.codex:rw"]
 mounts = ["~/my_vault:/home/dungeon/obsidian:ro"]
 
 [python]
-cache = ["/var/cache/pacman/pkg", ".cache/pip:rw"]
-env = ["OPENAPI_KEY"]
+cache = ["/var/cache/pacman/pkg"]
+envvar = ["OPENAPI_KEY"]
+ports = ["127.0.0.1:8000:8000"]
 ```
 
 Group behavior:
@@ -145,15 +144,15 @@ Group behavior:
 - `default_groups` lists groups enabled by default.
 - `mounts` entries use `source:target[:ro|rw]`.
 - `cache` entries use `target[:ro|rw]` from the `dungeon-cache` volume.
-- `env` entries support `NAME=VALUE` for static values or `NAME` to pass through the host value.
+- `envvar` entries support `NAME=VALUE` for static values or `NAME` to pass through the host value.
+- `run`, `image`, and `ports` override or add to the base settings when enabled.
 - `source` may be absolute, `~/...`, or relative to `$HOME`; `target` may be absolute or relative to `/home/dungeon`.
 
 Run behavior:
 - `image` overrides the container image (default `localhost/dungeon`).
 - `ports` adds `-p` rules (repeatable).
-- `network` sets the network mode.
-- `name` sets the container name.
-- `rm` toggles `--rm` (default true unless `name` is set).
+- `cache` adds `dungeon-cache` volume mounts.
+- `persist` toggles `--rm` (default false).
 - `podman_args` appends extra `podman run` args.
 
 ## Notes

@@ -8,14 +8,11 @@ func Merge(base, override Config) Config {
 	if override.Image != "" {
 		merged.Image = override.Image
 	}
-	if override.Network != "" {
-		merged.Network = override.Network
-	}
-	if override.Name != "" {
-		merged.Name = override.Name
-	}
 	if override.Ports != nil {
 		merged.Ports = append([]string{}, override.Ports...)
+	}
+	if override.Cache != nil {
+		merged.Cache = append([]string{}, override.Cache...)
 	}
 	if override.PodmanArgs != nil {
 		merged.PodmanArgs = append([]string{}, override.PodmanArgs...)
@@ -23,9 +20,9 @@ func Merge(base, override Config) Config {
 	if override.DefaultGroups != nil {
 		merged.DefaultGroups = append([]string{}, override.DefaultGroups...)
 	}
-	if override.Remove != nil {
-		value := *override.Remove
-		merged.Remove = &value
+	if override.Persist != nil {
+		value := *override.Persist
+		merged.Persist = &value
 	}
 	if override.Groups != nil {
 		groups := cloneGroupMap(merged.Groups)
