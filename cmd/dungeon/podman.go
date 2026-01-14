@@ -116,7 +116,7 @@ func buildPodmanCommand(opts options, paths []string) (*exec.Cmd, error) {
 	if runCommand == "" {
 		args = append(args, "bash")
 	} else {
-		args = append(args, "bash", "-lc", runCommand)
+		args = append(args, "bash", "-ic", runCommand)
 	}
 
 	return exec.Command("podman", args...), nil
