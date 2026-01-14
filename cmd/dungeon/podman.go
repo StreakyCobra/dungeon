@@ -105,11 +105,6 @@ func buildPodmanCommand(opts options, paths []string) (*exec.Cmd, error) {
 	args = append(args, opts.podmanArgs...)
 
 	runCommand := strings.TrimSpace(opts.runCommand)
-	if strings.HasPrefix(runCommand, "marimo") {
-		port := randomHighPort()
-		runCommand = runCommand + " --port " + fmt.Sprint(port)
-		args = append(args, "-p", fmt.Sprintf("127.0.0.1:%d:%d", port, port))
-	}
 
 	args = append(args, mounts...)
 	image := defaultImage

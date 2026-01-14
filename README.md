@@ -30,10 +30,10 @@ Configure the use of Codex within the sandbox:
 dungeon --codex
 ```
 
-Run a command inside the container:
+Run directly a command inside the container:
 
 ```shell
-dungeon --marimo --run "marimo edit"
+dungeon --codex --run codex
 ```
 
 ## Why it is simpler
@@ -59,7 +59,7 @@ dungeon --codex
 It gets even easier when a composition of tools is desired:
 
 ```shell
-dungeon --codex --marimo
+dungeon --codex --opencode
 ```
 
 ## Images
@@ -112,7 +112,7 @@ Precedence is defaults < config < environment < CLI flags.
 
 Example:
 ```
-run = "marimo edit"
+run = "codex"
 image = "localhost/dungeon"
 ports = ["127.0.0.1:8888:8888"]
 network = "host"
@@ -140,7 +140,6 @@ Group behavior:
 - `cache` entries use `target[:ro|rw]` from the `dungeon-cache` volume.
 - `env` entries support `NAME=VALUE` for static values or `NAME` to pass through the host value.
 - `source` may be absolute, `~/...`, or relative to `$HOME`; `target` may be absolute or relative to `/home/dungeon`.
-- Built-in groups include `codex` and `marimo` (override them by redefining `[codex]` or `[marimo]`).
 
 Run behavior:
 - `image` overrides the container image (default `localhost/dungeon`).

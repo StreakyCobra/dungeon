@@ -30,10 +30,6 @@ RUN git config --global user.name "dungeon" && \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
     && rm -rf /home/dungeon/.cache
 
-# Install marimo
-RUN /home/dungeon/.local/bin/uv tool install marimo \
-    && rm -rf /home/dungeon/.cache
-
 # Setup node
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
 RUN export NVM_DIR="$HOME/.nvm" \
