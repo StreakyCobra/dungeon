@@ -13,13 +13,13 @@ type Settings struct {
 	Ports []string `toml:"ports"`
 
 	// The list of cache volume definitions.
-	Cache []string `toml:"cache"`
+	Cache []string `toml:"caches"`
 
 	// The list of volume bindings.
 	Mounts []string `toml:"mounts"`
 
 	// The list of environment variables.
-	EnvVars []string `toml:"envvar"`
+	EnvVars []string `toml:"envs"`
 
 	// Additional podman CLI args.
 	PodmanArgs []string `toml:"podman_args"`

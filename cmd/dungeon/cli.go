@@ -72,7 +72,7 @@ func parseArgs(args []string) (options, []string, error) {
 			"port":       {},
 			"cache":      {},
 			"mount":      {},
-			"envvar":     {},
+			"env":        {},
 			"podman-arg": {},
 		},
 		groups: map[string]struct{}{},
@@ -108,13 +108,13 @@ func parseArgs(args []string) (options, []string, error) {
 	fs.Var(portsFlag, "port", "publish a container port (repeatable)")
 
 	cacheFlag := &stringSliceFlag{values: append([]string{}, baseOptions.cache...)}
-	fs.Var(cacheFlag, "cache", "mount a cache volume target (repeatable)")
+	fs.Var(cacheFlag, "cache", "mount cache volume targets (repeatable)")
 
 	mountsFlag := &stringSliceFlag{values: append([]string{}, baseOptions.mounts...)}
 	fs.Var(mountsFlag, "mount", "bind-mount a host path (repeatable)")
 
 	envVarFlag := &stringSliceFlag{values: append([]string{}, baseOptions.envVars...)}
-	fs.Var(envVarFlag, "envvar", "add a container env var (repeatable)")
+	fs.Var(envVarFlag, "env", "add container env vars (repeatable)")
 
 	podmanArgsFlag := &stringSliceFlag{values: append([]string{}, baseOptions.podmanArgs...)}
 	fs.Var(podmanArgsFlag, "podman-arg", "append a podman run arg (repeatable)")

@@ -19,13 +19,13 @@ func LoadFromEnv() (Config, error) {
 	if value, ok := os.LookupEnv(envPrefix + "PORTS"); ok {
 		cfg.Ports = splitEnvList(value)
 	}
-	if value, ok := os.LookupEnv(envPrefix + "CACHE"); ok {
+	if value, ok := os.LookupEnv(envPrefix + "CACHES"); ok {
 		cfg.Cache = splitEnvList(value)
 	}
 	if value, ok := os.LookupEnv(envPrefix + "MOUNTS"); ok {
 		cfg.Mounts = splitEnvList(value)
 	}
-	if value, ok := os.LookupEnv(envPrefix + "ENVVAR"); ok {
+	if value, ok := os.LookupEnv(envPrefix + "ENVS"); ok {
 		cfg.EnvVars = splitEnvList(value)
 	}
 	if value, ok := os.LookupEnv(envPrefix + "PODMAN_ARGS"); ok {

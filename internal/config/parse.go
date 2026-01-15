@@ -17,9 +17,9 @@ func parseConfig(data []byte) (Config, error) {
 		"run":            true,
 		"image":          true,
 		"ports":          true,
-		"cache":          true,
+		"caches":         true,
 		"mounts":         true,
-		"envvar":         true,
+		"envs":           true,
 		"podman_args":    true,
 		"default_groups": true,
 	}
@@ -44,8 +44,8 @@ func parseConfig(data []byte) (Config, error) {
 				return Config{}, err
 			}
 			cfg.Ports = values
-		case "cache":
-			values, err := parseStringSliceField("cache", value)
+		case "caches":
+			values, err := parseStringSliceField("caches", value)
 			if err != nil {
 				return Config{}, err
 			}
@@ -56,8 +56,8 @@ func parseConfig(data []byte) (Config, error) {
 				return Config{}, err
 			}
 			cfg.Mounts = values
-		case "envvar":
-			values, err := parseStringSliceField("envvar", value)
+		case "envs":
+			values, err := parseStringSliceField("envs", value)
 			if err != nil {
 				return Config{}, err
 			}
@@ -122,14 +122,14 @@ func parseGroupConfig(name string, value interface{}) (GroupConfig, error) {
 				return GroupConfig{}, err
 			}
 			group.Mounts = values
-		case "cache":
-			values, err := parseStringSliceField(name+".cache", value)
+		case "caches":
+			values, err := parseStringSliceField(name+".caches", value)
 			if err != nil {
 				return GroupConfig{}, err
 			}
 			group.Cache = values
-		case "envvar":
-			values, err := parseStringSliceField(name+".envvar", value)
+		case "envs":
+			values, err := parseStringSliceField(name+".envs", value)
 			if err != nil {
 				return GroupConfig{}, err
 			}

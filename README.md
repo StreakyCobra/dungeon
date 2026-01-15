@@ -107,9 +107,9 @@ Configuration:
 - `--run` runs a command inside the container.
 - `--image` selects the container image.
 - `--port` publishes a container port (repeatable).
-- `--cache` mounts a cache volume target (repeatable).
+- `--cache` mounts cache volume targets (repeatable).
 - `--mount` bind-mounts a host path (repeatable).
-- `--envvar` adds a container environment variable (repeatable).
+- `--env` adds container environment variables (repeatable).
 - `--podman-arg` appends a `podman run` argument (repeatable).
 
 Groups defined in config become flags (example: `--codex`, `--obsidian`).
@@ -130,9 +130,9 @@ Groups defined in config replace defaults, and an empty table removes a default 
 Environment overrides use:
 - `DUNGEON_RUN`, `DUNGEON_IMAGE`
 - `DUNGEON_PORTS` (comma-separated)
-- `DUNGEON_CACHE` (comma-separated)
+- `DUNGEON_CACHES` (comma-separated)
 - `DUNGEON_MOUNTS` (comma-separated)
-- `DUNGEON_ENVVAR` (comma-separated)
+- `DUNGEON_ENVS` (comma-separated)
 - `DUNGEON_PODMAN_ARGS` (comma-separated)
 - `DUNGEON_DEFAULT_GROUPS` (comma-separated)
 
@@ -141,9 +141,9 @@ Example:
 run = "codex"
 image = "localhost/dungeon"
 ports = ["127.0.0.1:8888:8888"]
-cache = [".cache/pip:rw"]
+caches = [".cache/pip:rw"]
 mounts = ["~/projects:/home/dungeon/projects:rw"]
-envvar = ["OPENAI_API_KEY"]
+envs = ["OPENAI_API_KEY"]
 podman_args = ["--cap-add=SYS_PTRACE"]
 default_groups = ["codex"]
 
@@ -154,8 +154,8 @@ mounts = ["~/.codex:/home/dungeon/.codex:rw"]
 mounts = ["~/my_vault:/home/dungeon/obsidian:ro"]
 
 [python]
-cache = ["/var/cache/pacman/pkg"]
-envvar = ["OPENAPI_KEY"]
+caches = ["/var/cache/pacman/pkg"]
+envs = ["OPENAPI_KEY"]
 ports = ["127.0.0.1:8000:8000"]
 ```
 
@@ -165,9 +165,9 @@ Group behavior:
 - `default_groups` lists groups enabled by default, in order.
 - An empty group table removes a default group of the same name.
 - `mounts` entries use `source:target[:ro|rw]`.
-- `cache` entries use `target[:ro|rw]` from the `dungeon-cache` volume.
-- `envvar` entries support `NAME=VALUE` for static values or `NAME` to pass through the host value.
-- `mounts`, `cache`, `envvar`, `ports`, and `podman_args` extend the base settings when enabled.
+- `caches` entries use `target[:ro|rw]` from the `dungeon-cache` volume.
+- `envs` entries support `NAME=VALUE` for static values or `NAME` to pass through the host value.
+- `mounts`, `caches`, `envs`, `ports`, and `podman_args` extend the base settings when enabled.
 - `run` and `image` use the last enabled group when multiple are set.
 - Group settings apply before top-level config, env vars, and CLI overrides.
 - `source` may be absolute, `~/...`, or relative to `$HOME`; `target` may be absolute or relative to `/home/dungeon`.
@@ -175,9 +175,9 @@ Group behavior:
 Run behavior:
 - `image` overrides the container image (default `localhost/dungeon`).
 - `ports` adds `-p` rules (repeatable).
-- `cache` adds `dungeon-cache` volume mounts.
+- `caches` adds `dungeon-cache` volume mounts.
 - `mounts` adds bind mounts from the host.
-- `envvar` adds `--env` entries.
+- `envs` adds `--env` entries.
 - `podman_args` appends extra `podman run` args.
 
 ## Notes
