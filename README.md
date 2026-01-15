@@ -99,6 +99,9 @@ Options:
 - `--help` shows the help message.
 - `--version` prints the version.
 - `--reset-cache` deletes the `dungeon-cache` volume before running.
+- `--persist` creates or reuses a persisted container.
+- `--persisted` reuses the persisted container (no extra config/group/path args).
+- `--discard` removes the persisted container.
 
 Configuration:
 - `--run` runs a command inside the container.
@@ -108,9 +111,14 @@ Configuration:
 - `--mount` bind-mounts a host path (repeatable).
 - `--envvar` adds a container environment variable (repeatable).
 - `--podman-arg` appends a `podman run` argument (repeatable).
-- `--persist` keeps the container after exit.
 
 Groups defined in config become flags (example: `--codex`, `--obsidian`).
+
+Persistence:
+- `--persist` creates a named container and keeps it for reuse.
+- `--persisted` starts the named container if stopped and opens a shell.
+- `--discard` removes the named container.
+- Names are based on the current folder and a hash of the path.
 
 ## Config file
 
@@ -127,7 +135,6 @@ Environment overrides use:
 - `DUNGEON_ENVVAR` (comma-separated)
 - `DUNGEON_PODMAN_ARGS` (comma-separated)
 - `DUNGEON_DEFAULT_GROUPS` (comma-separated)
-- `DUNGEON_PERSIST` (true/false)
 
 Example:
 ```
@@ -137,7 +144,6 @@ ports = ["127.0.0.1:8888:8888"]
 cache = [".cache/pip:rw"]
 mounts = ["~/projects:/home/dungeon/projects:rw"]
 envvar = ["OPENAI_API_KEY"]
-persist = true
 podman_args = ["--cap-add=SYS_PTRACE"]
 default_groups = ["codex"]
 
@@ -162,7 +168,7 @@ Group behavior:
 - `cache` entries use `target[:ro|rw]` from the `dungeon-cache` volume.
 - `envvar` entries support `NAME=VALUE` for static values or `NAME` to pass through the host value.
 - `mounts`, `cache`, `envvar`, `ports`, and `podman_args` extend the base settings when enabled.
-- `run`, `image`, and `persist` use the last enabled group when multiple are set.
+- `run` and `image` use the last enabled group when multiple are set.
 - Group settings apply before top-level config, env vars, and CLI overrides.
 - `source` may be absolute, `~/...`, or relative to `$HOME`; `target` may be absolute or relative to `/home/dungeon`.
 
@@ -172,7 +178,6 @@ Run behavior:
 - `cache` adds `dungeon-cache` volume mounts.
 - `mounts` adds bind mounts from the host.
 - `envvar` adds `--env` entries.
-- `persist` toggles `--rm` (default false).
 - `podman_args` appends extra `podman run` args.
 
 ## Notes

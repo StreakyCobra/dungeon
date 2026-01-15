@@ -23,9 +23,6 @@ type Settings struct {
 
 	// Additional podman CLI args.
 	PodmanArgs []string `toml:"podman_args"`
-
-	// Whether to persist the container after exit.
-	Persist *bool `toml:"persist"`
 }
 
 // Config captures the parsed configuration from defaults and user files.

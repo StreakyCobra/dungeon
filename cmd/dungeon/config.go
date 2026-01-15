@@ -17,9 +17,6 @@ func optionsFromSettings(settings config.Settings) options {
 		envVars:    settings.EnvVars,
 		podmanArgs: settings.PodmanArgs,
 	}
-	if settings.Persist != nil {
-		opts.persist = *settings.Persist
-	}
 
 	return opts
 }

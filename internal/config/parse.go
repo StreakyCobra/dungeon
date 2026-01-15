@@ -20,7 +20,6 @@ func parseConfig(data []byte) (Config, error) {
 		"cache":          true,
 		"mounts":         true,
 		"envvar":         true,
-		"persist":        true,
 		"podman_args":    true,
 		"default_groups": true,
 	}
@@ -63,12 +62,6 @@ func parseConfig(data []byte) (Config, error) {
 				return Config{}, err
 			}
 			cfg.EnvVars = values
-		case "persist":
-			persist, err := parseBoolField("persist", value)
-			if err != nil {
-				return Config{}, err
-			}
-			cfg.Persist = &persist
 		case "podman_args":
 			values, err := parseStringSliceField("podman_args", value)
 			if err != nil {
@@ -165,12 +158,6 @@ func parseGroupConfig(name string, value interface{}) (GroupConfig, error) {
 				return GroupConfig{}, err
 			}
 			group.PodmanArgs = values
-		case "persist":
-			persist, err := parseBoolField(name+".persist", value)
-			if err != nil {
-				return GroupConfig{}, err
-			}
-			group.Persist = &persist
 		default:
 			return GroupConfig{}, fmt.Errorf("group %q has unknown key %q", name, key)
 		}

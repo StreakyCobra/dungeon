@@ -83,8 +83,11 @@ func buildPodmanCommand(opts options, paths []string) (*exec.Cmd, error) {
 	}
 
 	args := []string{"run", "-it", "--userns=keep-id", "-w", workdir}
-	if !opts.persist {
+	if !opts.keepContainer {
 		args = append(args, "--rm")
+	}
+	if opts.containerName != "" {
+		args = append(args, "--name", opts.containerName)
 	}
 	args = append(args, envVars...)
 	for _, port := range ports {

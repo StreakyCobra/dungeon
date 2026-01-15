@@ -23,10 +23,6 @@ func MergeSettings(base, override Settings) Settings {
 	if override.PodmanArgs != nil {
 		merged.PodmanArgs = appendStrings(base.PodmanArgs, override.PodmanArgs)
 	}
-	if override.Persist != nil {
-		value := *override.Persist
-		merged.Persist = &value
-	}
 
 	return merged
 }

@@ -59,9 +59,12 @@ func parseArgs(args []string) (options, []string, error) {
 
 	sections := usageSections{
 		options: map[string]struct{}{
-			"help":        {},
+			"help":       {},
 			"reset-cache": {},
-			"version":     {},
+			"version":    {},
+			"persist":    {},
+			"persisted":  {},
+			"discard":    {},
 		},
 		config: map[string]struct{}{
 			"run":        {},
@@ -70,7 +73,6 @@ func parseArgs(args []string) (options, []string, error) {
 			"cache":      {},
 			"mount":      {},
 			"envvar":     {},
-			"persist":    {},
 			"podman-arg": {},
 		},
 		groups: map[string]struct{}{},
@@ -86,18 +88,21 @@ func parseArgs(args []string) (options, []string, error) {
 	var showHelp bool
 	var resetCache bool
 	var showVersion bool
+	var persistContainer bool
+	var persistedContainer bool
+	var discardContainer bool
 	fs.BoolVar(&showHelp, "help", false, "show help and exit")
 	fs.BoolVar(&resetCache, "reset-cache", false, "delete the dungeon-cache volume before running")
 	fs.BoolVar(&showVersion, "version", false, "print version and exit")
+	fs.BoolVar(&persistContainer, "persist", false, "create or reuse a persisted container")
+	fs.BoolVar(&persistedContainer, "persisted", false, "reuse the persisted container")
+	fs.BoolVar(&discardContainer, "discard", false, "remove the persisted container")
 
 	runFlag := &stringFlag{value: baseOptions.runCommand}
 	fs.Var(runFlag, "run", "run a command inside the container")
 
 	imageFlag := &stringFlag{value: baseOptions.image}
 	fs.Var(imageFlag, "image", "container image to run")
-
-	persistFlag := &boolFlag{value: baseOptions.persist}
-	fs.Var(persistFlag, "persist", "keep the container after exit")
 
 	portsFlag := &stringSliceFlag{values: append([]string{}, baseOptions.ports...)}
 	fs.Var(portsFlag, "port", "publish a container port (repeatable)")
@@ -132,7 +137,27 @@ func parseArgs(args []string) (options, []string, error) {
 		return options{}, nil, flag.ErrHelp
 	}
 
-	cliSettings := cliSettingsFromFlags(runFlag, imageFlag, persistFlag, portsFlag, cacheFlag, mountsFlag, envVarFlag, podmanArgsFlag)
+	persistMode, err := resolvePersistMode(persistContainer, persistedContainer, discardContainer)
+	if err != nil {
+		return options{}, nil, err
+	}
+
+	configOverrides := runFlag.set || imageFlag.set || portsFlag.set || cacheFlag.set || mountsFlag.set || envVarFlag.set || podmanArgsFlag.set
+	groupOverrides := hasGroupOverrides(groupFlags)
+	paths := fs.Args()
+
+	if persistMode == persistReuse || persistMode == persistDiscard {
+		if configOverrides || groupOverrides || len(paths) > 0 {
+			return options{}, nil, fmt.Errorf("ERROR: --persisted and --discard do not accept config, group, or path arguments")
+		}
+		name, err := persistedContainerName(nil)
+		if err != nil {
+			return options{}, nil, err
+		}
+		return options{resetCache: resetCache, showVersion: showVersion, persistMode: persistMode, containerName: name}, nil, nil
+	}
+
+	cliSettings := cliSettingsFromFlags(runFlag, imageFlag, portsFlag, cacheFlag, mountsFlag, envVarFlag, podmanArgsFlag)
 	groupOrder := resolveGroupOrder(defaultGroupOrder, groupFlags)
 
 	finalSettings, err := config.ResolveSettings(config.Sources{Defaults: defaultsConfig, File: fileConfig, Env: envConfig, CLI: cliSettings}, groupDefs, groupOrder)
@@ -142,11 +167,20 @@ func parseArgs(args []string) (options, []string, error) {
 	finalOptions := optionsFromSettings(finalSettings)
 	finalOptions.resetCache = resetCache
 	finalOptions.showVersion = showVersion
+	finalOptions.persistMode = persistMode
+	if persistMode == persistCreate {
+		name, err := persistedContainerName(paths)
+		if err != nil {
+			return options{}, nil, err
+		}
+		finalOptions.containerName = name
+		finalOptions.keepContainer = true
+	}
 
-	return finalOptions, fs.Args(), nil
+	return finalOptions, paths, nil
 }
 
-func cliSettingsFromFlags(runFlag *stringFlag, imageFlag *stringFlag, persistFlag *boolFlag, portsFlag *stringSliceFlag, cacheFlag *stringSliceFlag, mountsFlag *stringSliceFlag, envVarFlag *stringSliceFlag, podmanArgsFlag *stringSliceFlag) config.Settings {
+func cliSettingsFromFlags(runFlag *stringFlag, imageFlag *stringFlag, portsFlag *stringSliceFlag, cacheFlag *stringSliceFlag, mountsFlag *stringSliceFlag, envVarFlag *stringSliceFlag, podmanArgsFlag *stringSliceFlag) config.Settings {
 	cfg := config.Settings{}
 	if runFlag.set {
 		cfg.RunCommand = runFlag.value
@@ -168,10 +202,6 @@ func cliSettingsFromFlags(runFlag *stringFlag, imageFlag *stringFlag, persistFla
 	}
 	if podmanArgsFlag.set {
 		cfg.PodmanArgs = append([]string{}, podmanArgsFlag.values...)
-	}
-	if persistFlag.set {
-		value := persistFlag.value
-		cfg.Persist = &value
 	}
 
 	return cfg
@@ -208,6 +238,41 @@ func resolveGroupOrder(defaultGroups []string, groupFlags map[string]*boolFlag) 
 		order = append(order, item.name)
 	}
 	return order
+}
+
+func resolvePersistMode(persistContainer bool, persistedContainer bool, discardContainer bool) (persistMode, error) {
+	total := 0
+	if persistContainer {
+		total++
+	}
+	if persistedContainer {
+		total++
+	}
+	if discardContainer {
+		total++
+	}
+	if total > 1 {
+		return persistNone, fmt.Errorf("ERROR: --persist, --persisted, and --discard are mutually exclusive")
+	}
+	if discardContainer {
+		return persistDiscard, nil
+	}
+	if persistedContainer {
+		return persistReuse, nil
+	}
+	if persistContainer {
+		return persistCreate, nil
+	}
+	return persistNone, nil
+}
+
+func hasGroupOverrides(groupFlags map[string]*boolFlag) bool {
+	for _, flagValue := range groupFlags {
+		if flagValue.set {
+			return true
+		}
+	}
+	return false
 }
 
 func printUsage(fs *flag.FlagSet, sections usageSections) {

@@ -1,9 +1,7 @@
 package config
 
 import (
-	"fmt"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -35,13 +33,6 @@ func LoadFromEnv() (Config, error) {
 	}
 	if value, ok := os.LookupEnv(envPrefix + "DEFAULT_GROUPS"); ok {
 		cfg.DefaultGroups = splitEnvList(value)
-	}
-	if value, ok := os.LookupEnv(envPrefix + "PERSIST"); ok {
-		parsed, err := strconv.ParseBool(strings.TrimSpace(value))
-		if err != nil {
-			return Config{}, fmt.Errorf(envPrefix+"PERSIST must be a boolean: %w", err)
-		}
-		cfg.Persist = &parsed
 	}
 
 	return cfg, nil
