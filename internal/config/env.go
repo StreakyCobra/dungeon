@@ -24,6 +24,12 @@ func LoadFromEnv() (Config, error) {
 	if value, ok := os.LookupEnv(envPrefix + "CACHE"); ok {
 		cfg.Cache = splitEnvList(value)
 	}
+	if value, ok := os.LookupEnv(envPrefix + "MOUNTS"); ok {
+		cfg.Mounts = splitEnvList(value)
+	}
+	if value, ok := os.LookupEnv(envPrefix + "ENVVAR"); ok {
+		cfg.EnvVars = splitEnvList(value)
+	}
 	if value, ok := os.LookupEnv(envPrefix + "PODMAN_ARGS"); ok {
 		cfg.PodmanArgs = splitEnvList(value)
 	}

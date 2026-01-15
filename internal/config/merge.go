@@ -1,6 +1,6 @@
 package config
 
-func Merge(base, override Config) Config {
+func MergeSettings(base, override Settings) Settings {
 	merged := base
 	if override.RunCommand != "" {
 		merged.RunCommand = override.RunCommand
@@ -9,36 +9,39 @@ func Merge(base, override Config) Config {
 		merged.Image = override.Image
 	}
 	if override.Ports != nil {
-		merged.Ports = append([]string{}, override.Ports...)
+		merged.Ports = appendStrings(base.Ports, override.Ports)
 	}
 	if override.Cache != nil {
-		merged.Cache = append([]string{}, override.Cache...)
+		merged.Cache = appendStrings(base.Cache, override.Cache)
+	}
+	if override.Mounts != nil {
+		merged.Mounts = appendStrings(base.Mounts, override.Mounts)
+	}
+	if override.EnvVars != nil {
+		merged.EnvVars = appendStrings(base.EnvVars, override.EnvVars)
 	}
 	if override.PodmanArgs != nil {
-		merged.PodmanArgs = append([]string{}, override.PodmanArgs...)
-	}
-	if override.DefaultGroups != nil {
-		merged.DefaultGroups = append([]string{}, override.DefaultGroups...)
+		merged.PodmanArgs = appendStrings(base.PodmanArgs, override.PodmanArgs)
 	}
 	if override.Persist != nil {
 		value := *override.Persist
 		merged.Persist = &value
 	}
-	if override.Groups != nil {
-		groups := cloneGroupMap(merged.Groups)
-		for name, group := range override.Groups {
-			groups[name] = group
-		}
-		merged.Groups = groups
-	}
 
 	return merged
 }
 
-func Reduce(configs ...Config) Config {
-	merged := Config{}
-	for _, cfg := range configs {
-		merged = Merge(merged, cfg)
+func MergeDefaultGroups(base []string, override []string) []string {
+	if override == nil {
+		return base
 	}
-	return merged
+	return appendStrings(nil, override)
+}
+
+func appendStrings(base []string, extra []string) []string {
+	if base == nil && extra == nil {
+		return nil
+	}
+	merged := append([]string{}, base...)
+	return append(merged, extra...)
 }

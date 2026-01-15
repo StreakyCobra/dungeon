@@ -25,43 +25,25 @@ func buildPodmanCommand(opts options, paths []string) (*exec.Cmd, error) {
 	}
 
 	cacheSpecs := append([]string{}, opts.cache...)
-	envSpecs := []string{}
+	envSpecs := append([]string{}, opts.envVars...)
 	ports := append([]string{}, opts.ports...)
 	runCommand := strings.TrimSpace(opts.runCommand)
 	image := strings.TrimSpace(opts.image)
 
-	groupNames := sortedGroupNames(opts.groupSpecs)
-	for _, name := range groupNames {
-		if !opts.groupOn[name] {
-			continue
+	for _, spec := range opts.mounts {
+		source, target, mode, err := parseHostMountSpec(spec)
+		if err != nil {
+			return nil, err
 		}
-		group := opts.groupSpecs[name]
-		cacheSpecs = append(cacheSpecs, group.Cache...)
-		for _, spec := range group.Mounts {
-			source, target, mode, err := parseHostMountSpec(spec)
-			if err != nil {
-				return nil, err
-			}
-			hostPath, err := resolveHostPath(home, source)
-			if err != nil {
-				return nil, err
-			}
-			if _, err := os.Stat(hostPath); err != nil {
-				return nil, fmt.Errorf("ERROR: mount source '%s' does not exist", hostPath)
-			}
-			targetPath := containerPath(target)
-			mounts = append(mounts, "-v", hostPath+":"+targetPath+mode)
+		hostPath, err := resolveHostPath(home, source)
+		if err != nil {
+			return nil, err
 		}
-		envSpecs = append(envSpecs, group.EnvVars...)
-		if strings.TrimSpace(group.RunCommand) != "" {
-			runCommand = strings.TrimSpace(group.RunCommand)
+		if _, err := os.Stat(hostPath); err != nil {
+			return nil, fmt.Errorf("ERROR: mount source '%s' does not exist", hostPath)
 		}
-		if strings.TrimSpace(group.Image) != "" {
-			image = strings.TrimSpace(group.Image)
-		}
-		if len(group.Ports) > 0 {
-			ports = append(ports, group.Ports...)
-		}
+		targetPath := containerPath(target)
+		mounts = append(mounts, "-v", hostPath+":"+targetPath+mode)
 	}
 
 	for _, target := range cacheSpecs {
@@ -127,4 +109,16 @@ func buildPodmanCommand(opts options, paths []string) (*exec.Cmd, error) {
 	}
 
 	return exec.Command("podman", args...), nil
+}
+
+func sameDir(a, b string) bool {
+	ap, err := filepath.Abs(a)
+	if err != nil {
+		return false
+	}
+	bp, err := filepath.Abs(b)
+	if err != nil {
+		return false
+	}
+	return ap == bp
 }

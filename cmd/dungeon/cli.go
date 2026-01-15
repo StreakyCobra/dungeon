@@ -4,11 +4,18 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/StreakyCobra/dungeon/internal/config"
 )
+
+type usageSections struct {
+	options map[string]struct{}
+	config  map[string]struct{}
+	groups  map[string]struct{}
+}
 
 func parseArgs(args []string) (options, []string, error) {
 	defaultsConfig, err := config.LoadDefaults()
@@ -24,27 +31,70 @@ func parseArgs(args []string) (options, []string, error) {
 		return options{}, nil, err
 	}
 
-	baseConfig := config.Reduce(defaultsConfig, fileConfig, envConfig)
-	baseOptions, err := optionsFromConfig(baseConfig)
+	groupDefs, err := config.MergeGroupDefinitions(defaultsConfig.Groups, fileConfig.Groups)
 	if err != nil {
 		return options{}, nil, err
 	}
 
-	groupNames := sortedGroupNames(baseOptions.groupSpecs)
+	defaultGroups := config.ResolveDefaultGroups(defaultsConfig, fileConfig, envConfig)
+	defaultGroupOrder, err := config.NormalizeGroupOrder(defaultGroups)
+	if err != nil {
+		return options{}, nil, err
+	}
+	groupEnabled, err := config.BuildGroupSelection(groupDefs, defaultGroupOrder)
+	if err != nil {
+		return options{}, nil, err
+	}
+
+	baseSettings, err := config.ResolveSettings(config.Sources{Defaults: defaultsConfig, File: fileConfig, Env: envConfig}, groupDefs, defaultGroupOrder)
+	if err != nil {
+		return options{}, nil, err
+	}
+	baseOptions := optionsFromSettings(baseSettings)
+
+	groupNames := sortedGroupNames(groupDefs)
 
 	fs := flag.NewFlagSet("dungeon", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
-	fs.Usage = func() {
-		printUsage(fs, groupNames)
+
+	sections := usageSections{
+		options: map[string]struct{}{
+			"help":        {},
+			"reset-cache": {},
+			"version":     {},
+		},
+		config: map[string]struct{}{
+			"run":        {},
+			"image":      {},
+			"port":       {},
+			"cache":      {},
+			"mount":      {},
+			"envvar":     {},
+			"persist":    {},
+			"podman-arg": {},
+		},
+		groups: map[string]struct{}{},
 	}
+	for _, name := range groupNames {
+		sections.groups[name] = struct{}{}
+	}
+
+	fs.Usage = func() {
+		printUsage(fs, sections)
+	}
+
+	var showHelp bool
+	var resetCache bool
+	var showVersion bool
+	fs.BoolVar(&showHelp, "help", false, "show help and exit")
+	fs.BoolVar(&resetCache, "reset-cache", false, "delete the dungeon-cache volume before running")
+	fs.BoolVar(&showVersion, "version", false, "print version and exit")
 
 	runFlag := &stringFlag{value: baseOptions.runCommand}
 	fs.Var(runFlag, "run", "run a command inside the container")
 
-	var resetCache bool
-	var showVersion bool
-	fs.BoolVar(&resetCache, "reset-cache", false, "delete the dungeon-cache volume before running")
-	fs.BoolVar(&showVersion, "version", false, "print version and exit")
+	imageFlag := &stringFlag{value: baseOptions.image}
+	fs.Var(imageFlag, "image", "container image to run")
 
 	persistFlag := &boolFlag{value: baseOptions.persist}
 	fs.Var(persistFlag, "persist", "keep the container after exit")
@@ -52,10 +102,23 @@ func parseArgs(args []string) (options, []string, error) {
 	portsFlag := &stringSliceFlag{values: append([]string{}, baseOptions.ports...)}
 	fs.Var(portsFlag, "port", "publish a container port (repeatable)")
 
-	groupFlags := make(map[string]*boolFlag, len(baseOptions.groupSpecs))
+	cacheFlag := &stringSliceFlag{values: append([]string{}, baseOptions.cache...)}
+	fs.Var(cacheFlag, "cache", "mount a cache volume target (repeatable)")
+
+	mountsFlag := &stringSliceFlag{values: append([]string{}, baseOptions.mounts...)}
+	fs.Var(mountsFlag, "mount", "bind-mount a host path (repeatable)")
+
+	envVarFlag := &stringSliceFlag{values: append([]string{}, baseOptions.envVars...)}
+	fs.Var(envVarFlag, "envvar", "add a container env var (repeatable)")
+
+	podmanArgsFlag := &stringSliceFlag{values: append([]string{}, baseOptions.podmanArgs...)}
+	fs.Var(podmanArgsFlag, "podman-arg", "append a podman run arg (repeatable)")
+
+	groupFlags := make(map[string]*boolFlag, len(groupDefs))
+	var groupOrderCounter int
 	for _, name := range groupNames {
-		value := baseOptions.groupOn[name]
-		flagValue := &boolFlag{value: value}
+		value := groupEnabled[name]
+		flagValue := &boolFlag{value: value, counter: &groupOrderCounter}
 		fs.Var(flagValue, name, fmt.Sprintf("enable group %q", name))
 		groupFlags[name] = flagValue
 	}
@@ -64,60 +127,92 @@ func parseArgs(args []string) (options, []string, error) {
 		return options{}, nil, err
 	}
 
-	cliConfig := cliConfigFromFlags(runFlag, persistFlag, portsFlag, groupFlags, groupNames)
-	finalConfig := config.Reduce(baseConfig, cliConfig)
-	finalOptions, err := optionsFromConfig(finalConfig)
+	if showHelp {
+		fs.Usage()
+		return options{}, nil, flag.ErrHelp
+	}
+
+	cliSettings := cliSettingsFromFlags(runFlag, imageFlag, persistFlag, portsFlag, cacheFlag, mountsFlag, envVarFlag, podmanArgsFlag)
+	groupOrder := resolveGroupOrder(defaultGroupOrder, groupFlags)
+
+	finalSettings, err := config.ResolveSettings(config.Sources{Defaults: defaultsConfig, File: fileConfig, Env: envConfig, CLI: cliSettings}, groupDefs, groupOrder)
 	if err != nil {
 		return options{}, nil, err
 	}
-
+	finalOptions := optionsFromSettings(finalSettings)
 	finalOptions.resetCache = resetCache
 	finalOptions.showVersion = showVersion
 
 	return finalOptions, fs.Args(), nil
 }
 
-func cliConfigFromFlags(runFlag *stringFlag, persistFlag *boolFlag, portsFlag *stringSliceFlag, groupFlags map[string]*boolFlag, groupNames []string) config.Config {
-	cfg := config.Config{}
+func cliSettingsFromFlags(runFlag *stringFlag, imageFlag *stringFlag, persistFlag *boolFlag, portsFlag *stringSliceFlag, cacheFlag *stringSliceFlag, mountsFlag *stringSliceFlag, envVarFlag *stringSliceFlag, podmanArgsFlag *stringSliceFlag) config.Settings {
+	cfg := config.Settings{}
 	if runFlag.set {
 		cfg.RunCommand = runFlag.value
 	}
+	if imageFlag.set {
+		cfg.Image = imageFlag.value
+	}
 	if portsFlag.set {
 		cfg.Ports = append([]string{}, portsFlag.values...)
+	}
+	if cacheFlag.set {
+		cfg.Cache = append([]string{}, cacheFlag.values...)
+	}
+	if mountsFlag.set {
+		cfg.Mounts = append([]string{}, mountsFlag.values...)
+	}
+	if envVarFlag.set {
+		cfg.EnvVars = append([]string{}, envVarFlag.values...)
+	}
+	if podmanArgsFlag.set {
+		cfg.PodmanArgs = append([]string{}, podmanArgsFlag.values...)
 	}
 	if persistFlag.set {
 		value := persistFlag.value
 		cfg.Persist = &value
 	}
 
-	hasGroupOverride := false
-	for _, name := range groupNames {
-		if groupFlags[name].set {
-			hasGroupOverride = true
-			break
-		}
-	}
-	if hasGroupOverride {
-		enabled := make([]string, 0, len(groupNames))
-		for _, name := range groupNames {
-			if groupFlags[name].value {
-				enabled = append(enabled, name)
-			}
-		}
-		cfg.DefaultGroups = enabled
-	}
-
 	return cfg
 }
 
-func printUsage(fs *flag.FlagSet, groupNames []string) {
-	w := fs.Output()
-	fmt.Fprintf(w, "Usage of %s:\n", fs.Name())
-
-	groupSet := make(map[string]struct{}, len(groupNames))
-	for _, name := range groupNames {
-		groupSet[name] = struct{}{}
+func resolveGroupOrder(defaultGroups []string, groupFlags map[string]*boolFlag) []string {
+	if len(groupFlags) == 0 {
+		return append([]string{}, defaultGroups...)
 	}
+
+	var hasOverride bool
+	type selection struct {
+		name  string
+		order int
+	}
+	selected := []selection{}
+	for name, flagValue := range groupFlags {
+		if flagValue.set {
+			hasOverride = true
+		}
+		if flagValue.set && flagValue.value {
+			selected = append(selected, selection{name: name, order: flagValue.order})
+		}
+	}
+	if !hasOverride {
+		return append([]string{}, defaultGroups...)
+	}
+
+	sort.Slice(selected, func(i, j int) bool {
+		return selected[i].order < selected[j].order
+	})
+	order := make([]string, 0, len(selected))
+	for _, item := range selected {
+		order = append(order, item.name)
+	}
+	return order
+}
+
+func printUsage(fs *flag.FlagSet, sections usageSections) {
+	w := fs.Output()
+	fmt.Fprintf(w, "Usage of %s:\n\n", fs.Name())
 
 	formatFlag := func(f *flag.Flag) {
 		name := "--" + f.Name
@@ -132,25 +227,27 @@ func printUsage(fs *flag.FlagSet, groupNames []string) {
 		fmt.Fprintf(w, "  %s\n    \t%s\n", name, usage)
 	}
 
-	fmt.Fprintln(w, "Options:")
-	fs.VisitAll(func(f *flag.Flag) {
-		if _, ok := groupSet[f.Name]; ok {
+	printSection := func(title string, names map[string]struct{}, printed *int) {
+		if len(names) == 0 {
 			return
 		}
-		formatFlag(f)
-	})
-
-	if len(groupNames) == 0 {
-		return
+		if *printed > 0 {
+			fmt.Fprintln(w)
+		}
+		fmt.Fprintln(w, title+":")
+		fs.VisitAll(func(f *flag.Flag) {
+			if _, ok := names[f.Name]; !ok {
+				return
+			}
+			formatFlag(f)
+		})
+		*printed = *printed + 1
 	}
 
-	fmt.Fprintln(w, "Groups:")
-	fs.VisitAll(func(f *flag.Flag) {
-		if _, ok := groupSet[f.Name]; !ok {
-			return
-		}
-		formatFlag(f)
-	})
+	printed := 0
+	printSection("Options", sections.options, &printed)
+	printSection("Configuration", sections.config, &printed)
+	printSection("Groups", sections.groups, &printed)
 }
 
 func isBoolFlag(f *flag.Flag) bool {
@@ -189,8 +286,10 @@ func (s *stringSliceFlag) Set(value string) error {
 }
 
 type boolFlag struct {
-	value bool
-	set   bool
+	value   bool
+	set     bool
+	order   int
+	counter *int
 }
 
 func (b *boolFlag) String() string {
@@ -204,6 +303,10 @@ func (b *boolFlag) Set(value string) error {
 	}
 	b.value = parsed
 	b.set = true
+	if b.counter != nil {
+		*b.counter = *b.counter + 1
+		b.order = *b.counter
+	}
 	return nil
 }
 

@@ -7,26 +7,21 @@ import (
 	"github.com/StreakyCobra/dungeon/internal/config"
 )
 
-func optionsFromConfig(cfg config.Config) (options, error) {
-	groupSpecs, groupOn, err := config.BuildGroupDefaults(cfg)
-	if err != nil {
-		return options{}, err
-	}
-
+func optionsFromSettings(settings config.Settings) options {
 	opts := options{
-		runCommand: cfg.RunCommand,
-		groupSpecs: groupSpecs,
-		groupOn:    groupOn,
-		image:      strings.TrimSpace(cfg.Image),
-		ports:      cfg.Ports,
-		cache:      cfg.Cache,
-		podmanArgs: cfg.PodmanArgs,
+		runCommand: settings.RunCommand,
+		image:      strings.TrimSpace(settings.Image),
+		ports:      settings.Ports,
+		cache:      settings.Cache,
+		mounts:     settings.Mounts,
+		envVars:    settings.EnvVars,
+		podmanArgs: settings.PodmanArgs,
 	}
-	if cfg.Persist != nil {
-		opts.persist = *cfg.Persist
+	if settings.Persist != nil {
+		opts.persist = *settings.Persist
 	}
 
-	return opts, nil
+	return opts
 }
 
 func sortedGroupNames(values map[string]config.GroupConfig) []string {

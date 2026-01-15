@@ -2,15 +2,11 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
-	"math/rand"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime/debug"
-	"time"
-
-	"github.com/StreakyCobra/dungeon/internal/config"
 )
 
 const (
@@ -21,21 +17,24 @@ const (
 var version = "dev"
 
 type options struct {
-	runCommand string
-	resetCache bool
-	groupSpecs map[string]config.GroupConfig
-	groupOn    map[string]bool
-	image      string
-	ports      []string
-	cache      []string
-	persist    bool
+	runCommand  string
+	resetCache  bool
+	image       string
+	ports       []string
+	cache       []string
+	mounts      []string
+	envVars     []string
+	persist     bool
 	showVersion bool
-	podmanArgs []string
+	podmanArgs  []string
 }
 
 func main() {
 	opts, paths, err := parseArgs(os.Args[1:])
 	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return
+		}
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -84,23 +83,6 @@ func resetCacheVolume() error {
 		return err
 	}
 	return nil
-}
-
-func randomHighPort() int {
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return 1024 + rng.Intn(65535-1024)
-}
-
-func sameDir(a, b string) bool {
-	ap, err := filepath.Abs(a)
-	if err != nil {
-		return false
-	}
-	bp, err := filepath.Abs(b)
-	if err != nil {
-		return false
-	}
-	return ap == bp
 }
 
 func buildVersion() string {

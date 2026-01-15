@@ -18,10 +18,11 @@ func parseConfig(data []byte) (Config, error) {
 		"image":          true,
 		"ports":          true,
 		"cache":          true,
+		"mounts":         true,
+		"envvar":         true,
 		"persist":        true,
 		"podman_args":    true,
 		"default_groups": true,
-		"mount_defaults": true,
 	}
 
 	for key, value := range raw {
@@ -50,6 +51,18 @@ func parseConfig(data []byte) (Config, error) {
 				return Config{}, err
 			}
 			cfg.Cache = values
+		case "mounts":
+			values, err := parseStringSliceField("mounts", value)
+			if err != nil {
+				return Config{}, err
+			}
+			cfg.Mounts = values
+		case "envvar":
+			values, err := parseStringSliceField("envvar", value)
+			if err != nil {
+				return Config{}, err
+			}
+			cfg.EnvVars = values
 		case "persist":
 			persist, err := parseBoolField("persist", value)
 			if err != nil {
@@ -66,15 +79,6 @@ func parseConfig(data []byte) (Config, error) {
 			values, err := parseStringSliceField("default_groups", value)
 			if err != nil {
 				return Config{}, err
-			}
-			cfg.DefaultGroups = values
-		case "mount_defaults":
-			values, err := parseStringSliceField("mount_defaults", value)
-			if err != nil {
-				return Config{}, err
-			}
-			if len(cfg.DefaultGroups) > 0 {
-				return Config{}, fmt.Errorf("default_groups and mount_defaults are both set")
 			}
 			cfg.DefaultGroups = values
 		default:
@@ -112,6 +116,11 @@ func parseGroupConfig(name string, value interface{}) (GroupConfig, error) {
 	}
 
 	group := GroupConfig{}
+	if len(raw) == 0 {
+		group.Disabled = true
+		return group, nil
+	}
+
 	for key, value := range raw {
 		switch key {
 		case "mounts":
@@ -150,6 +159,18 @@ func parseGroupConfig(name string, value interface{}) (GroupConfig, error) {
 				return GroupConfig{}, err
 			}
 			group.Ports = values
+		case "podman_args":
+			values, err := parseStringSliceField(name+".podman_args", value)
+			if err != nil {
+				return GroupConfig{}, err
+			}
+			group.PodmanArgs = values
+		case "persist":
+			persist, err := parseBoolField(name+".persist", value)
+			if err != nil {
+				return GroupConfig{}, err
+			}
+			group.Persist = &persist
 		default:
 			return GroupConfig{}, fmt.Errorf("group %q has unknown key %q", name, key)
 		}
