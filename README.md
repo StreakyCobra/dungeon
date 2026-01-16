@@ -145,7 +145,7 @@ caches = [".cache/pip:rw"]
 mounts = ["~/projects:/home/dungeon/projects:rw"]
 envs = ["OPENAI_API_KEY"]
 podman_args = ["--cap-add=SYS_PTRACE"]
-default_groups = ["codex"]
+always_on_groups = ["codex"]
 
 [codex]
 mounts = ["~/.codex:/home/dungeon/.codex:rw"]
@@ -162,8 +162,8 @@ ports = ["127.0.0.1:8000:8000"]
 Group behavior:
 - Each top-level table (for example `[codex]`) defines a group.
 - Each group name becomes a CLI flag (example: `--codex`).
-- `default_groups` lists groups enabled by default, in order.
 - An empty group table removes a default group of the same name.
+- `always_on_groups` lists groups always enabled, in order.
 - `mounts` entries use `source:target[:ro|rw]`.
 - `caches` entries use `target[:ro|rw]` from the `dungeon-cache` volume.
 - `envs` entries support `NAME=VALUE` for static values or `NAME` to pass through the host value.

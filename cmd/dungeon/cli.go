@@ -36,17 +36,17 @@ func parseArgs(args []string) (options, []string, error) {
 		return options{}, nil, err
 	}
 
-	defaultGroups := config.ResolveDefaultGroups(defaultsConfig, fileConfig, envConfig)
-	defaultGroupOrder, err := config.NormalizeGroupOrder(defaultGroups)
+	alwaysOnGroups := config.ResolveAlwaysOnGroups(defaultsConfig, fileConfig, envConfig)
+	alwaysOnGroupOrder, err := config.NormalizeGroupOrder(alwaysOnGroups)
 	if err != nil {
 		return options{}, nil, err
 	}
-	groupEnabled, err := config.BuildGroupSelection(groupDefs, defaultGroupOrder)
+	groupEnabled, err := config.BuildGroupSelection(groupDefs, alwaysOnGroupOrder)
 	if err != nil {
 		return options{}, nil, err
 	}
 
-	baseSettings, err := config.ResolveSettings(config.Sources{Defaults: defaultsConfig, File: fileConfig, Env: envConfig}, groupDefs, defaultGroupOrder)
+	baseSettings, err := config.ResolveSettings(config.Sources{Defaults: defaultsConfig, File: fileConfig, Env: envConfig}, groupDefs, alwaysOnGroupOrder)
 	if err != nil {
 		return options{}, nil, err
 	}
@@ -158,7 +158,7 @@ func parseArgs(args []string) (options, []string, error) {
 	}
 
 	cliSettings := cliSettingsFromFlags(runFlag, imageFlag, portsFlag, cacheFlag, mountsFlag, envVarFlag, podmanArgsFlag)
-	groupOrder := resolveGroupOrder(defaultGroupOrder, groupFlags)
+	groupOrder := resolveGroupOrder(alwaysOnGroupOrder, groupFlags)
 
 	finalSettings, err := config.ResolveSettings(config.Sources{Defaults: defaultsConfig, File: fileConfig, Env: envConfig, CLI: cliSettings}, groupDefs, groupOrder)
 	if err != nil {

@@ -30,8 +30,8 @@ type Settings struct {
 type Config struct {
 	Settings
 
-	// The group names enabled by default.
-	DefaultGroups []string `toml:"default_groups"`
+	// The group names always enabled.
+	AlwaysOnGroups []string `toml:"always_on_groups"`
 
 	// Named preset configurations.
 	Groups map[string]GroupConfig

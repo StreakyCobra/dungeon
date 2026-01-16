@@ -27,11 +27,11 @@ func MergeSettings(base, override Settings) Settings {
 	return merged
 }
 
-func MergeDefaultGroups(base []string, override []string) []string {
+func MergeAlwaysOnGroups(base []string, override []string) []string {
 	if override == nil {
 		return base
 	}
-	return appendStrings(nil, override)
+	return appendStrings(base, override)
 }
 
 func appendStrings(base []string, extra []string) []string {

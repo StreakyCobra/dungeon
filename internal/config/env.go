@@ -31,8 +31,8 @@ func LoadFromEnv() (Config, error) {
 	if value, ok := os.LookupEnv(envPrefix + "PODMAN_ARGS"); ok {
 		cfg.PodmanArgs = splitEnvList(value)
 	}
-	if value, ok := os.LookupEnv(envPrefix + "DEFAULT_GROUPS"); ok {
-		cfg.DefaultGroups = splitEnvList(value)
+	if value, ok := os.LookupEnv(envPrefix + "ALWAYS_ON_GROUPS"); ok {
+		cfg.AlwaysOnGroups = splitEnvList(value)
 	}
 
 	return cfg, nil

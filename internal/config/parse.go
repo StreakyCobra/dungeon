@@ -20,8 +20,8 @@ func parseConfig(data []byte) (Config, error) {
 		"caches":         true,
 		"mounts":         true,
 		"envs":           true,
-		"podman_args":    true,
-		"default_groups": true,
+		"podman_args":      true,
+		"always_on_groups": true,
 	}
 
 	for key, value := range raw {
@@ -68,12 +68,12 @@ func parseConfig(data []byte) (Config, error) {
 				return Config{}, err
 			}
 			cfg.PodmanArgs = values
-		case "default_groups":
-			values, err := parseStringSliceField("default_groups", value)
+		case "always_on_groups":
+			values, err := parseStringSliceField("always_on_groups", value)
 			if err != nil {
 				return Config{}, err
 			}
-			cfg.DefaultGroups = values
+			cfg.AlwaysOnGroups = values
 		default:
 			if !reserved[key] {
 				group, err := parseGroupConfig(key, value)

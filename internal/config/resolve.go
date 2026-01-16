@@ -9,9 +9,10 @@ type Sources struct {
 	CLI      Settings
 }
 
-func ResolveDefaultGroups(defaults Config, file Config, env Config) []string {
-	groups := MergeDefaultGroups(defaults.DefaultGroups, file.DefaultGroups)
-	groups = MergeDefaultGroups(groups, env.DefaultGroups)
+func ResolveAlwaysOnGroups(defaults Config, file Config, env Config) []string {
+	groups := MergeAlwaysOnGroups(nil, defaults.AlwaysOnGroups)
+	groups = MergeAlwaysOnGroups(groups, file.AlwaysOnGroups)
+	groups = MergeAlwaysOnGroups(groups, env.AlwaysOnGroups)
 	return groups
 }
 

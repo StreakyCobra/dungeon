@@ -41,7 +41,7 @@ func BuildGroupSelection(groups map[string]GroupConfig, defaultGroups []string) 
 			return nil, err
 		}
 		if _, ok := groups[trimmed]; !ok {
-			return nil, fmt.Errorf("ERROR: default_groups includes unknown group %q", trimmed)
+			return nil, fmt.Errorf("ERROR: always_on_groups includes unknown group %q", trimmed)
 		}
 		enabled[trimmed] = true
 	}
