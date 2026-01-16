@@ -208,32 +208,38 @@ func cliSettingsFromFlags(runFlag *stringFlag, imageFlag *stringFlag, portsFlag 
 }
 
 func resolveGroupOrder(defaultGroups []string, groupFlags map[string]*boolFlag) []string {
+	order := append([]string{}, defaultGroups...)
 	if len(groupFlags) == 0 {
-		return append([]string{}, defaultGroups...)
+		return order
 	}
 
-	var hasOverride bool
 	type selection struct {
 		name  string
 		order int
 	}
 	selected := []selection{}
+	selectedSet := map[string]struct{}{}
 	for name, flagValue := range groupFlags {
-		if flagValue.set {
-			hasOverride = true
-		}
 		if flagValue.set && flagValue.value {
 			selected = append(selected, selection{name: name, order: flagValue.order})
+			selectedSet[name] = struct{}{}
 		}
 	}
-	if !hasOverride {
-		return append([]string{}, defaultGroups...)
+	if len(selected) == 0 {
+		return order
 	}
 
 	sort.Slice(selected, func(i, j int) bool {
 		return selected[i].order < selected[j].order
 	})
-	order := make([]string, 0, len(selected))
+	filteredDefaults := make([]string, 0, len(order))
+	for _, name := range order {
+		if _, ok := selectedSet[name]; ok {
+			continue
+		}
+		filteredDefaults = append(filteredDefaults, name)
+	}
+	order = filteredDefaults
 	for _, item := range selected {
 		order = append(order, item.name)
 	}
