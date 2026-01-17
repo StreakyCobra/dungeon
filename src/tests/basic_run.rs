@@ -1,4 +1,4 @@
-use crate::tests::support::{assert_command, TestInput};
+use crate::tests::support::{assert_command, run_input, TestInput};
 
 #[test]
 fn basic_run_uses_cwd_mount() {
@@ -13,4 +13,18 @@ fn basic_run_uses_cwd_mount() {
     let expected = "podman run -it --userns=keep-id -w /home/dungeon/alpha --rm -v dungeon-cache:/home/dungeon/.cache -v dungeon-cache:/home/dungeon/.npm -v <CWD>:/home/dungeon/alpha localhost/dungeon bash";
 
     assert_command(input, expected);
+}
+
+#[test]
+fn basic_run_errors_from_home_dir() {
+    let input = TestInput {
+        toml: "",
+        args: &[],
+        env: &[],
+        cwd_name: "home",
+        cwd_entries: &[],
+    };
+
+    let result = std::panic::catch_unwind(|| run_input(input));
+    assert!(result.is_err());
 }

@@ -9,14 +9,6 @@ pub fn run() -> Result<(), AppError> {
         return Ok(());
     }
 
-    if input.persist_mode == container::persist::PersistMode::None
-        && !input.reset_cache
-        && input.settings == crate::config::Settings::default()
-        && input.paths.is_empty()
-    {
-        return Ok(());
-    }
-
     if input.reset_cache {
         container::podman::reset_cache_volume()?;
     }
