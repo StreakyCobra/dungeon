@@ -14,9 +14,11 @@ image = "localhost/dungeon-obsidian"
 "#,
         args: &["--obsidian"],
         env: &[],
+        cwd_name: "group-project",
+        cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /home/dungeon/project --rm -v dungeon-cache:/home/dungeon/.cache -v dungeon-cache:/home/dungeon/.npm -v <CWD>:/home/dungeon/project localhost/dungeon-obsidian bash";
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/group-project --rm -v dungeon-cache:/home/dungeon/.cache -v dungeon-cache:/home/dungeon/.npm -v <CWD>:/home/dungeon/group-project localhost/dungeon-obsidian bash";
 
     assert_command(input, expected);
 }

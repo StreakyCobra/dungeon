@@ -6,9 +6,11 @@ fn basic_run_uses_cwd_mount() {
         toml: "",
         args: &[],
         env: &[],
+        cwd_name: "alpha",
+        cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /home/dungeon/project --rm -v dungeon-cache:/home/dungeon/.cache -v dungeon-cache:/home/dungeon/.npm -v <CWD>:/home/dungeon/project localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/alpha --rm -v dungeon-cache:/home/dungeon/.cache -v dungeon-cache:/home/dungeon/.npm -v <CWD>:/home/dungeon/alpha localhost/dungeon bash";
 
     assert_command(input, expected);
 }

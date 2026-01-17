@@ -11,6 +11,8 @@ pub struct TestInput<'a> {
     pub toml: &'a str,
     pub args: &'a [&'a str],
     pub env: &'a [(&'a str, &'a str)],
+    pub cwd_name: &'a str,
+    pub cwd_entries: &'a [&'a str],
 }
 
 pub struct TestOutput {
@@ -28,7 +30,7 @@ pub fn assert_command(input: TestInput<'_>, expected: &str) {
 pub fn run_input(input: TestInput<'_>) -> TestOutput {
     let _guard = TestLock::acquire();
     let temp_dir = tempfile::tempdir().expect("tempdir");
-    let cwd = temp_dir.path().join("project");
+    let cwd = temp_dir.path().join(input.cwd_name);
     let home = temp_dir.path().join("home");
     let config_home = temp_dir.path().join("config");
     let config_path = config_home.join("dungeon").join("config.toml");
@@ -36,6 +38,8 @@ pub fn run_input(input: TestInput<'_>) -> TestOutput {
     std::fs::create_dir_all(&cwd).expect("create cwd");
     std::fs::create_dir_all(&home).expect("create home");
     std::fs::create_dir_all(config_path.parent().expect("config parent")).expect("config parent");
+
+    create_cwd_entries(&cwd, input.cwd_entries).expect("create entries");
 
     let _env_guard = EnvGuard::new(&home, &config_home, input.env);
 
@@ -114,6 +118,33 @@ fn normalize_command(command: &str, cwd: &PathBuf, home: &PathBuf) -> String {
     command
         .replace(cwd.to_string_lossy().as_ref(), "<CWD>")
         .replace(home.to_string_lossy().as_ref(), "<HOME>")
+}
+
+fn create_cwd_entries(cwd: &PathBuf, entries: &[&str]) -> Result<(), std::io::Error> {
+    for entry in entries {
+        let trimmed = entry.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if trimmed.ends_with('/') {
+            let dir = cwd.join(trimmed.trim_end_matches('/'));
+            std::fs::create_dir_all(dir)?;
+        } else {
+            let file = cwd.join(trimmed);
+            if let Some(parent) = file.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            if file.exists() {
+                continue;
+            }
+            if trimmed.contains('.') {
+                std::fs::write(file, "test")?;
+            } else {
+                std::fs::create_dir_all(file)?;
+            }
+        }
+    }
+    Ok(())
 }
 
 
