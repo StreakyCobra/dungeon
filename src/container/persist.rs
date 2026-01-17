@@ -98,7 +98,10 @@ pub fn discard_container(name: &str) -> Result<(), AppError> {
 
 pub fn run_persisted_session(name: &str, spec: CommandSpec) -> Result<(), AppError> {
     if container_exists(name)? {
-        return ensure_container_session(name);
+        return Err(AppError::message(format!(
+            "ERROR: container \"{}\" already exists, use --persisted to connect",
+            name
+        )));
     }
     let mut cmd = Command::new(spec.program);
     cmd.args(spec.args);

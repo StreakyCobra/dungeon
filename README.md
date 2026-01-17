@@ -102,11 +102,8 @@ Options:
 - `--help` shows the help message.
 - `--version` prints the version.
 - `--reset-cache` deletes the `dungeon-cache` volume before running.
-- `--persist` creates or reuses a persisted container.
-- `--persisted` reuses the persisted container (no extra config/group/path args).
-- `--discard` removes the persisted container.
 
-Configuration:
+Configurations:
 - `--run` runs a command inside the container.
 - `--image` selects the container image.
 - `--port` publishes a container port (repeatable).
@@ -115,11 +112,12 @@ Configuration:
 - `--env` adds container environment variables (repeatable).
 - `--podman-arg` appends a `podman run` argument (repeatable).
 
-Groups defined in config become flags (example: `--codex`, `--obsidian`).
+Groups:
+- Groups defined in config become flags (example: `--codex`, `--obsidian`).
 
 Persistence:
-- `--persist` creates a named container and keeps it for reuse.
-- `--persisted` starts the named container if stopped and opens a shell.
+- `--persist` creates a named container and fails if it already exists.
+- `--persisted` connects to the named container if it exists (no extra config/group/path args).
 - `--discard` removes the named container.
 - Names are based on the current folder and a hash of the path.
 

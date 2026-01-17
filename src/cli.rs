@@ -139,42 +139,49 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
         .arg(
             Arg::new("help")
                 .long("help")
+                .help("Show help information")
                 .help_heading("Options")
                 .action(ArgAction::SetTrue),
         )
         .arg(
             Arg::new("reset-cache")
                 .long("reset-cache")
+                .help("Clear the dungeon-cache volume before running")
                 .help_heading("Options")
                 .action(ArgAction::SetTrue),
         )
         .arg(
             Arg::new("version")
                 .long("version")
+                .help("Show version information")
                 .help_heading("Options")
                 .action(ArgAction::SetTrue),
         )
         .arg(
             Arg::new("persist")
                 .long("persist")
-                .help_heading("Options")
+                .help("Create a persisted container (fails if it already exists)")
+                .help_heading("Persistence")
                 .action(ArgAction::SetTrue),
         )
         .arg(
             Arg::new("persisted")
                 .long("persisted")
-                .help_heading("Options")
+                .help("Connect to the existing persisted container")
+                .help_heading("Persistence")
                 .action(ArgAction::SetTrue),
         )
         .arg(
             Arg::new("discard")
                 .long("discard")
-                .help_heading("Options")
+                .help("Remove the persisted container")
+                .help_heading("Persistence")
                 .action(ArgAction::SetTrue),
         )
         .arg(
             Arg::new("run")
                 .long("run")
+                .help("Run a command inside the container")
                 .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Set),
@@ -182,6 +189,7 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
         .arg(
             Arg::new("image")
                 .long("image")
+                .help("Select the container image")
                 .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Set),
@@ -189,6 +197,7 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
         .arg(
             Arg::new("port")
                 .long("port")
+                .help("Publish a container port (repeatable)")
                 .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Append),
@@ -196,6 +205,7 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
         .arg(
             Arg::new("cache")
                 .long("cache")
+                .help("Mount a cache volume target (repeatable)")
                 .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Append),
@@ -203,6 +213,7 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
         .arg(
             Arg::new("mount")
                 .long("mount")
+                .help("Bind-mount a host path (repeatable)")
                 .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Append),
@@ -210,6 +221,7 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
         .arg(
             Arg::new("env")
                 .long("env")
+                .help("Add a container environment variable (repeatable)")
                 .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Append),
@@ -217,11 +229,17 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
         .arg(
             Arg::new("podman-arg")
                 .long("podman-arg")
+                .help("Append an extra podman run argument (repeatable)")
                 .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Append),
         )
-        .arg(Arg::new("paths").num_args(0..).action(ArgAction::Append));
+        .arg(
+            Arg::new("paths")
+                .help("Paths to mount inside the container (default: current directory)")
+                .num_args(0..)
+                .action(ArgAction::Append),
+        );
 
     let group_names: Vec<String> = group_defs.keys().cloned().collect();
     for name in group_names.iter() {
@@ -229,6 +247,7 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
         cmd = cmd.arg(
             Arg::new(leaked)
                 .long(leaked)
+                .help(format!("Enable the {} group", name))
                 .help_heading("Groups")
                 .action(ArgAction::SetTrue),
         );
