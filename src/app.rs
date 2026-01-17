@@ -2,37 +2,39 @@ use crate::{cli, container, error::AppError};
 
 pub fn run() -> Result<(), AppError> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
-    let input = cli::parse_args(args)?;
+    let parsed = cli::parse_args(args)?;
 
-    if input.show_version {
+    let resolved = crate::config::resolve_with_defaults(&parsed)?;
+
+    if parsed.show_version {
         println!("{}", cli::build_version());
         return Ok(());
     }
 
-    if input.reset_cache {
+    if parsed.reset_cache {
         container::podman::reset_cache_volume()?;
     }
 
-    match input.persist_mode {
+    match resolved.persist_mode {
         container::persist::PersistMode::Discard => {
-            container::persist::discard_container(&input.container_name)?;
+            container::persist::discard_container(&resolved.container_name)?;
         }
         container::persist::PersistMode::Reuse => {
-            container::persist::ensure_container_session(&input.container_name)?;
+            container::persist::ensure_container_session(&resolved.container_name)?;
         }
         container::persist::PersistMode::Create => {
             let spec = container::podman::build_podman_command(
-                &input.settings,
-                &input.paths,
+                &resolved.settings,
+                &resolved.paths,
                 true,
-                Some(&input.container_name),
+                Some(&resolved.container_name),
             )?;
-            container::persist::run_persisted_session(&input.container_name, spec)?;
+            container::persist::run_persisted_session(&resolved.container_name, spec)?;
         }
         container::persist::PersistMode::None => {
             let spec = container::podman::build_podman_command(
-                &input.settings,
-                &input.paths,
+                &resolved.settings,
+                &resolved.paths,
                 false,
                 None,
             )?;

@@ -4,7 +4,6 @@ use clap::{Arg, ArgAction, ArgMatches, Command};
 
 use crate::{
     config::{self, Settings},
-    container,
     container::persist::PersistMode,
     error::AppError,
 };
@@ -25,13 +24,20 @@ const FLAG_ENV_FILE: &str = "env-file";
 const FLAG_PODMAN_ARG: &str = "podman-arg";
 const ARG_PATHS: &str = "paths";
 
-pub struct ParsedInput {
+#[derive(Debug, Clone)]
+pub struct ParsedCLI {
     pub settings: Settings,
     pub paths: Vec<String>,
     pub show_version: bool,
     pub reset_cache: bool,
     pub persist_mode: PersistMode,
-    pub container_name: String,
+    pub group_flags: BTreeMap<String, GroupFlag>,
+}
+
+#[derive(Default, Clone, Debug)]
+pub struct GroupFlag {
+    pub set: bool,
+    pub order: usize,
 }
 
 pub fn build_version() -> String {
@@ -42,7 +48,7 @@ pub fn build_version() -> String {
     "dev".to_string()
 }
 
-pub fn parse_args(args: Vec<String>) -> Result<ParsedInput, AppError> {
+pub fn parse_args(args: Vec<String>) -> Result<ParsedCLI, AppError> {
     let defaults = config::load_defaults()?;
     let file_cfg = config::load_from_file()?;
     let env_cfg = config::load_from_env()?;
@@ -55,10 +61,11 @@ pub fn parse_args_with_sources(
     defaults: config::Config,
     file_cfg: config::Config,
     env_cfg: config::Config,
-) -> Result<ParsedInput, AppError> {
+) -> Result<ParsedCLI, AppError> {
     let group_defs = config::merge_group_definitions(&defaults.groups, &file_cfg.groups)?;
-    let (_always_on, group_order) = resolve_group_selection(&defaults, &file_cfg, &env_cfg)?;
-    let _group_enabled = config::build_group_selection(&group_defs, &group_order)?;
+    let base_groups = config::resolve_always_on_groups(&defaults, &file_cfg, &env_cfg, &config::Config::default());
+    let base_order = config::normalize_group_order(&base_groups)?;
+    let _group_enabled = config::build_group_selection(&group_defs, &base_order)?;
 
     let mut cmd = base_command(&group_defs);
 
@@ -78,37 +85,14 @@ pub fn parse_args_with_sources(
 
     let cli_settings = config::Settings::from_cli(&matches);
     validate_cli_settings(&cli_settings)?;
-    let group_names: Vec<String> = group_defs.keys().cloned().collect();
-    let cli_groups = config::Settings::always_on_groups_from_cli(&matches, &group_names);
-    let cli_group_cfg = config::Config {
-        always_on_groups: cli_groups,
-        ..config::Config::default()
-    };
-    let always_on = config::resolve_always_on_groups(&defaults, &file_cfg, &env_cfg, &cli_group_cfg);
-    let group_order = config::resolve_group_order(&always_on, &group_flags);
 
-    let final_settings = config::resolve_settings(
-        config::Sources {
-            defaults: defaults.settings.clone(),
-            file: file_cfg.settings.clone(),
-            env: env_cfg.settings.clone(),
-            cli: cli_settings,
-        },
-        &group_defs,
-        &group_order,
-    )?;
-
-    let container_name = resolve_container_name(persist_mode, &paths)?;
-
-    ensure_container_exists(persist_mode, &container_name)?;
-
-    Ok(ParsedInput {
-        settings: final_settings,
+    Ok(ParsedCLI {
+        settings: cli_settings,
         paths,
         show_version: matches.get_flag(FLAG_VERSION),
         reset_cache: matches.get_flag(FLAG_RESET_CACHE),
         persist_mode,
-        container_name,
+        group_flags,
     })
 }
 
@@ -121,29 +105,19 @@ fn parse_matches(cmd: &mut Command, args: Vec<String>) -> Result<ArgMatches, App
         .map_err(|err| AppError::message(err.to_string()))
 }
 
-fn print_help(mut cmd: Command) -> Result<ParsedInput, AppError> {
+fn print_help(mut cmd: Command) -> Result<ParsedCLI, AppError> {
     cmd.print_help().map_err(AppError::from)?;
     println!();
-    Ok(ParsedInput {
+    Ok(ParsedCLI {
         settings: Settings::default(),
         paths: Vec::new(),
         show_version: false,
         reset_cache: false,
         persist_mode: PersistMode::None,
-        container_name: String::new(),
+        group_flags: BTreeMap::new(),
     })
 }
 
-fn resolve_group_selection(
-    defaults: &config::Config,
-    file_cfg: &config::Config,
-    env_cfg: &config::Config,
-) -> Result<(Vec<String>, Vec<String>), AppError> {
-    let always_on =
-        config::resolve_always_on_groups(defaults, file_cfg, env_cfg, &config::Config::default());
-    let group_order = config::normalize_group_order(&always_on)?;
-    Ok((always_on, group_order))
-}
 
 fn resolve_persist_mode(matches: &ArgMatches) -> Result<PersistMode, AppError> {
     config::resolve_persist_mode(
@@ -176,25 +150,6 @@ fn validate_persist_flags(
     Ok(())
 }
 
-fn resolve_container_name(persist_mode: PersistMode, paths: &[String]) -> Result<String, AppError> {
-    if persist_mode == PersistMode::Create {
-        return container::persist::persisted_container_name(paths);
-    }
-    if persist_mode != PersistMode::None {
-        return container::persist::persisted_container_name(&[]);
-    }
-    Ok(String::new())
-}
-
-fn ensure_container_exists(persist_mode: PersistMode, container_name: &str) -> Result<(), AppError> {
-    if persist_mode == PersistMode::Reuse && !container::persist::container_exists(container_name)? {
-        return Err(AppError::message(format!(
-            "ERROR: container \"{}\" does not exist",
-            container_name
-        )));
-    }
-    Ok(())
-}
 
 fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupConfig>) -> Command {
     let mut cmd = Command::new("dungeon")
@@ -329,10 +284,19 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
     cmd
 }
 
-#[derive(Default, Clone)]
-pub struct GroupFlag {
-    pub set: bool,
-    pub order: usize,
+pub fn collect_group_flags_from_names(
+    parsed: &ParsedCLI,
+    groups: &BTreeMap<String, config::GroupConfig>,
+) -> BTreeMap<String, GroupFlag> {
+    let mut flags = BTreeMap::new();
+    for name in groups.keys() {
+        if let Some(flag) = parsed.group_flags.get(name) {
+            flags.insert(name.clone(), flag.clone());
+        } else {
+            flags.insert(name.clone(), GroupFlag::default());
+        }
+    }
+    flags
 }
 
 fn collect_group_flags(

@@ -62,17 +62,18 @@ fn build_command_string(input: TestInput<'_>) -> Result<String, AppError> {
     let env_cfg = config::load_from_env()?;
 
     let argv = input.args.iter().map(|arg| arg.to_string()).collect();
-    let parsed = cli::parse_args_with_sources(argv, defaults, file_cfg, env_cfg)?;
+    let parsed = cli::parse_args_with_sources(argv, defaults.clone(), file_cfg.clone(), env_cfg.clone())?;
+    let resolved = config::resolve(&parsed, defaults, file_cfg, env_cfg)?;
 
     let home = dirs::home_dir().ok_or_else(|| AppError::message("missing home dir"))?;
-    ensure_mount_sources(&home, &parsed.settings, &parsed.paths)?;
+    ensure_mount_sources(&home, &resolved.settings, &resolved.paths)?;
 
     let spec = container::podman::build_podman_command(
-        &parsed.settings,
-        &parsed.paths,
-        parsed.persist_mode == container::persist::PersistMode::Create,
-        if parsed.persist_mode == container::persist::PersistMode::Create {
-            Some(parsed.container_name.as_str())
+        &resolved.settings,
+        &resolved.paths,
+        resolved.persist_mode == container::persist::PersistMode::Create,
+        if resolved.persist_mode == container::persist::PersistMode::Create {
+            Some(resolved.container_name.as_str())
         } else {
             None
         },

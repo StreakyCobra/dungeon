@@ -32,6 +32,13 @@ pub struct Sources {
     pub cli: Settings,
 }
 
+pub struct ResolvedConfig {
+    pub settings: Settings,
+    pub paths: Vec<String>,
+    pub persist_mode: crate::container::persist::PersistMode,
+    pub container_name: String,
+}
+
 impl Settings {
     pub fn from_cli(matches: &clap::ArgMatches) -> Settings {
         let mut settings = Settings::default();
