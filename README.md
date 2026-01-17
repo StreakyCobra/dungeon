@@ -1,50 +1,10 @@
 # dungeon
 
-`dungeon` is a sandboxed development container system. It is built as a developer-friendly wrapper over podman.
+`dungeon` is a rootless Podman wrapper to create sandboxed development containers with minimal configuration.
 
-It is quick to launch, it comes preconfigured for AI agents, and it is easy to configure and extend.
+## How it works
 
-## Getting started
-
-Build an image and the CLI:
-
-```shell
-podman build -f images/Containerfile.archlinux -t localhost/dungeon .
-```
-
-Build the CLI:
-
-```shell
-cargo build --release
-```
-
-Start a shell in the container with your current project mounted:
-
-```shell
-./target/release/dungeon
-```
-
-You can alias it in the current session:
-
-```shell
-alias dungeon=$PWD/target/release/dungeon
-```
-
-Configure the use of Codex within the sandbox:
-
-```shell
-dungeon --codex
-```
-
-Run directly a command inside the container:
-
-```shell
-dungeon --codex --run codex
-```
-
-## Why it is simpler
-
-This is the podman command to create a temporary container, mount the current directory, mount some cache folders, and mount codex:
+This is the Podman command to create a temporary container, mount the current directory, bring some cache folders, and make Codex config and auth available:
 
 ```shell
 podman run -it --rm --userns=keep-id -w /home/dungeon/myrepo \
@@ -56,16 +16,83 @@ podman run -it --rm --userns=keep-id -w /home/dungeon/myrepo \
   bash
 ```
 
-With dungeon it is much simpler:
+With dungeon it gets much simpler:
 
 ```shell
 dungeon --codex
 ```
 
-It gets even easier when a composition of tools is desired:
+It gets even easier when a composition of tools/configurations is desired:
 
 ```shell
-dungeon --codex --opencode
+dungeon --codex --obsidian
+```
+
+## Getting started
+
+Ensure you have all needed requirements:
+- [podman](https://podman.io/) (in [rootless](https://github.com/containers/podman/blob/main/README.md#rootless) mode)
+- [rust](https://rust-lang.org/)
+
+Build one of the provided images:
+
+```shell
+podman build -f images/Containerfile.archlinux -t localhost/dungeon .
+# OR
+podman build -f images/Containerfile.ubuntu -t localhost/dungeon .
+```
+
+Build the CLI and install it:
+
+```shell
+cargo install --path .
+```
+
+If you want to run dungeon without having to specify the path, add `~/.cargo/bin` to your PATH:
+
+```shell
+export PATH="$HOME/.cargo/bin:$PATH"
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+```
+
+Dungeon is ready to use; check usage with:
+
+```shell
+dungeon --help
+```
+
+## Usage
+
+```text
+Usage: dungeon [OPTIONS] [paths]...
+
+Arguments:
+  [paths]...  Paths to mount inside the container (default: current directory)
+
+Options:
+      --help         Show help information
+      --reset-cache  Clear the dungeon-cache volume before running
+      --version      Show version information
+
+Persistence:
+      --persist    Persist the container
+      --persisted  Connect to the persisted container
+      --discard    Remove the persisted container
+
+Configurations:
+      --run <run>                Run a command inside the container
+      --image <image>            Select the container image
+      --port <port>              Publish a container port (repeatable)
+      --cache <cache>            Mount a cache volume target (repeatable)
+      --mount <mount>            Bind-mount a host path (repeatable)
+      --env <env>                Add a container environment variable (repeatable)
+      --podman-arg <podman-arg>  Append an extra podman run argument (repeatable)
+
+Groups:
+      --claude    Enable the claude group
+      --codex     Enable the codex group
+      --gemini    Enable the gemini group
+      --opencode  Enable the opencode group
 ```
 
 ## Images
@@ -74,77 +101,48 @@ Container files live in `images/`:
 - `images/Containerfile.archlinux`
 - `images/Containerfile.ubuntu`
 
-Build with Podman:
+These images provide the base setup to work with dungeon and use AI agents inside. They are meant to be customized to include the tools you usually need for your projects. Note that passwordless sudo is allowed within the container.
+
+Build the one you like with Podman:
 
 ```shell
 podman build -f images/Containerfile.archlinux -t localhost/dungeon .
+# OR
 podman build -f images/Containerfile.ubuntu -t localhost/dungeon .
 ```
 
-The latest built image will be the default image when non is manually specified.
+You can build several images by giving them different tags with `-t`, and use the [Configuration](#configuration) below to switch images.
 
+There is also the option to [persist](#persistence) containers if you don't want to extend the base image but keep a container around for some time.
 
-## CLI
+## Configuration
 
-Build the binary:
+There are several ways to configure dungeon, in order of precedence:
+- [CLI flags](#cli-flags)
+- [Environment variables](#environment-variables)
+- [Configuration file](#configuration-file)
+- [Default configuration](#default-configuration)
 
-```shell
-cargo build --release
-```
+Single arguments like the command to run override lower-level configuration. List arguments like ports, mounts, and groups are merged with lower-level configuration.
 
-Install the CLI:
-
-```shell
-cargo install --path .
-```
-
-Options:
-- `--help` shows the help message.
-- `--version` prints the version.
-- `--reset-cache` deletes the `dungeon-cache` volume before running.
-
-Configurations:
-- `--run` runs a command inside the container.
-- `--image` selects the container image.
-- `--port` publishes a container port (repeatable).
-- `--cache` mounts cache volume targets (repeatable).
-- `--mount` bind-mounts a host path (repeatable).
-- `--env` adds container environment variables (repeatable).
-- `--podman-arg` appends a `podman run` argument (repeatable).
-
-Groups:
-- Groups defined in config become flags (example: `--codex`, `--obsidian`).
-
-Persistence:
-- `--persist` creates a named container and fails if it already exists.
-- `--persisted` connects to the named container if it exists (no extra config/group/path args).
-- `--discard` removes the named container.
-- Names are based on the current folder and a hash of the path.
-
-## Config file
-
-Defaults live in `src/config/defaults.toml` (embedded at build time).
-User config overrides them at `~/.config/dungeon/config.toml` (or `$XDG_CONFIG_HOME/dungeon/config.toml`).
-Precedence is defaults < group config < config file top level < environment < CLI flags.
-Only provided values override earlier sources; list settings are merged by appending.
 Groups defined in config replace defaults, and an empty table removes a default group.
-Environment overrides use:
-- `DUNGEON_RUN`, `DUNGEON_IMAGE`
-- `DUNGEON_PORTS` (comma-separated)
-- `DUNGEON_CACHES` (comma-separated)
-- `DUNGEON_MOUNTS` (comma-separated)
-- `DUNGEON_ENVS` (comma-separated)
-- `DUNGEON_PODMAN_ARGS` (comma-separated)
-- `DUNGEON_DEFAULT_GROUPS` (comma-separated)
+
+### CLI flags
+
+See `dungeon --help` in [Usage](#usage) above to see the available CLI configuration flags.
+
+### Configuration file
+
+Defaults live in `src/config/defaults.toml` (embedded at build time). User config overrides them at `$XDG_CONFIG_HOME/dungeon/config.toml` (or `~/.config/dungeon/config.toml`).
 
 Example:
-```
+```toml
 run = "codex"
 image = "localhost/dungeon"
 ports = ["127.0.0.1:8888:8888"]
 caches = [".cache/pip:rw"]
 mounts = ["~/projects:/home/dungeon/projects:rw"]
-envs = ["OPENAI_API_KEY"]
+envs = ["OPENAI_API_KEY", "SECRET=abc123"]
 podman_args = ["--cap-add=SYS_PTRACE"]
 always_on_groups = ["codex"]
 
@@ -156,7 +154,7 @@ mounts = ["~/my_vault:/home/dungeon/obsidian:ro"]
 
 [python]
 caches = ["/var/cache/pacman/pkg"]
-envs = ["OPENAPI_KEY"]
+envs = ["MYSECRETDJANGOKEY"]
 ports = ["127.0.0.1:8000:8000"]
 ```
 
@@ -164,26 +162,42 @@ Group behavior:
 - Each top-level table (for example `[codex]`) defines a group.
 - Each group name becomes a CLI flag (example: `--codex`).
 - An empty group table removes a default group of the same name.
-- `always_on_groups` lists groups always enabled, in order.
-- `mounts` entries use `source:target[:ro|rw]`.
+
+- `always_on_groups` lists groups always enabled, in order of precedence (later entries take precedence).
+- `mounts` entries use `source:target[:ro|rw]` (`source` may be absolute, `~/...`, or relative to `$HOME`; `target` may be absolute or relative to `/home/dungeon`).
 - `caches` entries use `target[:ro|rw]` from the `dungeon-cache` volume.
 - `envs` entries support `NAME=VALUE` for static values or `NAME` to pass through the host value.
 - `mounts`, `caches`, `envs`, `ports`, and `podman_args` extend the base settings when enabled.
 - `run` and `image` use the last enabled group when multiple are set.
-- Group settings apply before top-level config, env vars, and CLI overrides.
-- `source` may be absolute, `~/...`, or relative to `$HOME`; `target` may be absolute or relative to `/home/dungeon`.
 
-Run behavior:
-- `image` overrides the container image (default `localhost/dungeon`).
-- `ports` adds `-p` rules (repeatable).
-- `caches` adds `dungeon-cache` volume mounts.
-- `mounts` adds bind mounts from the host.
-- `envs` adds `--env` entries.
-- `podman_args` appends extra `podman run` args.
+### Environment variables
 
-## Notes
-- The container user is `dungeon` with passwordless sudo.
-- A named volume `dungeon-cache` is used for caches.
+Environment overrides use:
+- `DUNGEON_RUN`
+- `DUNGEON_IMAGE`
+- `DUNGEON_PORTS` (comma-separated)
+- `DUNGEON_CACHES` (comma-separated)
+- `DUNGEON_MOUNTS` (comma-separated)
+- `DUNGEON_ENVS` (comma-separated)
+- `DUNGEON_PODMAN_ARGS` (comma-separated)
+- `DUNGEON_DEFAULT_GROUPS` (comma-separated)
+
+### Default configuration
+
+The default config is embedded at build time from [`src/config/defaults.toml`](./src/config/defaults.toml) and is also the reference for all available groups and settings.
+
+## Persistence
+
+Use the CLI `--persist` flag to tell Podman to keep a container instead of deleting it after the bash session closes or the run command terminates.
+
+Persisted containers are tied to the current folder: they are named `dungeon-<folder_name>-<path_hash>`. When you run `dungeon --persisted` (no other arguments are allowed), dungeon restarts the container and opens a bash session for the container matching the current directory, if it exists.
+
+This enables project-level persisted containers if you prefer them over temporary containers.
+
+## Cache
+
+A named volume `dungeon-cache` is used for caches. This lets you mount specific folders to cache between temporary sessions. This is typically used to speed up installing dependencies.
 
 ## License
-MIT. See `LICENSE`.
+
+See [LICENSE](LICENSE)
