@@ -136,71 +136,88 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
         .disable_help_subcommand(true)
         .disable_help_flag(true)
         .disable_version_flag(true)
-        .arg(Arg::new("help").long("help").action(ArgAction::SetTrue))
+        .arg(
+            Arg::new("help")
+                .long("help")
+                .help_heading("Options")
+                .action(ArgAction::SetTrue),
+        )
         .arg(
             Arg::new("reset-cache")
                 .long("reset-cache")
+                .help_heading("Options")
                 .action(ArgAction::SetTrue),
         )
         .arg(
             Arg::new("version")
                 .long("version")
+                .help_heading("Options")
                 .action(ArgAction::SetTrue),
         )
         .arg(
             Arg::new("persist")
                 .long("persist")
+                .help_heading("Options")
                 .action(ArgAction::SetTrue),
         )
         .arg(
             Arg::new("persisted")
                 .long("persisted")
+                .help_heading("Options")
                 .action(ArgAction::SetTrue),
         )
         .arg(
             Arg::new("discard")
                 .long("discard")
+                .help_heading("Options")
                 .action(ArgAction::SetTrue),
         )
         .arg(
             Arg::new("run")
                 .long("run")
+                .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Set),
         )
         .arg(
             Arg::new("image")
                 .long("image")
+                .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Set),
         )
         .arg(
             Arg::new("port")
                 .long("port")
+                .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Append),
         )
         .arg(
             Arg::new("cache")
                 .long("cache")
+                .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Append),
         )
         .arg(
             Arg::new("mount")
                 .long("mount")
+                .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Append),
         )
         .arg(
             Arg::new("env")
                 .long("env")
+                .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Append),
         )
         .arg(
             Arg::new("podman-arg")
                 .long("podman-arg")
+                .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Append),
         )
@@ -209,7 +226,12 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
     let group_names: Vec<String> = group_defs.keys().cloned().collect();
     for name in group_names.iter() {
         let leaked: &'static str = Box::leak(name.clone().into_boxed_str());
-        cmd = cmd.arg(Arg::new(leaked).long(leaked).action(ArgAction::SetTrue));
+        cmd = cmd.arg(
+            Arg::new(leaked)
+                .long(leaked)
+                .help_heading("Groups")
+                .action(ArgAction::SetTrue),
+        );
     }
 
     cmd
