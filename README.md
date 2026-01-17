@@ -121,12 +121,13 @@ There is also the option to [persist](#persistence) containers if you don't want
 There are several ways to configure dungeon, in order of precedence:
 - [CLI flags](#cli-flags)
 - [Environment variables](#environment-variables)
+- [Groups](#groups)
 - [Configuration file](#configuration-file)
 - [Default configuration](#default-configuration)
 
 Single arguments like the command to run override lower-level configuration. List arguments like ports, mounts, and groups are merged with lower-level configuration.
 
-Groups defined in config replace defaults, and an empty table removes a default group.
+Groups defined in config replace defaults, and an empty table removes a default group. Groups are applied after the top-level config file, with explicit CLI group flags taking precedence over `always_on_groups`.
 
 ### CLI flags
 

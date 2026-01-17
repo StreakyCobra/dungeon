@@ -8,13 +8,13 @@ pub fn resolve_settings(
     group_order: &[String],
 ) -> Result<Settings, AppError> {
     let mut settings = sources.defaults;
+    settings = merge_settings(settings, sources.file);
     for name in group_order {
         let group = groups
             .get(name)
             .ok_or_else(|| AppError::message(format!("ERROR: unknown group \"{}\"", name)))?;
         settings = merge_settings(settings, group.settings.clone());
     }
-    settings = merge_settings(settings, sources.file);
     settings = merge_settings(settings, sources.env);
     settings = merge_settings(settings, sources.cli);
     Ok(settings)
@@ -24,6 +24,7 @@ pub fn resolve_always_on_groups(
     defaults: &super::Config,
     file: &super::Config,
     env: &super::Config,
+    cli: &super::Config,
 ) -> Vec<String> {
     let mut groups = Vec::new();
     if let Some(list) = &defaults.always_on_groups {
@@ -33,6 +34,9 @@ pub fn resolve_always_on_groups(
         groups.extend(list.clone());
     }
     if let Some(list) = &env.always_on_groups {
+        groups.extend(list.clone());
+    }
+    if let Some(list) = &cli.always_on_groups {
         groups.extend(list.clone());
     }
     groups

@@ -63,4 +63,22 @@ impl Settings {
 
         settings
     }
+
+    pub fn always_on_groups_from_cli(
+        matches: &clap::ArgMatches,
+        group_names: &[String],
+    ) -> Option<Vec<String>> {
+        let mut groups = Vec::new();
+        for name in group_names {
+            if matches.get_flag(name) {
+                groups.push(name.clone());
+            }
+        }
+
+        if groups.is_empty() {
+            None
+        } else {
+            Some(groups)
+        }
+    }
 }

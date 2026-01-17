@@ -4,6 +4,7 @@ use crate::tests::support::{assert_command, TestInput};
 fn applies_group_and_cli_overrides() {
     let input = TestInput {
         toml: r#"
+always_on_groups = ["codex"]
 image = "localhost/dungeon-base"
 
 [codex]
@@ -11,11 +12,11 @@ image = "localhost/dungeon-codex"
 [obsidian]
 image = "localhost/dungeon-obsidian"
 "#,
-        args: &["--codex", "--obsidian"],
+        args: &["--obsidian"],
         env: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /home/dungeon/project --rm -v dungeon-cache:/home/dungeon/.cache -v dungeon-cache:/home/dungeon/.npm -v <CWD>:/home/dungeon/project localhost/dungeon-base bash";
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/project --rm -v dungeon-cache:/home/dungeon/.cache -v dungeon-cache:/home/dungeon/.npm -v <CWD>:/home/dungeon/project localhost/dungeon-obsidian bash";
 
     assert_command(input, expected);
 }

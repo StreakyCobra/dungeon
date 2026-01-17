@@ -41,7 +41,7 @@ pub fn parse_args_with_sources(
     env_cfg: config::Config,
 ) -> Result<ParsedInput, AppError> {
     let group_defs = config::merge_group_definitions(&defaults.groups, &file_cfg.groups)?;
-    let always_on = config::resolve_always_on_groups(&defaults, &file_cfg, &env_cfg);
+    let mut always_on = config::resolve_always_on_groups(&defaults, &file_cfg, &env_cfg, &config::Config::default());
     let group_order = config::normalize_group_order(&always_on)?;
     let _group_enabled = config::build_group_selection(&group_defs, &group_order)?;
 
@@ -92,7 +92,14 @@ pub fn parse_args_with_sources(
     }
 
     let cli_settings = config::Settings::from_cli(&matches);
-    let group_order = config::resolve_group_order(&group_order, &group_flags);
+    let group_names: Vec<String> = group_defs.keys().cloned().collect();
+    let cli_groups = config::Settings::always_on_groups_from_cli(&matches, &group_names);
+    let cli_group_cfg = config::Config {
+        always_on_groups: cli_groups,
+        ..config::Config::default()
+    };
+    always_on = config::resolve_always_on_groups(&defaults, &file_cfg, &env_cfg, &cli_group_cfg);
+    let group_order = config::resolve_group_order(&always_on, &group_flags);
 
     let final_settings = config::resolve_settings(
         config::Sources {
