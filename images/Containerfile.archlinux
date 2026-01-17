@@ -1,9 +1,8 @@
 FROM docker.io/archlinux:latest
 
 # Update and install packages
-RUN --mount=type=cache,target=/var/cache/pacman/pkg \
-    pacman -Syu --noconfirm && \
-    pacman -S --noconfirm \
+RUN pacman -Syu --noconfirm \
+    && pacman -S --noconfirm \
       ca-certificates \
       curl \
       git \
@@ -11,7 +10,8 @@ RUN --mount=type=cache,target=/var/cache/pacman/pkg \
       nvim \
       python \
       ripgrep \
-      sudo
+      sudo \
+    && rm -rf /var/cache/pacman/pkg
 
 # Setup user
 RUN groupadd -g 1000 dungeon && \

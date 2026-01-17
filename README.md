@@ -83,7 +83,6 @@ podman build -f images/Containerfile.ubuntu -t localhost/dungeon .
 
 The latest built image will be the default image when non is manually specified.
 
-Note: the Containerfiles use `RUN --mount=type=cache` for package caches. Podman supports this.
 
 ## CLI
 
