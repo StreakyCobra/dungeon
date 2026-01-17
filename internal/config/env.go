@@ -8,30 +8,41 @@ import (
 const envPrefix = "DUNGEON_"
 
 func LoadFromEnv() (Config, error) {
+	return LoadFromEnvLookup(os.LookupEnv)
+}
+
+func LoadFromEnvMap(values map[string]string) (Config, error) {
+	return LoadFromEnvLookup(func(key string) (string, bool) {
+		value, ok := values[key]
+		return value, ok
+	})
+}
+
+func LoadFromEnvLookup(lookup func(string) (string, bool)) (Config, error) {
 	cfg := Config{}
 
-	if value, ok := os.LookupEnv(envPrefix + "RUN"); ok {
+	if value, ok := lookup(envPrefix + "RUN"); ok {
 		cfg.RunCommand = strings.TrimSpace(value)
 	}
-	if value, ok := os.LookupEnv(envPrefix + "IMAGE"); ok {
+	if value, ok := lookup(envPrefix + "IMAGE"); ok {
 		cfg.Image = strings.TrimSpace(value)
 	}
-	if value, ok := os.LookupEnv(envPrefix + "PORTS"); ok {
+	if value, ok := lookup(envPrefix + "PORTS"); ok {
 		cfg.Ports = splitEnvList(value)
 	}
-	if value, ok := os.LookupEnv(envPrefix + "CACHES"); ok {
+	if value, ok := lookup(envPrefix + "CACHES"); ok {
 		cfg.Cache = splitEnvList(value)
 	}
-	if value, ok := os.LookupEnv(envPrefix + "MOUNTS"); ok {
+	if value, ok := lookup(envPrefix + "MOUNTS"); ok {
 		cfg.Mounts = splitEnvList(value)
 	}
-	if value, ok := os.LookupEnv(envPrefix + "ENVS"); ok {
+	if value, ok := lookup(envPrefix + "ENVS"); ok {
 		cfg.EnvVars = splitEnvList(value)
 	}
-	if value, ok := os.LookupEnv(envPrefix + "PODMAN_ARGS"); ok {
+	if value, ok := lookup(envPrefix + "PODMAN_ARGS"); ok {
 		cfg.PodmanArgs = splitEnvList(value)
 	}
-	if value, ok := os.LookupEnv(envPrefix + "ALWAYS_ON_GROUPS"); ok {
+	if value, ok := lookup(envPrefix + "ALWAYS_ON_GROUPS"); ok {
 		cfg.AlwaysOnGroups = splitEnvList(value)
 	}
 
