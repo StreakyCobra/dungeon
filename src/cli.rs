@@ -63,7 +63,12 @@ pub fn parse_args_with_sources(
     env_cfg: config::Config,
 ) -> Result<ParsedCLI, AppError> {
     let group_defs = config::merge_group_definitions(&defaults.groups, &file_cfg.groups)?;
-    let base_groups = config::resolve_always_on_groups(&defaults, &file_cfg, &env_cfg, &config::Config::default());
+    let base_groups = config::resolve_always_on_groups(
+        &defaults,
+        &file_cfg,
+        &env_cfg,
+        &config::Config::default(),
+    );
     let base_order = config::normalize_group_order(&base_groups)?;
     let _group_enabled = config::build_group_selection(&group_defs, &base_order)?;
 
@@ -75,7 +80,11 @@ pub fn parse_args_with_sources(
         return print_help(cmd);
     }
 
-    let persist_mode = resolve_persist_mode(&matches)?;
+    let persist_mode = resolve_persist_mode_from_flags(
+        matches.get_flag(FLAG_PERSIST),
+        matches.get_flag(FLAG_PERSISTED),
+        matches.get_flag(FLAG_DISCARD),
+    )?;
     let group_flags = collect_group_flags(&matches, &group_defs);
     let has_group_overrides = group_flags.values().any(|flag| flag.set);
     let has_config_overrides = has_config_override(&matches);
@@ -83,7 +92,7 @@ pub fn parse_args_with_sources(
 
     validate_persist_flags(&matches, has_config_overrides, has_group_overrides, &paths)?;
 
-    let cli_settings = config::Settings::from_cli(&matches);
+    let cli_settings = settings_from_matches(&matches);
     validate_cli_settings(&cli_settings)?;
 
     Ok(ParsedCLI {
@@ -119,13 +128,6 @@ fn print_help(mut cmd: Command) -> Result<ParsedCLI, AppError> {
 }
 
 
-fn resolve_persist_mode(matches: &ArgMatches) -> Result<PersistMode, AppError> {
-    config::resolve_persist_mode(
-        matches.get_flag(FLAG_PERSIST),
-        matches.get_flag(FLAG_PERSISTED),
-        matches.get_flag(FLAG_DISCARD),
-    )
-}
 
 fn collect_paths(matches: &ArgMatches) -> Vec<String> {
     matches
@@ -375,3 +377,58 @@ fn validate_string_list(values: Option<&Vec<String>>, flag: &str) -> Result<(), 
     }
     Ok(())
 }
+
+fn settings_from_matches(matches: &ArgMatches) -> Settings {
+    let mut settings = Settings::default();
+
+    if let Some(value) = matches.get_one::<String>(FLAG_RUN) {
+        settings.run_command = Some(value.to_string());
+    }
+    if let Some(value) = matches.get_one::<String>(FLAG_IMAGE) {
+        settings.image = Some(value.to_string());
+    }
+    if let Some(values) = matches.get_many::<String>(FLAG_PORT) {
+        settings.ports = Some(values.map(|s| s.to_string()).collect());
+    }
+    if let Some(values) = matches.get_many::<String>(FLAG_CACHE) {
+        settings.cache = Some(values.map(|s| s.to_string()).collect());
+    }
+    if let Some(values) = matches.get_many::<String>(FLAG_MOUNT) {
+        settings.mounts = Some(values.map(|s| s.to_string()).collect());
+    }
+    if let Some(values) = matches.get_many::<String>(FLAG_ENV) {
+        settings.env_vars = Some(values.map(|s| s.to_string()).collect());
+    }
+    if let Some(values) = matches.get_many::<String>(FLAG_ENV_FILE) {
+        settings.env_files = Some(values.map(|s| s.to_string()).collect());
+    }
+    if let Some(values) = matches.get_many::<String>(FLAG_PODMAN_ARG) {
+        settings.podman_args = Some(values.map(|s| s.to_string()).collect());
+    }
+
+    settings
+}
+
+fn resolve_persist_mode_from_flags(
+    persist: bool,
+    persisted: bool,
+    discard: bool,
+) -> Result<PersistMode, AppError> {
+    let total = [persist, persisted, discard].iter().filter(|x| **x).count();
+    if total > 1 {
+        return Err(AppError::message(
+            "ERROR: --persist, --persisted, and --discard are mutually exclusive",
+        ));
+    }
+    if discard {
+        return Ok(PersistMode::Discard);
+    }
+    if persisted {
+        return Ok(PersistMode::Reuse);
+    }
+    if persist {
+        return Ok(PersistMode::Create);
+    }
+    Ok(PersistMode::None)
+}
+

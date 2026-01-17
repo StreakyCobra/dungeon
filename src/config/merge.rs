@@ -42,29 +42,6 @@ pub fn resolve_always_on_groups(
     groups
 }
 
-pub fn resolve_persist_mode(
-    persist: bool,
-    persisted: bool,
-    discard: bool,
-) -> Result<crate::container::persist::PersistMode, AppError> {
-    let total = [persist, persisted, discard].iter().filter(|x| **x).count();
-    if total > 1 {
-        return Err(AppError::message(
-            "ERROR: --persist, --persisted, and --discard are mutually exclusive",
-        ));
-    }
-    if discard {
-        return Ok(crate::container::persist::PersistMode::Discard);
-    }
-    if persisted {
-        return Ok(crate::container::persist::PersistMode::Reuse);
-    }
-    if persist {
-        return Ok(crate::container::persist::PersistMode::Create);
-    }
-    Ok(crate::container::persist::PersistMode::None)
-}
-
 fn merge_settings(base: Settings, override_settings: Settings) -> Settings {
     let mut merged = base;
     if let Some(value) = override_settings.run_command {

@@ -15,6 +15,32 @@ pub enum PersistMode {
     Discard,
 }
 
+pub fn resolve_container_name(
+    persist_mode: PersistMode,
+    paths: &[String],
+) -> Result<String, AppError> {
+    if persist_mode == PersistMode::Create {
+        return persisted_container_name(paths);
+    }
+    if persist_mode != PersistMode::None {
+        return persisted_container_name(&[]);
+    }
+    Ok(String::new())
+}
+
+pub fn ensure_container_exists(
+    persist_mode: PersistMode,
+    container_name: &str,
+) -> Result<(), AppError> {
+    if persist_mode == PersistMode::Reuse && !container_exists(container_name)? {
+        return Err(AppError::message(format!(
+            "ERROR: container \"{}\" does not exist",
+            container_name
+        )));
+    }
+    Ok(())
+}
+
 pub fn persisted_container_name(paths: &[String]) -> Result<String, AppError> {
     let cwd = std::env::current_dir()?;
     let abs_cwd = cwd.canonicalize()?;
