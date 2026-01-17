@@ -1,6 +1,6 @@
 # dungeon
 
-`dungeon` is a sandboxed development container system. It is build as a developer friendly wrapper over podman.
+`dungeon` is a sandboxed development container system. It is built as a developer-friendly wrapper over podman.
 
 It is quick to launch, it comes preconfigured for AI agents, and it is easy to configure and extend.
 
@@ -9,19 +9,25 @@ It is quick to launch, it comes preconfigured for AI agents, and it is easy to c
 Build an image and the CLI:
 
 ```shell
-make archlinux
+podman build -f images/Containerfile.archlinux -t localhost/dungeon .
+```
+
+Build the CLI:
+
+```shell
+cargo build --release
 ```
 
 Start a shell in the container with your current project mounted:
 
 ```shell
-./build/dungeon
+./target/release/dungeon
 ```
 
 You can alias it in the current session:
 
 ```shell
-alias dungeon=$PWD/build/dungeon
+alias dungeon=$PWD/target/release/dungeon
 ```
 
 Configure the use of Codex within the sandbox:
@@ -68,11 +74,11 @@ Container files live in `images/`:
 - `images/Containerfile.archlinux`
 - `images/Containerfile.ubuntu`
 
-Build with Make:
+Build with Podman:
 
 ```shell
-make archlinux
-make ubuntu
+podman build -f images/Containerfile.archlinux -t localhost/dungeon .
+podman build -f images/Containerfile.ubuntu -t localhost/dungeon .
 ```
 
 The latest built image will be the default image when non is manually specified.
@@ -84,15 +90,13 @@ Note: the Containerfiles use `RUN --mount=type=cache` for package caches. Podman
 Build the binary:
 
 ```shell
-make cli
-# OR
-go build -o build/dungeon ./cmd/dungeon
+cargo build --release
 ```
 
 Install the CLI:
 
 ```shell
-go install github.com/StreakyCobra/dungeon/cmd/dungeon@latest
+cargo install --path .
 ```
 
 Options:
@@ -122,7 +126,7 @@ Persistence:
 
 ## Config file
 
-Defaults live in `internal/config/defaults.toml` and are embedded at build time.
+Defaults live in `src/config/defaults.toml` (embedded at build time).
 User config overrides them at `~/.config/dungeon/config.toml` (or `$XDG_CONFIG_HOME/dungeon/config.toml`).
 Precedence is defaults < group config < config file top level < environment < CLI flags.
 Only provided values override earlier sources; list settings are merged by appending.

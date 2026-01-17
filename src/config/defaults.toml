@@ -11,5 +11,5 @@ mounts = ["~/.gemini:/home/dungeon/.gemini:rw"]
 mounts = [
   "~/.config/opencode:/home/dungeon/.config/opencode:rw",
   "~/.local/share/opencode:/home/dungeon/.local/share/opencode:rw",
-  "~/.cache/opencode:/home/dungeon/.cache/opencode:rw"
+  "~/.cache/opencode:/home/dungeon/.cache/opencode:rw",
 ]
