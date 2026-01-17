@@ -96,7 +96,10 @@ fn parse_config(data: &str) -> Result<Config, AppError> {
 
     for (name, value) in raw.groups {
         if is_reserved_key(&name) {
-            continue;
+            return Err(AppError::message(format!(
+                "unknown top-level key '{}' in config",
+                name
+            )));
         }
         let group = parse_group_config(&name, value)?;
         cfg.groups.insert(name, group);

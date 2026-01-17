@@ -37,7 +37,23 @@ pub fn persisted_container_name(paths: &[String]) -> Result<String, AppError> {
             .unwrap_or("project"),
     );
 
-    Ok(format!("dungeon-{}-{}", base, short_hash))
+    let name = format!("dungeon-{}-{}", base, short_hash);
+    validate_container_name(&name)?;
+    Ok(name)
+}
+
+pub fn validate_container_name(name: &str) -> Result<(), AppError> {
+    if name.trim().is_empty() {
+        return Err(AppError::message("ERROR: container name cannot be empty"));
+    }
+    let max_len = 63usize;
+    if name.len() > max_len {
+        return Err(AppError::message(format!(
+            "ERROR: container name exceeds {} characters",
+            max_len
+        )));
+    }
+    Ok(())
 }
 
 pub fn sanitize_container_base(name: &str) -> String {
@@ -49,15 +65,29 @@ pub fn sanitize_container_base(name: &str) -> String {
             cleaned.push('-');
         }
     }
-    let trimmed = cleaned.trim_matches('-').to_string();
-    if trimmed.is_empty() {
-        "project".to_string()
+    let trimmed = cleaned.trim_matches('-');
+    let fallback = "project";
+    let base = if trimmed.is_empty() { fallback } else { trimmed };
+    let max_len = 32usize;
+    if base.len() <= max_len {
+        return base.to_string();
+    }
+    let mut shortened = String::new();
+    for ch in base.chars() {
+        if shortened.len() + ch.len_utf8() > max_len {
+            break;
+        }
+        shortened.push(ch);
+    }
+    if shortened.is_empty() {
+        fallback.to_string()
     } else {
-        trimmed
+        shortened
     }
 }
 
 pub fn container_exists(name: &str) -> Result<bool, AppError> {
+    validate_container_name(name)?;
     let status = Command::new("podman")
         .arg("container")
         .arg("exists")
@@ -67,6 +97,7 @@ pub fn container_exists(name: &str) -> Result<bool, AppError> {
 }
 
 pub fn container_running(name: &str) -> Result<bool, AppError> {
+    validate_container_name(name)?;
     let output = Command::new("podman")
         .arg("inspect")
         .arg("-f")
@@ -77,10 +108,12 @@ pub fn container_running(name: &str) -> Result<bool, AppError> {
 }
 
 pub fn start_container(name: &str) -> Result<(), AppError> {
+    validate_container_name(name)?;
     run_podman(&["start", name])
 }
 
 pub fn exec_into_container(name: &str) -> Result<(), AppError> {
+    validate_container_name(name)?;
     run_podman(&["exec", "-it", name, "bash"])
 }
 
@@ -93,6 +126,7 @@ pub fn ensure_container_session(name: &str) -> Result<(), AppError> {
 }
 
 pub fn discard_container(name: &str) -> Result<(), AppError> {
+    validate_container_name(name)?;
     run_podman(&["rm", "-f", name])
 }
 
