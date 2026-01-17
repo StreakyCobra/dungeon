@@ -227,6 +227,14 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
                 .action(ArgAction::Append),
         )
         .arg(
+            Arg::new("env-file")
+                .long("env-file")
+                .help("Add a podman env-file (repeatable)")
+                .help_heading("Configurations")
+                .num_args(1)
+                .action(ArgAction::Append),
+        )
+        .arg(
             Arg::new("podman-arg")
                 .long("podman-arg")
                 .help("Append an extra podman run argument (repeatable)")
@@ -287,5 +295,6 @@ fn has_config_override(matches: &ArgMatches) -> bool {
         || matches.contains_id("cache")
         || matches.contains_id("mount")
         || matches.contains_id("env")
+        || matches.contains_id("env-file")
         || matches.contains_id("podman-arg")
 }

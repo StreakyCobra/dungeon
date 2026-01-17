@@ -86,6 +86,7 @@ Configurations:
       --cache <cache>            Mount a cache volume target (repeatable)
       --mount <mount>            Bind-mount a host path (repeatable)
       --env <env>                Add a container environment variable (repeatable)
+      --env-file <env-file>      Add a Podman env-file (repeatable)
       --podman-arg <podman-arg>  Append an extra podman run argument (repeatable)
 
 Groups:
@@ -143,6 +144,7 @@ ports = ["127.0.0.1:8888:8888"]
 caches = [".cache/pip:rw"]
 mounts = ["~/projects:/home/dungeon/projects:rw"]
 envs = ["OPENAI_API_KEY", "SECRET=abc123"]
+env_files = [".env", "secrets.env"]
 podman_args = ["--cap-add=SYS_PTRACE"]
 always_on_groups = ["codex"]
 
@@ -167,7 +169,8 @@ Group behavior:
 - `mounts` entries use `source:target[:ro|rw]` (`source` may be absolute, `~/...`, or relative to `$HOME`; `target` may be absolute or relative to `/home/dungeon`).
 - `caches` entries use `target[:ro|rw]` from the `dungeon-cache` volume.
 - `envs` entries support `NAME=VALUE` for static values or `NAME` to pass through the host value.
-- `mounts`, `caches`, `envs`, `ports`, and `podman_args` extend the base settings when enabled.
+- `env_files` entries are passed to `Podman --env-file`.
+- `mounts`, `caches`, `envs`, `env_files`, `ports`, and `podman_args` extend the base settings when enabled.
 - `run` and `image` use the last enabled group when multiple are set.
 
 ### Environment variables
@@ -179,6 +182,7 @@ Environment overrides use:
 - `DUNGEON_CACHES` (comma-separated)
 - `DUNGEON_MOUNTS` (comma-separated)
 - `DUNGEON_ENVS` (comma-separated)
+- `DUNGEON_ENV_FILES` (comma-separated)
 - `DUNGEON_PODMAN_ARGS` (comma-separated)
 - `DUNGEON_DEFAULT_GROUPS` (comma-separated)
 

@@ -14,6 +14,7 @@ struct RawConfig {
     caches: Option<Vec<String>>,
     mounts: Option<Vec<String>>,
     envs: Option<Vec<String>>,
+    env_files: Option<Vec<String>>,
     podman_args: Option<Vec<String>>,
     always_on_groups: Option<Vec<String>>,
     #[serde(flatten)]
@@ -66,6 +67,9 @@ pub fn load_from_env() -> Result<Config, AppError> {
     if let Ok(value) = env::var(format!("{}ENVS", ENV_PREFIX)) {
         cfg.settings.env_vars = Some(split_env_list(&value));
     }
+    if let Ok(value) = env::var(format!("{}ENV_FILES", ENV_PREFIX)) {
+        cfg.settings.env_files = Some(split_env_list(&value));
+    }
     if let Ok(value) = env::var(format!("{}PODMAN_ARGS", ENV_PREFIX)) {
         cfg.settings.podman_args = Some(split_env_list(&value));
     }
@@ -86,6 +90,7 @@ fn parse_config(data: &str) -> Result<Config, AppError> {
     cfg.settings.cache = raw.caches;
     cfg.settings.mounts = raw.mounts;
     cfg.settings.env_vars = raw.envs;
+    cfg.settings.env_files = raw.env_files;
     cfg.settings.podman_args = raw.podman_args;
     cfg.always_on_groups = raw.always_on_groups;
 
@@ -117,6 +122,7 @@ fn parse_group_config(name: &str, value: toml::Value) -> Result<GroupConfig, App
             "mounts" => settings.mounts = Some(parse_string_vec(name, key, value)?),
             "caches" => settings.cache = Some(parse_string_vec(name, key, value)?),
             "envs" => settings.env_vars = Some(parse_string_vec(name, key, value)?),
+            "env_files" => settings.env_files = Some(parse_string_vec(name, key, value)?),
             "run" => settings.run_command = Some(parse_string(name, key, value)?),
             "image" => settings.image = Some(parse_string(name, key, value)?),
             "ports" => settings.ports = Some(parse_string_vec(name, key, value)?),
@@ -178,6 +184,7 @@ fn is_reserved_key(key: &str) -> bool {
             | "caches"
             | "mounts"
             | "envs"
+            | "env_files"
             | "podman_args"
             | "always_on_groups"
     )

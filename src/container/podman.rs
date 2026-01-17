@@ -44,6 +44,7 @@ pub fn build_podman_command(
 
     let cache_specs = settings.cache.clone().unwrap_or_default();
     let env_specs = settings.env_vars.clone().unwrap_or_default();
+    let env_files = settings.env_files.clone().unwrap_or_default();
     let ports = settings.ports.clone().unwrap_or_default();
     let run_command = settings.run_command.clone().unwrap_or_default();
     let mut image = settings.image.clone().unwrap_or_default();
@@ -123,6 +124,17 @@ pub fn build_podman_command(
 
     if !env_args.is_empty() {
         args.extend(env_args);
+    }
+
+    if !env_files.is_empty() {
+        for env_file in env_files {
+            let trimmed = env_file.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            args.push("--env-file".to_string());
+            args.push(trimmed.to_string());
+        }
     }
 
     for port in ports {

@@ -81,6 +81,9 @@ fn merge_settings(base: Settings, override_settings: Settings) -> Settings {
     if let Some(values) = override_settings.env_vars {
         merged.env_vars = Some(append_strings(merged.env_vars, values));
     }
+    if let Some(values) = override_settings.env_files {
+        merged.env_files = Some(append_strings(merged.env_files, values));
+    }
     if let Some(values) = override_settings.podman_args {
         merged.podman_args = Some(append_strings(merged.podman_args, values));
     }

@@ -8,6 +8,7 @@ pub struct Settings {
     pub cache: Option<Vec<String>>,
     pub mounts: Option<Vec<String>>,
     pub env_vars: Option<Vec<String>>,
+    pub env_files: Option<Vec<String>>,
     pub podman_args: Option<Vec<String>>,
 }
 
@@ -52,6 +53,9 @@ impl Settings {
         }
         if let Some(values) = matches.get_many::<String>("env") {
             settings.env_vars = Some(values.map(|s| s.to_string()).collect());
+        }
+        if let Some(values) = matches.get_many::<String>("env-file") {
+            settings.env_files = Some(values.map(|s| s.to_string()).collect());
         }
         if let Some(values) = matches.get_many::<String>("podman-arg") {
             settings.podman_args = Some(values.map(|s| s.to_string()).collect());
