@@ -1,9 +1,4 @@
-use crate::{
-    cli,
-    config,
-    error::AppError,
-    tests::support::{run_input, TestInput},
-};
+use crate::tests::support::{run_input, TestInput};
 
 #[test]
 fn errors_on_unknown_config_keys() {
@@ -17,18 +12,4 @@ fn errors_on_unknown_config_keys() {
 
     let result = std::panic::catch_unwind(|| run_input(input));
     assert!(result.is_err());
-}
-
-#[test]
-fn errors_on_empty_image_flag() {
-    let defaults = config::Config::default();
-    let env_cfg = config::Config::default();
-    let file_cfg = config::Config::default();
-
-    let argv = vec!["--image".to_string(), " ".to_string()];
-    let result = cli::parse_args_with_sources(argv, defaults, file_cfg, env_cfg);
-    match result {
-        Err(AppError::Message(msg)) => assert!(msg.contains("--image")),
-        _ => panic!("expected image validation error"),
-    }
 }

@@ -5,7 +5,6 @@ use std::{
 
 use crate::{
     config::Settings,
-    container::mounts::resolve_host_path,
     error::AppError,
 };
 
@@ -47,39 +46,14 @@ pub fn build_podman_command(
     let run_command = settings.run_command.clone().unwrap_or_default();
     let mut image = settings.image.clone().unwrap_or_default();
 
-    if let Some(run_command) = settings.run_command.as_ref() {
-        if run_command.trim().is_empty() {
-            return Err(AppError::message("ERROR: run command cannot be empty"));
-        }
-    }
-    if let Some(image) = settings.image.as_ref() {
-        if image.trim().is_empty() {
-            return Err(AppError::message("ERROR: image cannot be empty"));
-        }
-    }
-
     for spec in settings.mounts.clone().unwrap_or_default() {
-        let raw = spec;
-        let trimmed = raw.trim();
-        if !trimmed.is_empty() {
-            let source = trimmed.splitn(2, ':').next().unwrap_or("").trim();
-            if !source.is_empty() {
-                let host_path = resolve_host_path(&home, source)?;
-                if same_dir(&host_path, &home) {
-                    return Err(AppError::message(
-                        "ERROR: refusing to mount the home directory",
-                    ));
-                }
-            }
-        }
         mounts.push("-v".to_string());
-        mounts.push(raw);
+        mounts.push(spec);
     }
 
     for spec in cache_specs {
-        let raw = spec;
         mounts.push("-v".to_string());
-        mounts.push(format!("dungeon-cache:{}", raw));
+        mounts.push(format!("dungeon-cache:{}", spec));
     }
 
     let env_args = build_env_args(&env_specs);

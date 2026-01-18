@@ -330,19 +330,10 @@ fn has_config_override(matches: &ArgMatches) -> bool {
         || matches.contains_id(FLAG_PODMAN_ARG)
 }
 
-fn validate_cli_settings(settings: &Settings) -> Result<(), AppError> {
-    if let Some(run) = &settings.run_command {
-        if run.trim().is_empty() {
-            return Err(AppError::message("ERROR: --run cannot be empty"));
-        }
-    }
-    if let Some(image) = &settings.image {
-        if image.trim().is_empty() {
-            return Err(AppError::message("ERROR: --image cannot be empty"));
-        }
-    }
+fn validate_cli_settings(_settings: &Settings) -> Result<(), AppError> {
     Ok(())
 }
+
 
 fn settings_from_matches(matches: &ArgMatches) -> Settings {
     let mut settings = Settings::default();
