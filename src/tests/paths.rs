@@ -14,3 +14,18 @@ fn mounts_cli_paths_with_custom_names() {
 
     assert_command(input, expected);
 }
+
+#[test]
+fn skips_cwd_mount_when_flagged() {
+    let input = TestInput {
+        toml: "",
+        args: &["--skip-cwd"],
+        env: &[],
+        cwd_name: "paths-project",
+        cwd_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/paths-project --rm -v dungeon-cache:/home/dungeon/.cache -v dungeon-cache:/home/dungeon/.npm localhost/dungeon bash";
+
+    assert_command(input, expected);
+}

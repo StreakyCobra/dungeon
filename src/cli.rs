@@ -22,6 +22,7 @@ const FLAG_MOUNT: &str = "mount";
 const FLAG_ENV: &str = "env";
 const FLAG_ENV_FILE: &str = "env-file";
 const FLAG_PODMAN_ARG: &str = "podman-arg";
+const FLAG_SKIP_CWD: &str = "skip-cwd";
 const ARG_PATHS: &str = "paths";
 
 #[derive(Debug, Clone)]
@@ -32,6 +33,7 @@ pub struct ParsedCLI {
     pub reset_cache: bool,
     pub persist_mode: PersistMode,
     pub group_flags: BTreeMap<String, GroupFlag>,
+    pub skip_cwd: bool,
 }
 
 #[derive(Default, Clone, Debug)]
@@ -102,6 +104,7 @@ pub fn parse_args_with_sources(
         reset_cache: matches.get_flag(FLAG_RESET_CACHE),
         persist_mode,
         group_flags,
+        skip_cwd: matches.get_flag(FLAG_SKIP_CWD),
     })
 }
 
@@ -124,6 +127,7 @@ fn print_help(mut cmd: Command) -> Result<ParsedCLI, AppError> {
         reset_cache: false,
         persist_mode: PersistMode::None,
         group_flags: BTreeMap::new(),
+        skip_cwd: false,
     })
 }
 
@@ -148,6 +152,11 @@ fn validate_persist_flags(
                 "ERROR: --persisted and --discard do not accept config, group, or path arguments",
             ));
         }
+    }
+    if matches.get_flag(FLAG_SKIP_CWD) && !paths.is_empty() {
+        return Err(AppError::message(
+            "ERROR: --skip-cwd cannot be used with explicit paths",
+        ));
     }
     Ok(())
 }
@@ -265,6 +274,13 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
                 .action(ArgAction::Append),
         )
         .arg(
+            Arg::new(FLAG_SKIP_CWD)
+                .long(FLAG_SKIP_CWD)
+                .help("Skip mounting the current directory by default")
+                .help_heading("Configurations")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
             Arg::new(ARG_PATHS)
                 .help("Paths to mount inside the container (default: current directory)")
                 .num_args(0..)
@@ -328,6 +344,7 @@ fn has_config_override(matches: &ArgMatches) -> bool {
         || matches.contains_id(FLAG_ENV)
         || matches.contains_id(FLAG_ENV_FILE)
         || matches.contains_id(FLAG_PODMAN_ARG)
+        || matches.contains_id(FLAG_SKIP_CWD)
 }
 
 fn validate_cli_settings(_settings: &Settings) -> Result<(), AppError> {

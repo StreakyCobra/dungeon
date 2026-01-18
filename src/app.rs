@@ -28,6 +28,7 @@ pub fn run() -> Result<(), AppError> {
                 &resolved.paths,
                 true,
                 Some(&resolved.container_name),
+                resolved.skip_cwd,
             )?;
             container::persist::run_persisted_session(&resolved.container_name, spec)?;
         }
@@ -37,6 +38,7 @@ pub fn run() -> Result<(), AppError> {
                 &resolved.paths,
                 false,
                 None,
+                resolved.skip_cwd,
             )?;
             container::podman::run_podman_command(spec)?;
         }

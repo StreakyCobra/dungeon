@@ -52,6 +52,7 @@ pub fn resolve(
         paths: parsed.paths.clone(),
         persist_mode: parsed.persist_mode,
         container_name,
+        skip_cwd: parsed.skip_cwd,
     })
 }
 

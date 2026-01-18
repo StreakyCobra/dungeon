@@ -27,6 +27,7 @@ pub fn build_podman_command(
     paths: &[String],
     keep_container: bool,
     container_name: Option<&str>,
+    skip_cwd: bool,
 ) -> Result<CommandSpec, AppError> {
     let cwd = std::env::current_dir()?;
     let home =
@@ -60,7 +61,7 @@ pub fn build_podman_command(
 
     let workdir;
     if paths.is_empty() {
-        if same_dir(&cwd, &home) {
+        if !skip_cwd && same_dir(&cwd, &home) {
             return Err(AppError::message(
                 "ERROR: refusing to run from home directory",
             ));
@@ -70,8 +71,10 @@ pub fn build_podman_command(
             .and_then(|s| s.to_str())
             .unwrap_or("project");
         workdir = format!("{}/{}", USER_HOME, base);
-        mounts.push("-v".to_string());
-        mounts.push(format!("{}:{}", cwd.display(), workdir));
+        if !skip_cwd {
+            mounts.push("-v".to_string());
+            mounts.push(format!("{}:{}", cwd.display(), workdir));
+        }
     } else {
         workdir = format!("{}/project", USER_HOME);
         for path in paths {

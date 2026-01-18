@@ -37,4 +37,5 @@ pub struct ResolvedConfig {
     pub paths: Vec<String>,
     pub persist_mode: crate::container::persist::PersistMode,
     pub container_name: String,
+    pub skip_cwd: bool,
 }

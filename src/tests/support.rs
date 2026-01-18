@@ -79,6 +79,7 @@ fn build_command_string(input: TestInput<'_>) -> Result<String, AppError> {
         } else {
             None
         },
+        resolved.skip_cwd,
     )?;
 
     Ok(format!("{} {}", spec.program, spec.args.join(" ")))

@@ -28,3 +28,18 @@ fn basic_run_errors_from_home_dir() {
     let result = std::panic::catch_unwind(|| run_input(input));
     assert!(result.is_err());
 }
+
+#[test]
+fn skip_cwd_allows_home_dir_run() {
+    let input = TestInput {
+        toml: "",
+        args: &["--skip-cwd"],
+        env: &[],
+        cwd_name: "home",
+        cwd_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/home --rm -v dungeon-cache:/home/dungeon/.cache -v dungeon-cache:/home/dungeon/.npm localhost/dungeon bash";
+
+    assert_command(input, expected);
+}

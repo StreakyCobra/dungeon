@@ -88,6 +88,7 @@ Configurations:
       --env <env>                Add a container environment variable (repeatable)
       --env-file <env-file>      Add a Podman env-file (repeatable)
       --podman-arg <podman-arg>  Append an extra podman run argument (repeatable)
+      --skip-cwd                 Skip mounting the current directory by default
 
 Groups:
       --claude    Enable the claude group
@@ -168,6 +169,7 @@ Group behavior:
 
 - `always_on_groups` lists groups always enabled, in order of precedence (later entries take precedence).
 - `mounts` entries are passed directly to Podman as `-v` arguments; dungeon only checks for a home-directory mount.
+- `--skip-cwd` prevents the implicit current-directory mount when no paths are provided.
 - `caches` entries are passed directly as `dungeon-cache:<spec>` volume mounts.
 - `envs` entries are passed directly to Podman (`NAME` or `NAME=VALUE`).
 - `env_files` entries are passed to Podman via `--env-file`.
