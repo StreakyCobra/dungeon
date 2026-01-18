@@ -20,34 +20,6 @@ fn errors_on_unknown_config_keys() {
 }
 
 #[test]
-fn errors_on_invalid_env_spec() {
-    let input = TestInput {
-        toml: "",
-        args: &["--env", "=oops"],
-        env: &[],
-        cwd_name: "bad-env",
-        cwd_entries: &[],
-    };
-
-    let result = std::panic::catch_unwind(|| run_input(input));
-    assert!(result.is_err());
-}
-
-#[test]
-fn errors_on_invalid_port_spec() {
-    let input = TestInput {
-        toml: "",
-        args: &["--port", "123"],
-        env: &[],
-        cwd_name: "bad-port",
-        cwd_entries: &[],
-    };
-
-    let result = std::panic::catch_unwind(|| run_input(input));
-    assert!(result.is_err());
-}
-
-#[test]
 fn errors_on_empty_image_flag() {
     let defaults = config::Config::default();
     let env_cfg = config::Config::default();

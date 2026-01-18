@@ -1,9 +1,14 @@
-use std::{collections::BTreeMap, env, path::PathBuf, sync::{Mutex, OnceLock}};
+use std::{
+    collections::BTreeMap,
+    env,
+    path::PathBuf,
+    sync::{Mutex, OnceLock},
+};
 
 use crate::{
     cli,
     config,
-    container::{self, mounts},
+    container,
     error::AppError,
 };
 
@@ -65,9 +70,6 @@ fn build_command_string(input: TestInput<'_>) -> Result<String, AppError> {
     let parsed = cli::parse_args_with_sources(argv, defaults.clone(), file_cfg.clone(), env_cfg.clone())?;
     let resolved = config::resolve(&parsed, defaults, file_cfg, env_cfg)?;
 
-    let home = dirs::home_dir().ok_or_else(|| AppError::message("missing home dir"))?;
-    ensure_mount_sources(&home, &resolved.settings, &resolved.paths)?;
-
     let spec = container::podman::build_podman_command(
         &resolved.settings,
         &resolved.paths,
@@ -92,30 +94,6 @@ impl TestLock {
             .lock()
             .unwrap_or_else(|err| err.into_inner())
     }
-}
-
-fn ensure_mount_sources(
-    home: &PathBuf,
-    settings: &config::Settings,
-    paths: &[String],
-) -> Result<(), AppError> {
-    for spec in settings.mounts.clone().unwrap_or_default() {
-        let (source, _, _) = mounts::parse_host_mount_spec(&spec)?;
-        let host_path = mounts::resolve_host_path(home, &source)?;
-        std::fs::create_dir_all(&host_path).map_err(AppError::Io)?;
-    }
-
-    for path in paths {
-        let path = PathBuf::from(path);
-        let abs = if path.is_absolute() {
-            path
-        } else {
-            env::current_dir().map_err(AppError::Io)?.join(path)
-        };
-        std::fs::create_dir_all(&abs).map_err(AppError::Io)?;
-    }
-
-    Ok(())
 }
 
 fn normalize_command(command: &str, cwd: &PathBuf, home: &PathBuf) -> String {

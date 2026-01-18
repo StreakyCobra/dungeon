@@ -341,40 +341,6 @@ fn validate_cli_settings(settings: &Settings) -> Result<(), AppError> {
             return Err(AppError::message("ERROR: --image cannot be empty"));
         }
     }
-    validate_string_list(settings.ports.as_ref(), "--port")?;
-    validate_string_list(settings.cache.as_ref(), "--cache")?;
-    validate_string_list(settings.mounts.as_ref(), "--mount")?;
-    validate_string_list(settings.env_files.as_ref(), "--env-file")?;
-    validate_string_list(settings.podman_args.as_ref(), "--podman-arg")?;
-    if let Some(env_vars) = &settings.env_vars {
-        for env in env_vars {
-            let trimmed = env.trim();
-            if trimmed.is_empty() {
-                return Err(AppError::message("ERROR: --env cannot be empty"));
-            }
-            if trimmed.contains('=') {
-                let (name, _) = trimmed
-                    .split_once('=')
-                    .ok_or_else(|| AppError::message("ERROR: invalid --env value"))?;
-                if name.trim().is_empty() {
-                    return Err(AppError::message("ERROR: invalid --env value"));
-                }
-            } else if trimmed.is_empty() {
-                return Err(AppError::message("ERROR: --env cannot be empty"));
-            }
-        }
-    }
-    Ok(())
-}
-
-fn validate_string_list(values: Option<&Vec<String>>, flag: &str) -> Result<(), AppError> {
-    if let Some(values) = values {
-        for value in values {
-            if value.trim().is_empty() {
-                return Err(AppError::message(format!("ERROR: {} cannot be empty", flag)));
-            }
-        }
-    }
     Ok(())
 }
 

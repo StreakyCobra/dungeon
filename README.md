@@ -167,10 +167,10 @@ Group behavior:
 - An empty group table removes a default group of the same name.
 
 - `always_on_groups` lists groups always enabled, in order of precedence (later entries take precedence).
-- `mounts` entries use `source:target[:ro|rw]` (`source` may be absolute, `~/...`, or relative to `$HOME`; `target` may be absolute or relative to `/home/dungeon`).
-- `caches` entries use `target[:ro|rw]` from the `dungeon-cache` volume.
-- `envs` entries support `NAME=VALUE` for static values or `NAME` to pass through the host value.
-- `env_files` entries are passed to `Podman --env-file`.
+- `mounts` entries are passed directly to Podman as `-v` arguments; dungeon only checks for a home-directory mount.
+- `caches` entries are passed directly as `dungeon-cache:<spec>` volume mounts.
+- `envs` entries are passed directly to Podman (`NAME` or `NAME=VALUE`).
+- `env_files` entries are passed to Podman via `--env-file`.
 - `mounts`, `caches`, `envs`, `env_files`, `ports`, and `podman_args` extend the base settings when enabled.
 - `run` and `image` use the last enabled group when multiple are set.
 

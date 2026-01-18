@@ -5,9 +5,7 @@ use std::{
 
 use crate::{
     config::Settings,
-    container::mounts::{
-        container_path, parse_cache_mount_spec, parse_host_mount_spec, resolve_host_path,
-    },
+    container::mounts::resolve_host_path,
     error::AppError,
 };
 
@@ -49,30 +47,42 @@ pub fn build_podman_command(
     let run_command = settings.run_command.clone().unwrap_or_default();
     let mut image = settings.image.clone().unwrap_or_default();
 
-    validate_settings(settings, &ports, &cache_specs, &env_specs, &env_files)?;
+    if let Some(run_command) = settings.run_command.as_ref() {
+        if run_command.trim().is_empty() {
+            return Err(AppError::message("ERROR: run command cannot be empty"));
+        }
+    }
+    if let Some(image) = settings.image.as_ref() {
+        if image.trim().is_empty() {
+            return Err(AppError::message("ERROR: image cannot be empty"));
+        }
+    }
 
     for spec in settings.mounts.clone().unwrap_or_default() {
-        let (source, target, mode) = parse_host_mount_spec(&spec)?;
-        let host_path = resolve_host_path(&home, &source)?;
-        if !host_path.exists() {
-            return Err(AppError::message(format!(
-                "ERROR: mount source '{}' does not exist (from '{}')",
-                host_path.display(),
-                source
-            )));
+        let raw = spec;
+        let trimmed = raw.trim();
+        if !trimmed.is_empty() {
+            let source = trimmed.splitn(2, ':').next().unwrap_or("").trim();
+            if !source.is_empty() {
+                let host_path = resolve_host_path(&home, source)?;
+                if same_dir(&host_path, &home) {
+                    return Err(AppError::message(
+                        "ERROR: refusing to mount the home directory",
+                    ));
+                }
+            }
         }
-        let target_path = container_path(&target);
         mounts.push("-v".to_string());
-        mounts.push(format!("{}:{}{}", host_path.display(), target_path, mode));
+        mounts.push(raw);
     }
 
     for spec in cache_specs {
-        let (target, mode) = parse_cache_mount_spec(&spec)?;
+        let raw = spec;
         mounts.push("-v".to_string());
-        mounts.push(format!("dungeon-cache:{}{}", target, mode));
+        mounts.push(format!("dungeon-cache:{}", raw));
     }
 
-    let env_args = build_env_args(&env_specs)?;
+    let env_args = build_env_args(&env_specs);
 
     let workdir;
     if paths.is_empty() {
@@ -92,13 +102,7 @@ pub fn build_podman_command(
         workdir = format!("{}/project", USER_HOME);
         for path in paths {
             let abs = PathBuf::from(path);
-            if !abs.exists() {
-                return Err(AppError::message(format!(
-                    "ERROR: '{}' does not exist",
-                    path
-                )));
-            }
-            let abs = abs.canonicalize()?;
+            let abs = if abs.is_absolute() { abs } else { cwd.join(&abs) };
             let base = abs
                 .file_name()
                 .and_then(|s| s.to_str())
@@ -197,180 +201,17 @@ fn run_command(cmd: &mut Command) -> Result<(), AppError> {
     }
 }
 
-fn build_env_args(env_specs: &[String]) -> Result<Vec<String>, AppError> {
+fn build_env_args(env_specs: &[String]) -> Vec<String> {
     let mut args = Vec::new();
     for spec in env_specs {
         let trimmed = spec.trim();
         if trimmed.is_empty() {
             continue;
         }
-        if !trimmed.contains('=') {
-            let value = std::env::var(trimmed).map_err(|_| {
-                AppError::message(format!("ERROR: env \"{}\" is not set on host", trimmed))
-            })?;
-            args.push("--env".to_string());
-            args.push(format!("{}={}", trimmed, value));
-            continue;
-        }
-        let (name, value) = trimmed
-            .split_once('=')
-            .ok_or_else(|| AppError::message(format!("ERROR: invalid env spec \"{}\"", trimmed)))?;
-        if name.trim().is_empty() {
-            return Err(AppError::message(format!(
-                "ERROR: invalid env spec \"{}\"",
-                trimmed
-            )));
-        }
         args.push("--env".to_string());
-        args.push(format!("{}={}", name.trim(), value));
+        args.push(trimmed.to_string());
     }
-    Ok(args)
-}
-
-fn validate_settings(
-    settings: &Settings,
-    ports: &[String],
-    cache_specs: &[String],
-    env_specs: &[String],
-    env_files: &[String],
-) -> Result<(), AppError> {
-    if let Some(image) = &settings.image {
-        if image.trim().is_empty() {
-            return Err(AppError::message("ERROR: image cannot be empty"));
-        }
-    }
-    if let Some(run_command) = &settings.run_command {
-        if run_command.trim().is_empty() {
-            return Err(AppError::message("ERROR: run command cannot be empty"));
-        }
-    }
-    validate_values(ports, "port")?;
-    validate_values(cache_specs, "cache")?;
-    validate_values(env_files, "env-file")?;
-    validate_values(
-        settings
-            .podman_args
-            .as_ref()
-            .map(|args| args.as_slice())
-            .unwrap_or_default(),
-        "podman-arg",
-    )?;
-    for env in env_specs {
-        let trimmed = env.trim();
-        if trimmed.is_empty() {
-            return Err(AppError::message("ERROR: env cannot be empty"));
-        }
-        if trimmed.contains('=') {
-            let (name, _) = trimmed
-                .split_once('=')
-                .ok_or_else(|| AppError::message("ERROR: invalid env spec"))?;
-            if name.trim().is_empty() {
-                return Err(AppError::message("ERROR: invalid env spec"));
-            }
-        }
-    }
-    for port in ports {
-        validate_port_spec(port)?;
-    }
-    for cache in cache_specs {
-        validate_cache_spec(cache)?;
-    }
-    for mount in settings.mounts.as_ref().map(|m| m.as_slice()).unwrap_or_default() {
-        validate_mount_spec(mount)?;
-    }
-    Ok(())
-}
-
-fn validate_values(values: &[String], kind: &str) -> Result<(), AppError> {
-    for value in values {
-        if value.trim().is_empty() {
-            return Err(AppError::message(format!("ERROR: {} cannot be empty", kind)));
-        }
-    }
-    Ok(())
-}
-
-fn validate_port_spec(spec: &str) -> Result<(), AppError> {
-    let trimmed = spec.trim();
-    if trimmed.is_empty() {
-        return Err(AppError::message("ERROR: port cannot be empty"));
-    }
-    let parts: Vec<&str> = trimmed.split(':').collect();
-    if parts.len() < 2 || parts.len() > 3 {
-        return Err(AppError::message(format!(
-            "ERROR: invalid port spec '{}'",
-            spec
-        )));
-    }
-    for part in &parts {
-        if part.trim().is_empty() {
-            return Err(AppError::message(format!(
-                "ERROR: invalid port spec '{}'",
-                spec
-            )));
-        }
-    }
-    Ok(())
-}
-
-fn validate_cache_spec(spec: &str) -> Result<(), AppError> {
-    let trimmed = spec.trim();
-    if trimmed.is_empty() {
-        return Err(AppError::message("ERROR: cache cannot be empty"));
-    }
-    let parts: Vec<&str> = trimmed.split(':').collect();
-    if parts.is_empty() || parts.len() > 2 {
-        return Err(AppError::message(format!(
-            "ERROR: invalid cache spec '{}'",
-            spec
-        )));
-    }
-    if parts[0].trim().is_empty() {
-        return Err(AppError::message(format!(
-            "ERROR: invalid cache spec '{}'",
-            spec
-        )));
-    }
-    if parts.len() == 2 {
-        let mode = parts[1].trim();
-        if mode.is_empty() || !(mode.eq_ignore_ascii_case("ro") || mode.eq_ignore_ascii_case("rw")) {
-            return Err(AppError::message(format!(
-                "ERROR: invalid cache mode '{}'",
-                mode
-            )));
-        }
-    }
-    Ok(())
-}
-
-fn validate_mount_spec(spec: &str) -> Result<(), AppError> {
-    let trimmed = spec.trim();
-    if trimmed.is_empty() {
-        return Err(AppError::message("ERROR: mount cannot be empty"));
-    }
-    let parts: Vec<&str> = trimmed.split(':').collect();
-    if parts.len() < 2 || parts.len() > 3 {
-        return Err(AppError::message(format!(
-            "ERROR: invalid mount spec '{}'",
-            spec
-        )));
-    }
-    if parts[0].trim().is_empty() || parts[1].trim().is_empty() {
-        return Err(AppError::message(format!(
-            "ERROR: invalid mount spec '{}'",
-            spec
-        )));
-    }
-    if parts.len() == 3 {
-        let mode = parts[2].trim();
-        if mode.is_empty() || !(mode.eq_ignore_ascii_case("ro") || mode.eq_ignore_ascii_case("rw")) {
-            return Err(AppError::message(format!(
-                "ERROR: invalid mount mode '{}'",
-                mode
-            )));
-        }
-    }
-    Ok(())
+    args
 }
 
 fn same_dir(a: &Path, b: &Path) -> bool {
