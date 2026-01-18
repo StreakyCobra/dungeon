@@ -49,7 +49,7 @@ pub fn build_podman_command(
 
     for spec in settings.mounts.clone().unwrap_or_default() {
         mounts.push("-v".to_string());
-        mounts.push(spec);
+        mounts.push(expand_mount_spec(&spec, &home));
     }
 
     for spec in cache_specs {
@@ -195,4 +195,31 @@ fn build_env_args(env_specs: &[String]) -> Vec<String> {
 
 fn same_dir(a: &Path, b: &Path) -> bool {
     a.canonicalize().ok() == b.canonicalize().ok()
+}
+
+fn expand_mount_spec(spec: &str, home: &Path) -> String {
+    let trimmed = spec.trim();
+    if trimmed.is_empty() {
+        return spec.to_string();
+    }
+    let (source, rest) = match trimmed.split_once(':') {
+        Some((source, rest)) => (source, Some(rest)),
+        None => (trimmed, None),
+    };
+    let expanded = expand_home_or_env(source, home);
+    match rest {
+        Some(remaining) => format!("{}:{}", expanded, remaining),
+        None => expanded,
+    }
+}
+
+fn expand_home_or_env(source: &str, home: &Path) -> String {
+    if source == "~" || source.starts_with("~/") {
+        let suffix = source.trim_start_matches('~');
+        return format!("{}{}", home.display(), suffix);
+    }
+    if let Some(stripped) = source.strip_prefix("$HOME") {
+        return format!("{}{}", home.display(), stripped);
+    }
+    source.to_string()
 }
