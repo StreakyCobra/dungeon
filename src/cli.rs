@@ -25,6 +25,25 @@ const FLAG_PODMAN_ARG: &str = "podman-arg";
 const FLAG_SKIP_CWD: &str = "skip-cwd";
 const ARG_PATHS: &str = "paths";
 
+const RESERVED_GROUP_NAMES: &[&str] = &[
+    FLAG_HELP,
+    FLAG_RESET_CACHE,
+    FLAG_VERSION,
+    FLAG_PERSIST,
+    FLAG_PERSISTED,
+    FLAG_DISCARD,
+    FLAG_RUN,
+    FLAG_IMAGE,
+    FLAG_PORT,
+    FLAG_CACHE,
+    FLAG_MOUNT,
+    FLAG_ENV,
+    FLAG_ENV_FILE,
+    FLAG_PODMAN_ARG,
+    FLAG_SKIP_CWD,
+    ARG_PATHS,
+];
+
 #[derive(Debug, Clone)]
 pub struct ParsedCLI {
     pub settings: Settings,
@@ -65,6 +84,7 @@ pub fn parse_args_with_sources(
     env_cfg: config::Config,
 ) -> Result<ParsedCLI, AppError> {
     let group_defs = config::merge_group_definitions(&defaults.groups, &file_cfg.groups)?;
+    validate_group_names(&group_defs)?;
     let base_groups = config::resolve_always_on_groups(
         &defaults,
         &file_cfg,
@@ -348,6 +368,18 @@ fn has_config_override(matches: &ArgMatches) -> bool {
 }
 
 fn validate_cli_settings(_settings: &Settings) -> Result<(), AppError> {
+    Ok(())
+}
+
+fn validate_group_names(group_defs: &BTreeMap<String, config::GroupConfig>) -> Result<(), AppError> {
+    for name in group_defs.keys() {
+        if RESERVED_GROUP_NAMES.contains(&name.as_str()) {
+            return Err(AppError::message(format!(
+                "ERROR: group name '{}' conflicts with a reserved CLI flag",
+                name
+            )));
+        }
+    }
     Ok(())
 }
 

@@ -27,3 +27,17 @@ fn errors_when_skip_cwd_with_paths() {
     let result = std::panic::catch_unwind(|| run_input(input));
     assert!(result.is_err());
 }
+
+#[test]
+fn errors_on_group_name_conflict() {
+    let input = TestInput {
+        toml: "[env]\nrun = 'bash'\n",
+        args: &[],
+        env: &[],
+        cwd_name: "conflicting-group",
+        cwd_entries: &[],
+    };
+
+    let result = std::panic::catch_unwind(|| run_input(input));
+    assert!(result.is_err());
+}
