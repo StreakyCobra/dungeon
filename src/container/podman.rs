@@ -66,12 +66,14 @@ pub fn build_podman_command(
                 "ERROR: refusing to run from home directory",
             ));
         }
-        let base = cwd
-            .file_name()
-            .and_then(|s| s.to_str())
-            .unwrap_or("project");
-        workdir = format!("{}/{}", USER_HOME, base);
-        if !skip_cwd {
+        if skip_cwd {
+            workdir = USER_HOME.to_string();
+        } else {
+            let base = cwd
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or("project");
+            workdir = format!("{}/{}", USER_HOME, base);
             mounts.push("-v".to_string());
             mounts.push(format!("{}:{}", cwd.display(), workdir));
         }

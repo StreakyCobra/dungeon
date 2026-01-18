@@ -39,7 +39,7 @@ fn skip_cwd_allows_home_dir_run() {
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /home/dungeon/home --rm -v dungeon-cache:/home/dungeon/.cache -v dungeon-cache:/home/dungeon/.npm localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon --rm -v dungeon-cache:/home/dungeon/.cache -v dungeon-cache:/home/dungeon/.npm localhost/dungeon bash";
 
     assert_command(input, expected);
 }
