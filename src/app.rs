@@ -6,6 +6,10 @@ pub fn run() -> Result<(), AppError> {
 
     let resolved = crate::config::resolve_with_defaults(&parsed)?;
 
+    if parsed.show_help {
+        return Ok(());
+    }
+
     if parsed.show_version {
         println!("{}", cli::build_version());
         return Ok(());

@@ -48,6 +48,7 @@ const RESERVED_GROUP_NAMES: &[&str] = &[
 pub struct ParsedCLI {
     pub settings: Settings,
     pub paths: Vec<String>,
+    pub show_help: bool,
     pub show_version: bool,
     pub reset_cache: bool,
     pub persist_mode: PersistMode,
@@ -99,7 +100,17 @@ pub fn parse_args_with_sources(
     let matches = parse_matches(&mut cmd, args)?;
 
     if matches.get_flag(FLAG_HELP) {
-        return print_help(cmd);
+        print_help(cmd)?;
+        return Ok(ParsedCLI {
+            settings: Settings::default(),
+            paths: Vec::new(),
+            show_help: true,
+            show_version: false,
+            reset_cache: false,
+            persist_mode: PersistMode::None,
+            group_flags: BTreeMap::new(),
+            skip_cwd: false,
+        });
     }
 
     let persist_mode = resolve_persist_mode_from_flags(
@@ -120,6 +131,7 @@ pub fn parse_args_with_sources(
     Ok(ParsedCLI {
         settings: cli_settings,
         paths,
+        show_help: false,
         show_version: matches.get_flag(FLAG_VERSION),
         reset_cache: matches.get_flag(FLAG_RESET_CACHE),
         persist_mode,
@@ -137,18 +149,10 @@ fn parse_matches(cmd: &mut Command, args: Vec<String>) -> Result<ArgMatches, App
         .map_err(|err| AppError::message(err.to_string()))
 }
 
-fn print_help(mut cmd: Command) -> Result<ParsedCLI, AppError> {
+fn print_help(mut cmd: Command) -> Result<(), AppError> {
     cmd.print_help().map_err(AppError::from)?;
     println!();
-    Ok(ParsedCLI {
-        settings: Settings::default(),
-        paths: Vec::new(),
-        show_version: false,
-        reset_cache: false,
-        persist_mode: PersistMode::None,
-        group_flags: BTreeMap::new(),
-        skip_cwd: false,
-    })
+    Ok(())
 }
 
 
