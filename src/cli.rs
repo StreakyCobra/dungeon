@@ -360,15 +360,15 @@ fn collect_group_flags(
 }
 
 fn has_config_override(matches: &ArgMatches) -> bool {
-    matches.contains_id(FLAG_RUN)
-        || matches.contains_id(FLAG_IMAGE)
-        || matches.contains_id(FLAG_PORT)
-        || matches.contains_id(FLAG_CACHE)
-        || matches.contains_id(FLAG_MOUNT)
-        || matches.contains_id(FLAG_ENV)
-        || matches.contains_id(FLAG_ENV_FILE)
-        || matches.contains_id(FLAG_PODMAN_ARG)
-        || matches.contains_id(FLAG_SKIP_CWD)
+    matches.get_one::<String>(FLAG_RUN).is_some()
+        || matches.get_one::<String>(FLAG_IMAGE).is_some()
+        || matches.get_many::<String>(FLAG_PORT).is_some()
+        || matches.get_many::<String>(FLAG_CACHE).is_some()
+        || matches.get_many::<String>(FLAG_MOUNT).is_some()
+        || matches.get_many::<String>(FLAG_ENV).is_some()
+        || matches.get_many::<String>(FLAG_ENV_FILE).is_some()
+        || matches.get_many::<String>(FLAG_PODMAN_ARG).is_some()
+        || matches.get_flag(FLAG_SKIP_CWD)
 }
 
 fn validate_cli_settings(_settings: &Settings) -> Result<(), AppError> {

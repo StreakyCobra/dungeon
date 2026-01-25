@@ -1,3 +1,6 @@
+use std::collections::BTreeMap;
+
+use crate::{cli, config};
 use crate::tests::support::{run_input, TestInput};
 
 #[test]
@@ -40,4 +43,21 @@ fn errors_on_group_name_conflict() {
 
     let result = std::panic::catch_unwind(|| run_input(input));
     assert!(result.is_err());
+}
+
+#[test]
+fn persisted_allows_group_flags_without_overrides() {
+    let defaults = config::Config::default();
+    let mut file_cfg = config::Config::default();
+    file_cfg.groups = BTreeMap::from([(
+        "x11".to_string(),
+        config::GroupConfig::default(),
+    )]);
+    let env_cfg = config::Config::default();
+    let args = vec!["--persisted".to_string()];
+
+    let parsed = cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg)
+        .expect("parse args");
+
+    assert_eq!(parsed.persist_mode, crate::container::persist::PersistMode::Reuse);
 }
