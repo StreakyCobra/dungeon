@@ -11,6 +11,7 @@ use crate::{
 const FLAG_HELP: &str = "help";
 const FLAG_RESET_CACHE: &str = "reset-cache";
 const FLAG_VERSION: &str = "version";
+const FLAG_DEBUG: &str = "debug";
 const FLAG_PERSIST: &str = "persist";
 const FLAG_PERSISTED: &str = "persisted";
 const FLAG_DISCARD: &str = "discard";
@@ -29,6 +30,7 @@ const RESERVED_GROUP_NAMES: &[&str] = &[
     FLAG_HELP,
     FLAG_RESET_CACHE,
     FLAG_VERSION,
+    FLAG_DEBUG,
     FLAG_PERSIST,
     FLAG_PERSISTED,
     FLAG_DISCARD,
@@ -51,6 +53,7 @@ pub struct ParsedCLI {
     pub show_help: bool,
     pub show_version: bool,
     pub reset_cache: bool,
+    pub debug: bool,
     pub persist_mode: PersistMode,
     pub group_flags: BTreeMap<String, GroupFlag>,
     pub skip_cwd: bool,
@@ -107,6 +110,7 @@ pub fn parse_args_with_sources(
             show_help: true,
             show_version: false,
             reset_cache: false,
+            debug: false,
             persist_mode: PersistMode::None,
             group_flags: BTreeMap::new(),
             skip_cwd: false,
@@ -118,6 +122,7 @@ pub fn parse_args_with_sources(
         matches.get_flag(FLAG_PERSISTED),
         matches.get_flag(FLAG_DISCARD),
     )?;
+    validate_debug_flags(&matches, persist_mode)?;
     let group_flags = collect_group_flags(&matches, &group_defs);
     let has_group_overrides = group_flags.values().any(|flag| flag.set);
     let has_config_overrides = has_config_override(&matches);
@@ -134,6 +139,7 @@ pub fn parse_args_with_sources(
         show_help: false,
         show_version: matches.get_flag(FLAG_VERSION),
         reset_cache: matches.get_flag(FLAG_RESET_CACHE),
+        debug: matches.get_flag(FLAG_DEBUG),
         persist_mode,
         group_flags,
         skip_cwd: matches.get_flag(FLAG_SKIP_CWD),
@@ -185,6 +191,21 @@ fn validate_persist_flags(
     Ok(())
 }
 
+fn validate_debug_flags(matches: &ArgMatches, persist_mode: PersistMode) -> Result<(), AppError> {
+    if matches.get_flag(FLAG_DEBUG) {
+        if persist_mode != PersistMode::None {
+            return Err(AppError::message(
+                "ERROR: --debug cannot be combined with persistence flags",
+            ));
+        }
+        if matches.get_flag(FLAG_RESET_CACHE) {
+            return Err(AppError::message(
+                "ERROR: --debug cannot be combined with --reset-cache",
+            ));
+        }
+    }
+    Ok(())
+}
 
 fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupConfig>) -> Command {
     let mut cmd = Command::new("dungeon")
@@ -209,6 +230,13 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
             Arg::new(FLAG_VERSION)
                 .long(FLAG_VERSION)
                 .help("Show version information")
+                .help_heading("Options")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new(FLAG_DEBUG)
+                .long(FLAG_DEBUG)
+                .help("Print the podman command without running")
                 .help_heading("Options")
                 .action(ArgAction::SetTrue),
         )

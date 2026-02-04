@@ -15,6 +15,18 @@ pub fn run() -> Result<(), AppError> {
         return Ok(());
     }
 
+    if parsed.debug {
+        let spec = container::podman::build_podman_command(
+            &resolved.settings,
+            &resolved.paths,
+            false,
+            None,
+            resolved.skip_cwd,
+        )?;
+        println!("{} {}", spec.program, spec.args.join(" "));
+        return Ok(());
+    }
+
     if parsed.reset_cache {
         container::podman::reset_cache_volume()?;
     }

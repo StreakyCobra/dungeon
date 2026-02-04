@@ -69,10 +69,12 @@ Usage: dungeon [OPTIONS] [paths]...
 Arguments:
   [paths]...  Paths to mount inside the container (default: current directory)
 
-Options:
+  Options:
       --help         Show help information
       --reset-cache  Clear the dungeon-cache volume before running
       --version      Show version information
+      --debug        Print the podman command without running
+
 
 Persistence:
       --persist    Persist the container

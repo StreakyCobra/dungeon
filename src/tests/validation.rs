@@ -61,3 +61,27 @@ fn persisted_allows_group_flags_without_overrides() {
 
     assert_eq!(parsed.persist_mode, crate::container::persist::PersistMode::Reuse);
 }
+
+#[test]
+fn debug_rejects_persistence_flags() {
+    let defaults = config::Config::default();
+    let file_cfg = config::Config::default();
+    let env_cfg = config::Config::default();
+    let args = vec!["--debug".to_string(), "--persist".to_string()];
+
+    let result = cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg);
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn debug_rejects_reset_cache() {
+    let defaults = config::Config::default();
+    let file_cfg = config::Config::default();
+    let env_cfg = config::Config::default();
+    let args = vec!["--debug".to_string(), "--reset-cache".to_string()];
+
+    let result = cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg);
+
+    assert!(result.is_err());
+}
