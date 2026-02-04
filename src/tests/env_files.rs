@@ -13,7 +13,7 @@ env_files = [".env", "config.env"]
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /home/dungeon/env-project --rm --env FOO=bar --env-file .env --env-file config.env -v dungeon-cache:/home/dungeon/.cache -v dungeon-cache:/home/dungeon/.npm -v <CWD>:/home/dungeon/env-project localhost/dungeon bash -ic echo ok";
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/env-project --rm --env FOO=bar --env-file .env --env-file config.env -v <CWD>:/home/dungeon/env-project localhost/dungeon bash -ic echo ok";
 
     assert_command(input, expected);
 }

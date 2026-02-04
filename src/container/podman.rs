@@ -33,12 +33,7 @@ pub fn build_podman_command(
     let home =
         dirs::home_dir().ok_or_else(|| AppError::message("unable to resolve home directory"))?;
 
-    let mut mounts = vec![
-        "-v".to_string(),
-        format!("dungeon-cache:{}/.cache", USER_HOME),
-        "-v".to_string(),
-        format!("dungeon-cache:{}/.npm", USER_HOME),
-    ];
+    let mut mounts = Vec::new();
 
     let cache_specs = settings.cache.clone().unwrap_or_default();
     let env_specs = settings.env_vars.clone().unwrap_or_default();

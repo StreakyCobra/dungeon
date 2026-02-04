@@ -10,7 +10,7 @@ fn mounts_cli_paths_with_custom_names() {
         cwd_entries: &["file1", "folder1/"],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /home/dungeon/project --rm -v dungeon-cache:/home/dungeon/.cache -v dungeon-cache:/home/dungeon/.npm -v <CWD>/file1:/home/dungeon/project/file1 -v <CWD>/folder1:/home/dungeon/project/folder1 localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/project --rm -v <CWD>/file1:/home/dungeon/project/file1 -v <CWD>/folder1:/home/dungeon/project/folder1 localhost/dungeon bash";
 
     assert_command(input, expected);
 }
@@ -25,7 +25,7 @@ fn skips_cwd_mount_when_flagged() {
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /home/dungeon --rm -v dungeon-cache:/home/dungeon/.cache -v dungeon-cache:/home/dungeon/.npm localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon --rm localhost/dungeon bash";
 
     assert_command(input, expected);
 }
