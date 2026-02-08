@@ -6,12 +6,10 @@
 
 ## How it works
 
-This is the Podman command to create a temporary container, mount the current directory, bring some cache folders, and make Codex config and auth available:
+This is the Podman command to create a temporary container, mount the current directory, and make Codex config and auth available:
 
 ```shell
 podman run -it --rm --userns=keep-id -w /home/dungeon/myrepo \
-  -v dungeon-cache:/home/dungeon/.cache \
-  -v dungeon-cache:/home/dungeon/.npm \
   -v "$HOME:/home/dungeon/.codex" \
   -v "$PWD:/home/dungeon/myrepo" \
   localhost/dungeon \
@@ -36,63 +34,52 @@ Ensure you have the required tools:
 - [podman](https://podman.io/) (recommended in [rootless](https://github.com/containers/podman/blob/main/README.md#rootless) mode) or [docker](https://www.docker.com/)
 - [rust](https://rust-lang.org/)
 
-Build one of the provided images:
+Build one of the provided images, based on your personal favorite:
 
 ```shell
 dungeon image build archlinux
 # OR
 dungeon image build ubuntu
-
-# use docker and refresh layers
-dungeon image build ubuntu --engine docker --no-cache
-
-# manual equivalent
-podman build -f images/Containerfile.archlinux -t localhost/dungeon .
-# OR
-podman build -f images/Containerfile.ubuntu -t localhost/dungeon .
-
-# OR with docker
-docker build -f images/Containerfile.archlinux -t localhost/dungeon .
-# OR
-docker build -f images/Containerfile.ubuntu -t localhost/dungeon .
 ```
 
-Build the CLI and install it:
+If you only want to test `dungeon`, you can build it and run it from there:
+
+```shell
+cargo build
+export PATH="$PWD/target/debug:$PATH"
+```
+
+Then you can move to any project and run `dungeon`.
+
+If you want to install it:
 
 ```shell
 cargo install --path .
 ```
 
-If you want to run dungeon without having to specify the path, add `~/.cargo/bin` to your PATH:
+This will install it in `~/.cargo/bin`. You can add this to your path with the following:
 
 ```shell
-export PATH="$HOME/.cargo/bin:$PATH"
 echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
 ```
 
 ## Usage
 
-- `dungeon run` starts a container session.
-- `dungeon image build` builds one of the provided images.
-- `dungeon cache reset` clears the `dungeon-cache` volume.
+- `dungeon run` handles container session.
+- `dungeon image` works with dungeon images.
+- `dungeon cache` manages `dungeon-cache` volume.
 
 Common commands:
 
 ```shell
 # run a session
-dungeon run --codex
+dungeon run
 
-# run with explicit engine
-dungeon run --engine docker
+# run a session with codex available
+dungeon run --codex --run codex
 
 # build image
 dungeon image build archlinux
-
-# force image refresh
-dungeon image build archlinux --no-cache
-
-# clear cache volume
-dungeon cache reset
 ```
 
 ## Images
@@ -106,17 +93,11 @@ These images provide the base setup to work with dungeon and use AI agents insid
 Build the one you like with Podman or Docker:
 
 ```shell
-podman build -f images/Containerfile.archlinux -t localhost/dungeon .
+dungeon image build archlinux
 # OR
-podman build -f images/Containerfile.ubuntu -t localhost/dungeon .
-
-# OR with docker
-docker build -f images/Containerfile.archlinux -t localhost/dungeon .
-# OR
-docker build -f images/Containerfile.ubuntu -t localhost/dungeon .
+dungeon image build ubuntu
 ```
-
-You can build several images by giving them different tags with `-t`, and use the [Configuration](#configuration) below to switch images.
+You can build several images with different tags using `--tag`, and use the [Configuration](#configuration) below to switch images.
 
 There is also the option to [persist](#persistence) containers if you don't want to extend the base image but keep a container around for some time.
 
@@ -133,17 +114,17 @@ For `dungeon run`, single settings like `run`, `image`, and `engine` override lo
 
 Configuration file, env vars, and groups apply to `dungeon run` only.
 
-Groups defined in config replace defaults, and an empty table removes a default group. Groups are applied after the top-level config file, with explicit CLI group flags taking precedence over `always_on_groups`.
+`dungeon` ships with a few default groups. Redefining these groups overrides the default ones. Groups are applied after the `[general]` configuration, with explicit CLI group flags taking precedence over `always_on_groups`.
 
 ### CLI flags
 
 Run-session flags live under `dungeon run`:
 
-- `--debug`
-- `--persist`, `--persisted`, `--discard`
-- `--engine`, `--run`, `--image`
-- `--port`, `--cache`, `--mount`, `--env`, `--env-file`, `--engine-arg`
-- `--skip-cwd`
+- `--debug` to print the generated command instead of running it.
+- `--persist`, `--persisted`, `--discard` to manage container persistence.
+- `--engine` to select `podman` or `docker` engine.
+- `--run`, `--image`, `--port`, `--cache`, `--mount`, `--env`, `--env-file`, `--engine-arg` to customize container.
+- `--skip-cwd` to skip mounting the current directory.
 - group flags (for example `--codex`)
 
 Image and cache management:
@@ -188,7 +169,7 @@ Group behavior:
 - An empty group table removes a default group of the same name.
 
 - `always_on_groups` lists groups that are always enabled, in order of precedence (later entries take precedence).
-- `mounts` entries are passed directly to the selected engine as `-v` arguments; dungeon only checks for a home-directory mount.
+- `mounts` entries are passed directly to the selected engine as `-v` arguments; dungeon only checks to prevent a home-directory mount.
 - `--skip-cwd` prevents the implicit current-directory mount when no paths are provided.
 - `caches` entries are passed directly as `dungeon-cache:<spec>` volume mounts.
 - `envs` entries are passed directly to the selected engine (`NAME` or `NAME=VALUE`).
