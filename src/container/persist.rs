@@ -5,7 +5,7 @@ use std::{
 
 use sha2::{Digest, Sha256};
 
-use crate::{container::podman::CommandSpec, error::AppError};
+use crate::{config::Engine, container::engine::CommandSpec, error::AppError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PersistMode {
@@ -31,8 +31,9 @@ pub fn resolve_container_name(
 pub fn ensure_container_exists(
     persist_mode: PersistMode,
     container_name: &str,
+    engine: Engine,
 ) -> Result<(), AppError> {
-    if persist_mode == PersistMode::Reuse && !container_exists(container_name)? {
+    if persist_mode == PersistMode::Reuse && !container_exists(container_name, engine)? {
         return Err(AppError::message(format!(
             "ERROR: container \"{}\" does not exist",
             container_name
@@ -93,7 +94,11 @@ pub fn sanitize_container_base(name: &str) -> String {
     }
     let trimmed = cleaned.trim_matches('-');
     let fallback = "project";
-    let base = if trimmed.is_empty() { fallback } else { trimmed };
+    let base = if trimmed.is_empty() {
+        fallback
+    } else {
+        trimmed
+    };
     let max_len = 32usize;
     if base.len() <= max_len {
         return base.to_string();
@@ -112,19 +117,26 @@ pub fn sanitize_container_base(name: &str) -> String {
     }
 }
 
-pub fn container_exists(name: &str) -> Result<bool, AppError> {
+pub fn container_exists(name: &str, engine: Engine) -> Result<bool, AppError> {
     validate_container_name(name)?;
-    let status = Command::new("podman")
-        .arg("container")
-        .arg("exists")
-        .arg(name)
-        .status()?;
+    let status = match engine {
+        Engine::Podman => Command::new(engine.binary())
+            .arg("container")
+            .arg("exists")
+            .arg(name)
+            .status()?,
+        Engine::Docker => Command::new(engine.binary())
+            .arg("container")
+            .arg("inspect")
+            .arg(name)
+            .status()?,
+    };
     Ok(status.success())
 }
 
-pub fn container_running(name: &str) -> Result<bool, AppError> {
+pub fn container_running(name: &str, engine: Engine) -> Result<bool, AppError> {
     validate_container_name(name)?;
-    let output = Command::new("podman")
+    let output = Command::new(engine.binary())
         .arg("inspect")
         .arg("-f")
         .arg("{{.State.Running}}")
@@ -133,37 +145,42 @@ pub fn container_running(name: &str) -> Result<bool, AppError> {
     Ok(String::from_utf8_lossy(&output.stdout).trim() == "true")
 }
 
-pub fn start_container(name: &str) -> Result<(), AppError> {
+pub fn start_container(name: &str, engine: Engine) -> Result<(), AppError> {
     validate_container_name(name)?;
-    run_podman(&["start", name])
+    run_engine(engine, &["start", name])
 }
 
-pub fn exec_into_container(name: &str) -> Result<(), AppError> {
+pub fn exec_into_container(name: &str, engine: Engine) -> Result<(), AppError> {
     validate_container_name(name)?;
-    run_podman(&["exec", "-it", name, "bash"])
+    run_engine(engine, &["exec", "-it", name, "bash"])
 }
 
-pub fn ensure_container_session(name: &str) -> Result<(), AppError> {
-    let running = container_running(name)?;
+pub fn ensure_container_session(name: &str, engine: Engine) -> Result<(), AppError> {
+    let running = container_running(name, engine)?;
     if !running {
-        start_container(name)?;
+        start_container(name, engine)?;
     }
-    exec_into_container(name)
+    exec_into_container(name, engine)
 }
 
-pub fn discard_container(name: &str) -> Result<(), AppError> {
+pub fn discard_container(name: &str, engine: Engine) -> Result<(), AppError> {
     validate_container_name(name)?;
-    run_podman(&["rm", "-f", name])
+    run_engine(engine, &["rm", "-f", name])
 }
 
-pub fn run_persisted_session(name: &str, spec: CommandSpec) -> Result<(), AppError> {
-    if container_exists(name)? {
+pub fn run_persisted_session(
+    name: &str,
+    spec: CommandSpec,
+    engine: Engine,
+) -> Result<(), AppError> {
+    if container_exists(name, engine)? {
         return Err(AppError::message(format!(
             "ERROR: container \"{}\" already exists, use --persisted to connect",
             name
         )));
     }
-    let mut cmd = Command::new(spec.program);
+    let program = spec.program.clone();
+    let mut cmd = Command::new(&program);
     cmd.args(spec.args);
     cmd.stdin(Stdio::inherit());
     cmd.stdout(Stdio::inherit());
@@ -174,13 +191,13 @@ pub fn run_persisted_session(name: &str, spec: CommandSpec) -> Result<(), AppErr
     } else {
         Err(AppError::Subprocess(
             status.code().unwrap_or(1),
-            "podman exited with error".to_string(),
+            format!("{} exited with error", program),
         ))
     }
 }
 
-fn run_podman(args: &[&str]) -> Result<(), AppError> {
-    let mut cmd = Command::new("podman");
+fn run_engine(engine: Engine, args: &[&str]) -> Result<(), AppError> {
+    let mut cmd = Command::new(engine.binary());
     cmd.args(args);
     cmd.stdin(Stdio::inherit());
     cmd.stdout(Stdio::inherit());
@@ -189,9 +206,10 @@ fn run_podman(args: &[&str]) -> Result<(), AppError> {
     if status.success() {
         Ok(())
     } else {
+        let program = engine.binary();
         Err(AppError::Subprocess(
             status.code().unwrap_or(1),
-            "podman exited with error".to_string(),
+            format!("{} exited with error", program),
         ))
     }
 }

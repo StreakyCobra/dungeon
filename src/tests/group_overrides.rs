@@ -1,4 +1,4 @@
-use crate::tests::support::{assert_command, TestInput};
+use crate::tests::support::{TestInput, assert_command};
 
 #[test]
 fn applies_group_and_cli_overrides() {

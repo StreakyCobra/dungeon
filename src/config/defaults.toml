@@ -1,3 +1,5 @@
+engine = "podman"
+
 [claude]
 mounts = ["~/.claude:/home/dungeon/.claude:rw"]
 

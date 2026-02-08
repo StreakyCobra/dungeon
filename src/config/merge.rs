@@ -44,6 +44,9 @@ pub fn resolve_always_on_groups(
 
 fn merge_settings(base: Settings, override_settings: Settings) -> Settings {
     let mut merged = base;
+    if let Some(value) = override_settings.engine {
+        merged.engine = Some(value);
+    }
     if let Some(value) = override_settings.run_command {
         merged.run_command = Some(value);
     }
@@ -65,8 +68,8 @@ fn merge_settings(base: Settings, override_settings: Settings) -> Settings {
     if let Some(values) = override_settings.env_files {
         merged.env_files = Some(append_strings(merged.env_files, values));
     }
-    if let Some(values) = override_settings.podman_args {
-        merged.podman_args = Some(append_strings(merged.podman_args, values));
+    if let Some(values) = override_settings.engine_args {
+        merged.engine_args = Some(append_strings(merged.engine_args, values));
     }
     merged
 }

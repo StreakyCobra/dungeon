@@ -1,7 +1,24 @@
 use std::collections::BTreeMap;
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Engine {
+    #[default]
+    Podman,
+    Docker,
+}
+
+impl Engine {
+    pub fn binary(self) -> &'static str {
+        match self {
+            Engine::Podman => "podman",
+            Engine::Docker => "docker",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Settings {
+    pub engine: Option<Engine>,
     pub run_command: Option<String>,
     pub image: Option<String>,
     pub ports: Option<Vec<String>>,
@@ -9,7 +26,7 @@ pub struct Settings {
     pub mounts: Option<Vec<String>>,
     pub env_vars: Option<Vec<String>>,
     pub env_files: Option<Vec<String>>,
-    pub podman_args: Option<Vec<String>>,
+    pub engine_args: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Default)]

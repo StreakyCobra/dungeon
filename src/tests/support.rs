@@ -5,12 +5,7 @@ use std::{
     sync::{Mutex, OnceLock},
 };
 
-use crate::{
-    cli,
-    config,
-    container,
-    error::AppError,
-};
+use crate::{cli, config, container, error::AppError};
 
 pub struct TestInput<'a> {
     pub toml: &'a str,
@@ -54,11 +49,7 @@ pub fn run_input(input: TestInput<'_>) -> TestOutput {
 
     let command = with_cwd(&cwd, || build_command_string(input)).expect("build command");
 
-    TestOutput {
-        command,
-        cwd,
-        home,
-    }
+    TestOutput { command, cwd, home }
 }
 
 fn build_command_string(input: TestInput<'_>) -> Result<String, AppError> {
@@ -67,10 +58,11 @@ fn build_command_string(input: TestInput<'_>) -> Result<String, AppError> {
     let env_cfg = config::load_from_env()?;
 
     let argv = input.args.iter().map(|arg| arg.to_string()).collect();
-    let parsed = cli::parse_args_with_sources(argv, defaults.clone(), file_cfg.clone(), env_cfg.clone())?;
+    let parsed =
+        cli::parse_args_with_sources(argv, defaults.clone(), file_cfg.clone(), env_cfg.clone())?;
     let resolved = config::resolve(&parsed, defaults, file_cfg, env_cfg)?;
 
-    let spec = container::podman::build_podman_command(
+    let spec = container::engine::build_container_command(
         &resolved.settings,
         &resolved.paths,
         resolved.persist_mode == container::persist::PersistMode::Create,
@@ -90,17 +82,33 @@ struct TestLock;
 impl TestLock {
     fn acquire() -> std::sync::MutexGuard<'static, ()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        LOCK
-            .get_or_init(|| Mutex::new(()))
+        LOCK.get_or_init(|| Mutex::new(()))
             .lock()
             .unwrap_or_else(|err| err.into_inner())
     }
 }
 
 fn normalize_command(command: &str, cwd: &PathBuf, home: &PathBuf) -> String {
-    command
+    let normalized = command
         .replace(cwd.to_string_lossy().as_ref(), "<CWD>")
-        .replace(home.to_string_lossy().as_ref(), "<HOME>")
+        .replace(home.to_string_lossy().as_ref(), "<HOME>");
+
+    let (uid, gid) = host_uid_gid();
+    normalized.replace(&format!("--user {}:{}", uid, gid), "--user <UID>:<GID>")
+}
+
+fn host_uid_gid() -> (u32, u32) {
+    #[cfg(unix)]
+    {
+        let uid = unsafe { libc::geteuid() };
+        let gid = unsafe { libc::getegid() };
+        (uid, gid)
+    }
+
+    #[cfg(not(unix))]
+    {
+        (1000, 1000)
+    }
 }
 
 fn create_cwd_entries(cwd: &PathBuf, entries: &[&str]) -> Result<(), std::io::Error> {
@@ -129,7 +137,6 @@ fn create_cwd_entries(cwd: &PathBuf, entries: &[&str]) -> Result<(), std::io::Er
     }
     Ok(())
 }
-
 
 fn with_cwd<T>(cwd: &PathBuf, f: impl FnOnce() -> Result<T, AppError>) -> Result<T, AppError> {
     let original = env::current_dir().map_err(AppError::Io)?;
@@ -190,6 +197,7 @@ impl Drop for EnvGuard {
 }
 
 const DUNGEON_ENV_KEYS: &[&str] = &[
+    "DUNGEON_ENGINE",
     "DUNGEON_RUN",
     "DUNGEON_IMAGE",
     "DUNGEON_PORTS",
@@ -197,6 +205,6 @@ const DUNGEON_ENV_KEYS: &[&str] = &[
     "DUNGEON_MOUNTS",
     "DUNGEON_ENVS",
     "DUNGEON_ENV_FILES",
-    "DUNGEON_PODMAN_ARGS",
+    "DUNGEON_ENGINE_ARGS",
     "DUNGEON_DEFAULT_GROUPS",
 ];

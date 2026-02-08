@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
+use crate::tests::support::{TestInput, run_input};
 use crate::{cli, config};
-use crate::tests::support::{run_input, TestInput};
 
 #[test]
 fn errors_on_unknown_config_keys() {
@@ -49,17 +49,38 @@ fn errors_on_group_name_conflict() {
 fn persisted_allows_group_flags_without_overrides() {
     let defaults = config::Config::default();
     let mut file_cfg = config::Config::default();
-    file_cfg.groups = BTreeMap::from([(
-        "x11".to_string(),
-        config::GroupConfig::default(),
-    )]);
+    file_cfg.groups = BTreeMap::from([("x11".to_string(), config::GroupConfig::default())]);
     let env_cfg = config::Config::default();
     let args = vec!["--persisted".to_string()];
 
-    let parsed = cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg)
-        .expect("parse args");
+    let parsed =
+        cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg).expect("parse args");
 
-    assert_eq!(parsed.persist_mode, crate::container::persist::PersistMode::Reuse);
+    assert_eq!(
+        parsed.persist_mode,
+        crate::container::persist::PersistMode::Reuse
+    );
+}
+
+#[test]
+fn persisted_allows_engine_flag() {
+    let defaults = config::Config::default();
+    let file_cfg = config::Config::default();
+    let env_cfg = config::Config::default();
+    let args = vec![
+        "--persisted".to_string(),
+        "--engine".to_string(),
+        "docker".to_string(),
+    ];
+
+    let parsed =
+        cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg).expect("parse args");
+
+    assert_eq!(
+        parsed.persist_mode,
+        crate::container::persist::PersistMode::Reuse
+    );
+    assert_eq!(parsed.settings.engine, Some(config::Engine::Docker));
 }
 
 #[test]

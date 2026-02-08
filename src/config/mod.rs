@@ -7,7 +7,7 @@ pub use groups::{
     build_group_selection, merge_group_definitions, normalize_group_order, resolve_group_order,
 };
 pub use merge::{resolve_always_on_groups, resolve_settings};
-pub use types::{Config, GroupConfig, ResolvedConfig, Settings, Sources};
+pub use types::{Config, Engine, GroupConfig, ResolvedConfig, Settings, Sources};
 
 use crate::cli;
 use crate::error::AppError;
@@ -41,11 +41,14 @@ pub fn resolve(
         &group_order,
     )?;
 
-    let container_name = crate::container::persist::resolve_container_name(
+    let container_name =
+        crate::container::persist::resolve_container_name(parsed.persist_mode, &parsed.paths)?;
+    let engine = final_settings.engine.unwrap_or_default();
+    crate::container::persist::ensure_container_exists(
         parsed.persist_mode,
-        &parsed.paths,
+        &container_name,
+        engine,
     )?;
-    crate::container::persist::ensure_container_exists(parsed.persist_mode, &container_name)?;
 
     Ok(ResolvedConfig {
         settings: final_settings,

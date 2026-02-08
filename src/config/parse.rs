@@ -2,12 +2,13 @@ use crate::error::AppError;
 use serde::Deserialize;
 use std::{collections::BTreeMap, env, fs, path::PathBuf};
 
-use super::{Config, GroupConfig, Settings};
+use super::{Config, Engine, GroupConfig, Settings};
 
 const ENV_PREFIX: &str = "DUNGEON_";
 
 #[derive(Debug, Deserialize)]
 struct RawConfig {
+    engine: Option<String>,
     run: Option<String>,
     image: Option<String>,
     ports: Option<Vec<String>>,
@@ -15,7 +16,7 @@ struct RawConfig {
     mounts: Option<Vec<String>>,
     envs: Option<Vec<String>>,
     env_files: Option<Vec<String>>,
-    podman_args: Option<Vec<String>>,
+    engine_args: Option<Vec<String>>,
     always_on_groups: Option<Vec<String>>,
     #[serde(flatten)]
     groups: BTreeMap<String, toml::Value>,
@@ -39,7 +40,7 @@ pub fn load_from_file() -> Result<Config, AppError> {
                 "read config {}: {}",
                 path.display(),
                 err
-            )))
+            )));
         }
     };
     parse_config(&data)
@@ -49,6 +50,9 @@ pub fn load_from_file() -> Result<Config, AppError> {
 pub fn load_from_env() -> Result<Config, AppError> {
     let mut cfg = Config::default();
 
+    if let Ok(value) = env::var(format!("{}ENGINE", ENV_PREFIX)) {
+        cfg.settings.engine = Some(parse_engine_value("engine", value.trim())?);
+    }
     if let Ok(value) = env::var(format!("{}RUN", ENV_PREFIX)) {
         cfg.settings.run_command = Some(value.trim().to_string());
     }
@@ -70,8 +74,8 @@ pub fn load_from_env() -> Result<Config, AppError> {
     if let Ok(value) = env::var(format!("{}ENV_FILES", ENV_PREFIX)) {
         cfg.settings.env_files = Some(split_env_list(&value));
     }
-    if let Ok(value) = env::var(format!("{}PODMAN_ARGS", ENV_PREFIX)) {
-        cfg.settings.podman_args = Some(split_env_list(&value));
+    if let Ok(value) = env::var(format!("{}ENGINE_ARGS", ENV_PREFIX)) {
+        cfg.settings.engine_args = Some(split_env_list(&value));
     }
     if let Ok(value) = env::var(format!("{}ALWAYS_ON_GROUPS", ENV_PREFIX)) {
         cfg.always_on_groups = Some(split_env_list(&value));
@@ -84,6 +88,10 @@ fn parse_config(data: &str) -> Result<Config, AppError> {
     let raw: RawConfig = toml::from_str(data)?;
     let mut cfg = Config::default();
 
+    cfg.settings.engine = raw
+        .engine
+        .map(|engine| parse_engine_value("engine", engine.trim()))
+        .transpose()?;
     cfg.settings.run_command = raw.run;
     cfg.settings.image = raw.image;
     cfg.settings.ports = raw.ports;
@@ -91,7 +99,7 @@ fn parse_config(data: &str) -> Result<Config, AppError> {
     cfg.settings.mounts = raw.mounts;
     cfg.settings.env_vars = raw.envs;
     cfg.settings.env_files = raw.env_files;
-    cfg.settings.podman_args = raw.podman_args;
+    cfg.settings.engine_args = raw.engine_args;
     cfg.always_on_groups = raw.always_on_groups;
 
     for (name, value) in raw.groups {
@@ -122,6 +130,13 @@ fn parse_group_config(name: &str, value: toml::Value) -> Result<GroupConfig, App
     let mut settings = Settings::default();
     for (key, value) in table {
         match key.as_str() {
+            "engine" => {
+                let raw = parse_string(name, key, value)?;
+                settings.engine = Some(parse_engine_value(
+                    &format!("{}.{}", name, key),
+                    raw.trim(),
+                )?);
+            }
             "mounts" => settings.mounts = Some(parse_string_vec(name, key, value)?),
             "caches" => settings.cache = Some(parse_string_vec(name, key, value)?),
             "envs" => settings.env_vars = Some(parse_string_vec(name, key, value)?),
@@ -129,12 +144,12 @@ fn parse_group_config(name: &str, value: toml::Value) -> Result<GroupConfig, App
             "run" => settings.run_command = Some(parse_string(name, key, value)?),
             "image" => settings.image = Some(parse_string(name, key, value)?),
             "ports" => settings.ports = Some(parse_string_vec(name, key, value)?),
-            "podman_args" => settings.podman_args = Some(parse_string_vec(name, key, value)?),
+            "engine_args" => settings.engine_args = Some(parse_string_vec(name, key, value)?),
             _ => {
                 return Err(AppError::message(format!(
                     "group \"{}\" has unknown key \"{}\"",
                     name, key
-                )))
+                )));
             }
         }
     }
@@ -181,16 +196,28 @@ fn split_env_list(value: &str) -> Vec<String> {
 fn is_reserved_key(key: &str) -> bool {
     matches!(
         key,
-        "run"
+        "engine"
+            | "engine_args"
+            | "run"
             | "image"
             | "ports"
             | "caches"
             | "mounts"
             | "envs"
             | "env_files"
-            | "podman_args"
             | "always_on_groups"
     )
+}
+
+fn parse_engine_value(scope: &str, value: &str) -> Result<Engine, AppError> {
+    match value {
+        "podman" => Ok(Engine::Podman),
+        "docker" => Ok(Engine::Docker),
+        _ => Err(AppError::message(format!(
+            "{} must be one of: podman, docker",
+            scope
+        ))),
+    }
 }
 
 fn config_path() -> Result<PathBuf, AppError> {

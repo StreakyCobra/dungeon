@@ -1,4 +1,4 @@
-use crate::tests::support::{assert_command, run_input, TestInput};
+use crate::tests::support::{TestInput, assert_command, run_input};
 
 #[test]
 fn basic_run_uses_cwd_mount() {

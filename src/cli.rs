@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, env};
 use clap::{Arg, ArgAction, ArgMatches, Command};
 
 use crate::{
-    config::{self, Settings},
+    config::{self, Engine, Settings},
     container::persist::PersistMode,
     error::AppError,
 };
@@ -15,6 +15,7 @@ const FLAG_DEBUG: &str = "debug";
 const FLAG_PERSIST: &str = "persist";
 const FLAG_PERSISTED: &str = "persisted";
 const FLAG_DISCARD: &str = "discard";
+const FLAG_ENGINE: &str = "engine";
 const FLAG_RUN: &str = "run";
 const FLAG_IMAGE: &str = "image";
 const FLAG_PORT: &str = "port";
@@ -22,7 +23,7 @@ const FLAG_CACHE: &str = "cache";
 const FLAG_MOUNT: &str = "mount";
 const FLAG_ENV: &str = "env";
 const FLAG_ENV_FILE: &str = "env-file";
-const FLAG_PODMAN_ARG: &str = "podman-arg";
+const FLAG_ENGINE_ARG: &str = "engine-arg";
 const FLAG_SKIP_CWD: &str = "skip-cwd";
 const ARG_PATHS: &str = "paths";
 
@@ -34,6 +35,7 @@ const RESERVED_GROUP_NAMES: &[&str] = &[
     FLAG_PERSIST,
     FLAG_PERSISTED,
     FLAG_DISCARD,
+    FLAG_ENGINE,
     FLAG_RUN,
     FLAG_IMAGE,
     FLAG_PORT,
@@ -41,7 +43,7 @@ const RESERVED_GROUP_NAMES: &[&str] = &[
     FLAG_MOUNT,
     FLAG_ENV,
     FLAG_ENV_FILE,
-    FLAG_PODMAN_ARG,
+    FLAG_ENGINE_ARG,
     FLAG_SKIP_CWD,
     ARG_PATHS,
 ];
@@ -130,7 +132,7 @@ pub fn parse_args_with_sources(
 
     validate_persist_flags(&matches, has_config_overrides, has_group_overrides, &paths)?;
 
-    let cli_settings = settings_from_matches(&matches);
+    let cli_settings = settings_from_matches(&matches)?;
     validate_cli_settings(&cli_settings)?;
 
     Ok(ParsedCLI {
@@ -160,8 +162,6 @@ fn print_help(mut cmd: Command) -> Result<(), AppError> {
     println!();
     Ok(())
 }
-
-
 
 fn collect_paths(matches: &ArgMatches) -> Vec<String> {
     matches
@@ -236,7 +236,7 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
         .arg(
             Arg::new(FLAG_DEBUG)
                 .long(FLAG_DEBUG)
-                .help("Print the podman command without running")
+                .help("Print the engine command without running")
                 .help_heading("Options")
                 .action(ArgAction::SetTrue),
         )
@@ -260,6 +260,15 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
                 .help("Remove the persisted container")
                 .help_heading("Persistence")
                 .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new(FLAG_ENGINE)
+                .long(FLAG_ENGINE)
+                .help("Select the container engine (podman or docker)")
+                .help_heading("Configurations")
+                .value_parser(["podman", "docker"])
+                .num_args(1)
+                .action(ArgAction::Set),
         )
         .arg(
             Arg::new(FLAG_RUN)
@@ -312,15 +321,15 @@ fn base_command(group_defs: &std::collections::BTreeMap<String, config::GroupCon
         .arg(
             Arg::new(FLAG_ENV_FILE)
                 .long(FLAG_ENV_FILE)
-                .help("Add a podman env-file (repeatable)")
+                .help("Add a container env-file (repeatable)")
                 .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Append),
         )
         .arg(
-            Arg::new(FLAG_PODMAN_ARG)
-                .long(FLAG_PODMAN_ARG)
-                .help("Append an extra podman run argument (repeatable)")
+            Arg::new(FLAG_ENGINE_ARG)
+                .long(FLAG_ENGINE_ARG)
+                .help("Append an extra engine run argument (repeatable)")
                 .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Append),
@@ -395,7 +404,7 @@ fn has_config_override(matches: &ArgMatches) -> bool {
         || matches.get_many::<String>(FLAG_MOUNT).is_some()
         || matches.get_many::<String>(FLAG_ENV).is_some()
         || matches.get_many::<String>(FLAG_ENV_FILE).is_some()
-        || matches.get_many::<String>(FLAG_PODMAN_ARG).is_some()
+        || matches.get_many::<String>(FLAG_ENGINE_ARG).is_some()
         || matches.get_flag(FLAG_SKIP_CWD)
 }
 
@@ -403,7 +412,9 @@ fn validate_cli_settings(_settings: &Settings) -> Result<(), AppError> {
     Ok(())
 }
 
-fn validate_group_names(group_defs: &BTreeMap<String, config::GroupConfig>) -> Result<(), AppError> {
+fn validate_group_names(
+    group_defs: &BTreeMap<String, config::GroupConfig>,
+) -> Result<(), AppError> {
     for name in group_defs.keys() {
         if RESERVED_GROUP_NAMES.contains(&name.as_str()) {
             return Err(AppError::message(format!(
@@ -415,10 +426,12 @@ fn validate_group_names(group_defs: &BTreeMap<String, config::GroupConfig>) -> R
     Ok(())
 }
 
-
-fn settings_from_matches(matches: &ArgMatches) -> Settings {
+fn settings_from_matches(matches: &ArgMatches) -> Result<Settings, AppError> {
     let mut settings = Settings::default();
 
+    if let Some(value) = matches.get_one::<String>(FLAG_ENGINE) {
+        settings.engine = Some(parse_engine(value)?);
+    }
     if let Some(value) = matches.get_one::<String>(FLAG_RUN) {
         settings.run_command = Some(value.to_string());
     }
@@ -440,11 +453,21 @@ fn settings_from_matches(matches: &ArgMatches) -> Settings {
     if let Some(values) = matches.get_many::<String>(FLAG_ENV_FILE) {
         settings.env_files = Some(values.map(|s| s.to_string()).collect());
     }
-    if let Some(values) = matches.get_many::<String>(FLAG_PODMAN_ARG) {
-        settings.podman_args = Some(values.map(|s| s.to_string()).collect());
+    if let Some(values) = matches.get_many::<String>(FLAG_ENGINE_ARG) {
+        settings.engine_args = Some(values.map(|s| s.to_string()).collect());
     }
 
-    settings
+    Ok(settings)
+}
+
+fn parse_engine(value: &str) -> Result<Engine, AppError> {
+    match value {
+        "podman" => Ok(Engine::Podman),
+        "docker" => Ok(Engine::Docker),
+        _ => Err(AppError::message(
+            "ERROR: --engine must be podman or docker",
+        )),
+    }
 }
 
 fn resolve_persist_mode_from_flags(
@@ -469,4 +492,3 @@ fn resolve_persist_mode_from_flags(
     }
     Ok(PersistMode::None)
 }
-

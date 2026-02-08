@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    config::Settings,
+    config::{Engine, Settings},
     error::AppError,
 };
 
@@ -16,13 +16,13 @@ pub struct CommandSpec {
     pub args: Vec<String>,
 }
 
-pub fn reset_cache_volume() -> Result<(), AppError> {
-    let mut cmd = Command::new("podman");
+pub fn reset_cache_volume(engine: Engine) -> Result<(), AppError> {
+    let mut cmd = Command::new(engine.binary());
     cmd.arg("volume").arg("rm").arg("-f").arg("dungeon-cache");
     run_command(&mut cmd)
 }
 
-pub fn build_podman_command(
+pub fn build_container_command(
     settings: &Settings,
     paths: &[String],
     keep_container: bool,
@@ -34,6 +34,7 @@ pub fn build_podman_command(
         dirs::home_dir().ok_or_else(|| AppError::message("unable to resolve home directory"))?;
 
     let mut mounts = Vec::new();
+    let engine = settings.engine.unwrap_or_default();
 
     let cache_specs = settings.cache.clone().unwrap_or_default();
     let env_specs = settings.env_vars.clone().unwrap_or_default();
@@ -76,7 +77,11 @@ pub fn build_podman_command(
         workdir = format!("{}/project", USER_HOME);
         for path in paths {
             let abs = PathBuf::from(path);
-            let abs = if abs.is_absolute() { abs } else { cwd.join(&abs) };
+            let abs = if abs.is_absolute() {
+                abs
+            } else {
+                cwd.join(&abs)
+            };
             let base = abs
                 .file_name()
                 .and_then(|s| s.to_str())
@@ -86,13 +91,18 @@ pub fn build_podman_command(
         }
     }
 
-    let mut args = vec![
-        "run".to_string(),
-        "-it".to_string(),
-        "--userns=keep-id".to_string(),
-        "-w".to_string(),
-        workdir.clone(),
-    ];
+    let mut args = vec!["run".to_string(), "-it".to_string()];
+    match engine {
+        Engine::Podman => args.push("--userns=keep-id".to_string()),
+        Engine::Docker => {
+            let (uid, gid) = host_uid_gid();
+            args.push("--user".to_string());
+            args.push(format!("{}:{}", uid, gid));
+        }
+    }
+    args.push("-w".to_string());
+    args.push(workdir.clone());
+
     if !keep_container {
         args.push("--rm".to_string());
     }
@@ -127,7 +137,7 @@ pub fn build_podman_command(
         args.push(trimmed.to_string());
     }
 
-    if let Some(args_list) = settings.podman_args.clone() {
+    if let Some(args_list) = settings.engine_args.clone() {
         args.extend(args_list);
     }
 
@@ -147,12 +157,12 @@ pub fn build_podman_command(
     }
 
     Ok(CommandSpec {
-        program: "podman".to_string(),
+        program: engine.binary().to_string(),
         args,
     })
 }
 
-pub fn run_podman_command(spec: CommandSpec) -> Result<(), AppError> {
+pub fn run_container_command(spec: CommandSpec) -> Result<(), AppError> {
     let mut cmd = Command::new(spec.program);
     cmd.args(spec.args);
     run_command(&mut cmd)
@@ -166,9 +176,10 @@ fn run_command(cmd: &mut Command) -> Result<(), AppError> {
         Ok(status) if status.success() => Ok(()),
         Ok(status) => {
             let code = status.code().unwrap_or(1);
+            let program = cmd.get_program().to_string_lossy().to_string();
             Err(AppError::Subprocess(
                 code,
-                format!("podman exited with code {}", code),
+                format!("{} exited with code {}", program, code),
             ))
         }
         Err(err) => Err(AppError::Io(err)),
@@ -217,4 +228,18 @@ fn expand_home_or_env(source: &str, home: &Path) -> String {
         return format!("{}{}", home.display(), stripped);
     }
     source.to_string()
+}
+
+fn host_uid_gid() -> (u32, u32) {
+    #[cfg(unix)]
+    {
+        let uid = unsafe { libc::geteuid() };
+        let gid = unsafe { libc::getegid() };
+        (uid, gid)
+    }
+
+    #[cfg(not(unix))]
+    {
+        (1000, 1000)
+    }
 }

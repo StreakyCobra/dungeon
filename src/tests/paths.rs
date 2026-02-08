@@ -1,4 +1,4 @@
-use crate::tests::support::{assert_command, TestInput};
+use crate::tests::support::{TestInput, assert_command};
 
 #[test]
 fn mounts_cli_paths_with_custom_names() {

@@ -16,7 +16,7 @@ pub fn run() -> Result<(), AppError> {
     }
 
     if parsed.debug {
-        let spec = container::podman::build_podman_command(
+        let spec = container::engine::build_container_command(
             &resolved.settings,
             &resolved.paths,
             false,
@@ -28,35 +28,38 @@ pub fn run() -> Result<(), AppError> {
     }
 
     if parsed.reset_cache {
-        container::podman::reset_cache_volume()?;
+        let engine = resolved.settings.engine.unwrap_or_default();
+        container::engine::reset_cache_volume(engine)?;
     }
+
+    let engine = resolved.settings.engine.unwrap_or_default();
 
     match resolved.persist_mode {
         container::persist::PersistMode::Discard => {
-            container::persist::discard_container(&resolved.container_name)?;
+            container::persist::discard_container(&resolved.container_name, engine)?;
         }
         container::persist::PersistMode::Reuse => {
-            container::persist::ensure_container_session(&resolved.container_name)?;
+            container::persist::ensure_container_session(&resolved.container_name, engine)?;
         }
         container::persist::PersistMode::Create => {
-            let spec = container::podman::build_podman_command(
+            let spec = container::engine::build_container_command(
                 &resolved.settings,
                 &resolved.paths,
                 true,
                 Some(&resolved.container_name),
                 resolved.skip_cwd,
             )?;
-            container::persist::run_persisted_session(&resolved.container_name, spec)?;
+            container::persist::run_persisted_session(&resolved.container_name, spec, engine)?;
         }
         container::persist::PersistMode::None => {
-            let spec = container::podman::build_podman_command(
+            let spec = container::engine::build_container_command(
                 &resolved.settings,
                 &resolved.paths,
                 false,
                 None,
                 resolved.skip_cwd,
             )?;
-            container::podman::run_podman_command(spec)?;
+            container::engine::run_container_command(spec)?;
         }
     }
 
