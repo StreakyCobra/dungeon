@@ -111,3 +111,50 @@ fn requires_subcommand() {
 
     assert!(result.is_err());
 }
+
+#[test]
+fn run_help_is_handled() {
+    let defaults = config::Config::default();
+    let file_cfg = config::Config::default();
+    let env_cfg = config::Config::default();
+    let args = vec!["run".to_string(), "--help".to_string()];
+
+    let parsed =
+        cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg).expect("parse args");
+
+    assert!(parsed.show_help);
+}
+
+#[test]
+fn image_build_help_is_handled() {
+    let defaults = config::Config::default();
+    let file_cfg = config::Config::default();
+    let env_cfg = config::Config::default();
+    let args = vec![
+        "image".to_string(),
+        "build".to_string(),
+        "--help".to_string(),
+    ];
+
+    let parsed =
+        cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg).expect("parse args");
+
+    assert!(parsed.show_help);
+}
+
+#[test]
+fn cache_reset_help_is_handled() {
+    let defaults = config::Config::default();
+    let file_cfg = config::Config::default();
+    let env_cfg = config::Config::default();
+    let args = vec![
+        "cache".to_string(),
+        "reset".to_string(),
+        "--help".to_string(),
+    ];
+
+    let parsed =
+        cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg).expect("parse args");
+
+    assert!(parsed.show_help);
+}

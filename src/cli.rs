@@ -157,8 +157,7 @@ pub fn parse_args_with_sources(
     let mut cmd = base_command(&group_defs);
     let matches = parse_matches(&mut cmd, args)?;
 
-    if matches.get_flag(FLAG_HELP) {
-        print_help(cmd)?;
+    if print_targeted_help(&matches, &group_defs)? {
         return Ok(ParsedCLI {
             action: Action::None,
             settings: Settings::default(),
@@ -198,6 +197,56 @@ pub fn parse_args_with_sources(
             "ERROR: missing subcommand (use: run, image, cache)",
         )),
     }
+}
+
+fn print_targeted_help(
+    matches: &ArgMatches,
+    group_defs: &BTreeMap<String, config::GroupConfig>,
+) -> Result<bool, AppError> {
+    if matches.get_flag(FLAG_HELP) {
+        print_help(base_command(group_defs))?;
+        return Ok(true);
+    }
+
+    if let Some((sub_name, sub_matches)) = matches.subcommand() {
+        match sub_name {
+            SUBCOMMAND_RUN => {
+                if sub_matches.get_flag(FLAG_HELP) {
+                    print_help(run_subcommand(group_defs))?;
+                    return Ok(true);
+                }
+            }
+            SUBCOMMAND_IMAGE => {
+                if sub_matches.get_flag(FLAG_HELP) {
+                    print_help(image_subcommand())?;
+                    return Ok(true);
+                }
+                if let Some((image_sub_name, image_sub_matches)) = sub_matches.subcommand()
+                    && image_sub_name == SUBCOMMAND_IMAGE_BUILD
+                    && image_sub_matches.get_flag(FLAG_HELP)
+                {
+                    print_help(image_build_subcommand())?;
+                    return Ok(true);
+                }
+            }
+            SUBCOMMAND_CACHE => {
+                if sub_matches.get_flag(FLAG_HELP) {
+                    print_help(cache_subcommand())?;
+                    return Ok(true);
+                }
+                if let Some((cache_sub_name, cache_sub_matches)) = sub_matches.subcommand()
+                    && cache_sub_name == SUBCOMMAND_CACHE_RESET
+                    && cache_sub_matches.get_flag(FLAG_HELP)
+                {
+                    print_help(cache_reset_subcommand())?;
+                    return Ok(true);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Ok(false)
 }
 
 fn parse_run_action(
@@ -333,7 +382,6 @@ fn base_command(group_defs: &BTreeMap<String, config::GroupConfig>) -> Command {
                 .long(FLAG_HELP)
                 .help("Show help information")
                 .help_heading("Options")
-                .global(true)
                 .action(ArgAction::SetTrue),
         )
         .arg(
@@ -351,7 +399,15 @@ fn base_command(group_defs: &BTreeMap<String, config::GroupConfig>) -> Command {
 
 fn run_subcommand(group_defs: &BTreeMap<String, config::GroupConfig>) -> Command {
     let mut cmd = Command::new(SUBCOMMAND_RUN)
+        .disable_help_flag(true)
         .about("Run a container session")
+        .arg(
+            Arg::new(FLAG_HELP)
+                .long(FLAG_HELP)
+                .help("Show help information")
+                .help_heading("Options")
+                .action(ArgAction::SetTrue),
+        )
         .arg(
             Arg::new(FLAG_DEBUG)
                 .long(FLAG_DEBUG)
@@ -484,64 +540,100 @@ fn run_subcommand(group_defs: &BTreeMap<String, config::GroupConfig>) -> Command
 
 fn image_subcommand() -> Command {
     Command::new(SUBCOMMAND_IMAGE)
+        .disable_help_flag(true)
         .about("Manage dungeon images")
-        .subcommand(
-            Command::new(SUBCOMMAND_IMAGE_BUILD)
-                .about("Build a provided image")
-                .arg(
-                    Arg::new(ARG_FLAVOR)
-                        .help("Image flavor to build")
-                        .value_parser(["archlinux", "ubuntu"])
-                        .required(true)
-                        .action(ArgAction::Set),
-                )
-                .arg(
-                    Arg::new(FLAG_ENGINE)
-                        .long(FLAG_ENGINE)
-                        .help("Select the container engine (podman or docker)")
-                        .value_parser(["podman", "docker"])
-                        .num_args(1)
-                        .action(ArgAction::Set),
-                )
-                .arg(
-                    Arg::new(FLAG_TAG)
-                        .long(FLAG_TAG)
-                        .help("Image tag to produce")
-                        .num_args(1)
-                        .default_value("localhost/dungeon")
-                        .action(ArgAction::Set),
-                )
-                .arg(
-                    Arg::new(FLAG_NO_CACHE)
-                        .long(FLAG_NO_CACHE)
-                        .help("Build without using cached layers")
-                        .action(ArgAction::SetTrue),
-                )
-                .arg(
-                    Arg::new(FLAG_CONTEXT)
-                        .long(FLAG_CONTEXT)
-                        .help("Build context path")
-                        .num_args(1)
-                        .default_value(".")
-                        .action(ArgAction::Set),
-                ),
+        .arg(
+            Arg::new(FLAG_HELP)
+                .long(FLAG_HELP)
+                .help("Show help information")
+                .help_heading("Options")
+                .action(ArgAction::SetTrue),
+        )
+        .subcommand(image_build_subcommand())
+}
+
+fn image_build_subcommand() -> Command {
+    Command::new(SUBCOMMAND_IMAGE_BUILD)
+        .disable_help_flag(true)
+        .about("Build a provided image")
+        .arg(
+            Arg::new(FLAG_HELP)
+                .long(FLAG_HELP)
+                .help("Show help information")
+                .help_heading("Options")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new(ARG_FLAVOR)
+                .help("Image flavor to build")
+                .value_parser(["archlinux", "ubuntu"])
+                .required_unless_present(FLAG_HELP)
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new(FLAG_ENGINE)
+                .long(FLAG_ENGINE)
+                .help("Select the container engine (podman or docker)")
+                .value_parser(["podman", "docker"])
+                .num_args(1)
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new(FLAG_TAG)
+                .long(FLAG_TAG)
+                .help("Image tag to produce")
+                .num_args(1)
+                .default_value("localhost/dungeon")
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new(FLAG_NO_CACHE)
+                .long(FLAG_NO_CACHE)
+                .help("Build without using cached layers")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new(FLAG_CONTEXT)
+                .long(FLAG_CONTEXT)
+                .help("Build context path")
+                .num_args(1)
+                .default_value(".")
+                .action(ArgAction::Set),
         )
 }
 
 fn cache_subcommand() -> Command {
     Command::new(SUBCOMMAND_CACHE)
+        .disable_help_flag(true)
         .about("Manage dungeon cache")
-        .subcommand(
-            Command::new(SUBCOMMAND_CACHE_RESET)
-                .about("Delete dungeon-cache volume")
-                .arg(
-                    Arg::new(FLAG_ENGINE)
-                        .long(FLAG_ENGINE)
-                        .help("Select the container engine (podman or docker)")
-                        .value_parser(["podman", "docker"])
-                        .num_args(1)
-                        .action(ArgAction::Set),
-                ),
+        .arg(
+            Arg::new(FLAG_HELP)
+                .long(FLAG_HELP)
+                .help("Show help information")
+                .help_heading("Options")
+                .action(ArgAction::SetTrue),
+        )
+        .subcommand(cache_reset_subcommand())
+}
+
+fn cache_reset_subcommand() -> Command {
+    Command::new(SUBCOMMAND_CACHE_RESET)
+        .disable_help_flag(true)
+        .about("Delete dungeon-cache volume")
+        .arg(
+            Arg::new(FLAG_HELP)
+                .long(FLAG_HELP)
+                .help("Show help information")
+                .help_heading("Options")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new(FLAG_ENGINE)
+                .long(FLAG_ENGINE)
+                .help("Select the container engine (podman or docker)")
+                .value_parser(["podman", "docker"])
+                .num_args(1)
+                .action(ArgAction::Set),
         )
 }
 

@@ -68,26 +68,11 @@ export PATH="$HOME/.cargo/bin:$PATH"
 echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
 ```
 
-Dungeon is ready to use; check usage with:
-
-```shell
-dungeon --help
-```
-
 ## Usage
 
-```text
-Usage: dungeon [COMMAND]
-
-Commands:
-  run    Run a container session
-  image  Manage dungeon images
-  cache  Manage dungeon cache
-
-Options:
-      --help     Show help information
-      --version  Show version information
-```
+- `dungeon run` starts a container session.
+- `dungeon image build` builds one of the provided images.
+- `dungeon cache reset` clears the `dungeon-cache` volume.
 
 Common commands:
 
