@@ -4,6 +4,7 @@ use crate::tests::support::{TestInput, assert_command};
 fn merges_mounts_ports_and_cache() {
     let input = TestInput {
         toml: r#"
+[general]
 ports = ["127.0.0.1:3000:3000"]
 caches = ["/var/cache/pacman/pkg:ro"]
 mounts = ["~/data:/data:ro"]

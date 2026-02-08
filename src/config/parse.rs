@@ -1,26 +1,9 @@
 use crate::error::AppError;
-use serde::Deserialize;
-use std::{collections::BTreeMap, env, fs, path::PathBuf};
+use std::{env, fs, path::PathBuf};
 
 use super::{Config, Engine, GroupConfig, Settings};
 
 const ENV_PREFIX: &str = "DUNGEON_";
-
-#[derive(Debug, Deserialize)]
-struct RawConfig {
-    engine: Option<String>,
-    run: Option<String>,
-    image: Option<String>,
-    ports: Option<Vec<String>>,
-    caches: Option<Vec<String>>,
-    mounts: Option<Vec<String>>,
-    envs: Option<Vec<String>>,
-    env_files: Option<Vec<String>>,
-    engine_args: Option<Vec<String>>,
-    always_on_groups: Option<Vec<String>>,
-    #[serde(flatten)]
-    groups: BTreeMap<String, toml::Value>,
-}
 
 pub fn load_defaults() -> Result<Config, AppError> {
     let data = include_str!("defaults.toml");
@@ -85,38 +68,62 @@ pub fn load_from_env() -> Result<Config, AppError> {
 }
 
 fn parse_config(data: &str) -> Result<Config, AppError> {
-    let raw: RawConfig = toml::from_str(data)?;
+    let raw: toml::Value = toml::from_str(data)?;
+    let table = raw
+        .as_table()
+        .ok_or_else(|| AppError::message("config root must be a table"))?;
     let mut cfg = Config::default();
 
-    cfg.settings.engine = raw
-        .engine
-        .map(|engine| parse_engine_value("engine", engine.trim()))
-        .transpose()?;
-    cfg.settings.run_command = raw.run;
-    cfg.settings.image = raw.image;
-    cfg.settings.ports = raw.ports;
-    cfg.settings.cache = raw.caches;
-    cfg.settings.mounts = raw.mounts;
-    cfg.settings.env_vars = raw.envs;
-    cfg.settings.env_files = raw.env_files;
-    cfg.settings.engine_args = raw.engine_args;
-    cfg.always_on_groups = raw.always_on_groups;
-
-    for (name, value) in raw.groups {
-        if is_reserved_key(&name) {
-            return Err(AppError::message(format!(
-                "unknown top-level key '{}' in config",
-                name
-            )));
+    for (name, value) in table {
+        if name == "general" {
+            parse_general_config(value, &mut cfg)?;
+            continue;
         }
-        let group = parse_group_config(&name, value)?;
-        cfg.groups.insert(name, group);
+
+        let group = parse_group_config(name, value)?;
+        cfg.groups.insert(name.to_string(), group);
     }
 
     Ok(cfg)
 }
 
-fn parse_group_config(name: &str, value: toml::Value) -> Result<GroupConfig, AppError> {
+fn parse_general_config(value: &toml::Value, cfg: &mut Config) -> Result<(), AppError> {
+    let table = value
+        .as_table()
+        .ok_or_else(|| AppError::message("[general] must be a table"))?;
+
+    for (key, value) in table {
+        match key.as_str() {
+            "engine" => {
+                let raw = parse_string("general", key, value)?;
+                cfg.settings.engine = Some(parse_engine_value("general.engine", raw.trim())?);
+            }
+            "mounts" => cfg.settings.mounts = Some(parse_string_vec("general", key, value)?),
+            "caches" => cfg.settings.cache = Some(parse_string_vec("general", key, value)?),
+            "envs" => cfg.settings.env_vars = Some(parse_string_vec("general", key, value)?),
+            "env_files" => cfg.settings.env_files = Some(parse_string_vec("general", key, value)?),
+            "run" => cfg.settings.run_command = Some(parse_string("general", key, value)?),
+            "image" => cfg.settings.image = Some(parse_string("general", key, value)?),
+            "ports" => cfg.settings.ports = Some(parse_string_vec("general", key, value)?),
+            "engine_args" => {
+                cfg.settings.engine_args = Some(parse_string_vec("general", key, value)?)
+            }
+            "always_on_groups" => {
+                cfg.always_on_groups = Some(parse_string_vec("general", key, value)?)
+            }
+            _ => {
+                return Err(AppError::message(format!(
+                    "[general] has unknown key \"{}\"",
+                    key
+                )));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_group_config(name: &str, value: &toml::Value) -> Result<GroupConfig, AppError> {
     let table = value
         .as_table()
         .ok_or_else(|| AppError::message(format!("group \"{}\" must be a table", name)))?;
@@ -191,22 +198,6 @@ fn split_env_list(value: &str) -> Vec<String> {
         .filter(|part| !part.is_empty())
         .map(|part| part.to_string())
         .collect()
-}
-
-fn is_reserved_key(key: &str) -> bool {
-    matches!(
-        key,
-        "engine"
-            | "engine_args"
-            | "run"
-            | "image"
-            | "ports"
-            | "caches"
-            | "mounts"
-            | "envs"
-            | "env_files"
-            | "always_on_groups"
-    )
 }
 
 fn parse_engine_value(scope: &str, value: &str) -> Result<Engine, AppError> {

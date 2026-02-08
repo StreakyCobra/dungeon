@@ -4,6 +4,7 @@ use crate::tests::support::{TestInput, assert_command};
 fn applies_group_and_cli_overrides() {
     let input = TestInput {
         toml: r#"
+[general]
 always_on_groups = ["codex"]
 image = "localhost/dungeon-base"
 

@@ -33,7 +33,7 @@ fn engine_from_env_overrides_default() {
 #[test]
 fn engine_from_config_overrides_default() {
     let input = TestInput {
-        toml: "engine = 'docker'",
+        toml: "[general]\nengine = 'docker'",
         args: &["run"],
         env: &[],
         cwd_name: "engine-config-project",
@@ -49,6 +49,7 @@ fn engine_from_config_overrides_default() {
 fn passes_engine_args_from_config_and_cli() {
     let input = TestInput {
         toml: r#"
+[general]
 engine_args = ["--network=host"]
 "#,
         args: &["run", "--engine-arg=--security-opt=label=disable"],
@@ -65,7 +66,7 @@ engine_args = ["--network=host"]
 #[test]
 fn errors_on_invalid_engine_value() {
     let input = TestInput {
-        toml: "engine = 'invalid'",
+        toml: "[general]\nengine = 'invalid'",
         args: &["run"],
         env: &[],
         cwd_name: "invalid-engine",

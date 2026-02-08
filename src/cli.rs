@@ -37,6 +37,7 @@ const ARG_PATHS: &str = "paths";
 const ARG_FLAVOR: &str = "flavor";
 
 const RESERVED_GROUP_NAMES: &[&str] = &[
+    "general",
     FLAG_HELP,
     FLAG_VERSION,
     FLAG_DEBUG,

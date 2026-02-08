@@ -157,6 +157,7 @@ Defaults live in `src/config/defaults.toml` (embedded at build time). User confi
 
 Example:
 ```toml
+[general]
 run = "codex"
 engine = "podman"
 image = "localhost/dungeon"
@@ -181,11 +182,12 @@ ports = ["127.0.0.1:8000:8000"]
 ```
 
 Group behavior:
-- Each top-level table (for example `[codex]`) defines a group.
+- `[general]` defines global defaults and is reserved (it cannot be used as a group name).
+- Each other top-level table (for example `[codex]`) defines a group.
 - Each group name becomes a CLI flag (example: `--codex`).
 - An empty group table removes a default group of the same name.
 
-- `always_on_groups` lists groups always enabled, in order of precedence (later entries take precedence).
+- `always_on_groups` lists groups that are always enabled, in order of precedence (later entries take precedence).
 - `mounts` entries are passed directly to the selected engine as `-v` arguments; dungeon only checks for a home-directory mount.
 - `--skip-cwd` prevents the implicit current-directory mount when no paths are provided.
 - `caches` entries are passed directly as `dungeon-cache:<spec>` volume mounts.
@@ -207,7 +209,7 @@ Environment overrides use:
 - `DUNGEON_ENVS` (comma-separated)
 - `DUNGEON_ENV_FILES` (comma-separated)
 - `DUNGEON_ENGINE_ARGS` (comma-separated)
-- `DUNGEON_DEFAULT_GROUPS` (comma-separated)
+- `DUNGEON_ALWAYS_ON_GROUPS` (comma-separated)
 
 ## Engine behavior
 
