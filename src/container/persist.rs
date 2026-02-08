@@ -1,7 +1,4 @@
-use std::{
-    path::PathBuf,
-    process::{Command, Stdio},
-};
+use std::{path::PathBuf, process::Command};
 
 use sha2::{Digest, Sha256};
 
@@ -179,37 +176,10 @@ pub fn run_persisted_session(
             name
         )));
     }
-    let program = spec.program.clone();
-    let mut cmd = Command::new(&program);
-    cmd.args(spec.args);
-    cmd.stdin(Stdio::inherit());
-    cmd.stdout(Stdio::inherit());
-    cmd.stderr(Stdio::inherit());
-    let status = cmd.status()?;
-    if status.success() {
-        Ok(())
-    } else {
-        Err(AppError::Subprocess(
-            status.code().unwrap_or(1),
-            format!("{} exited with error", program),
-        ))
-    }
+    crate::container::run_attached_command(&spec.program, &spec.args)
 }
 
 fn run_engine(engine: Engine, args: &[&str]) -> Result<(), AppError> {
-    let mut cmd = Command::new(engine.binary());
-    cmd.args(args);
-    cmd.stdin(Stdio::inherit());
-    cmd.stdout(Stdio::inherit());
-    cmd.stderr(Stdio::inherit());
-    let status = cmd.status()?;
-    if status.success() {
-        Ok(())
-    } else {
-        let program = engine.binary();
-        Err(AppError::Subprocess(
-            status.code().unwrap_or(1),
-            format!("{} exited with error", program),
-        ))
-    }
+    let args: Vec<String> = args.iter().map(|arg| (*arg).to_string()).collect();
+    crate::container::run_attached_command(engine.binary(), &args)
 }

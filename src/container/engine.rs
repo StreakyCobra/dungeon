@@ -1,7 +1,4 @@
-use std::{
-    path::{Path, PathBuf},
-    process::{Command, Stdio},
-};
+use std::path::{Path, PathBuf};
 
 use crate::{
     config::{Engine, Settings},
@@ -67,76 +64,14 @@ pub fn build_container_command(
     let cwd = std::env::current_dir()?;
     let home =
         dirs::home_dir().ok_or_else(|| AppError::message("unable to resolve home directory"))?;
-
-    let mut mounts = Vec::new();
     let engine = settings.engine.unwrap_or_default();
 
-    let cache_specs = settings.cache.clone().unwrap_or_default();
-    let env_specs = settings.env_vars.clone().unwrap_or_default();
-    let env_files = settings.env_files.clone().unwrap_or_default();
-    let ports = settings.ports.clone().unwrap_or_default();
-    let run_command = settings.run_command.clone().unwrap_or_default();
-    let mut image = settings.image.clone().unwrap_or_default();
-
-    for spec in settings.mounts.clone().unwrap_or_default() {
-        mounts.push("-v".to_string());
-        mounts.push(expand_mount_spec(&spec, &home));
-    }
-
-    for spec in cache_specs {
-        mounts.push("-v".to_string());
-        mounts.push(format!("dungeon-cache:{}", spec));
-    }
-
-    let env_args = build_env_args(&env_specs);
-
-    let workdir;
-    if paths.is_empty() {
-        if !skip_cwd && same_dir(&cwd, &home) {
-            return Err(AppError::message(
-                "ERROR: refusing to run from home directory",
-            ));
-        }
-        if skip_cwd {
-            workdir = USER_HOME.to_string();
-        } else {
-            let base = cwd
-                .file_name()
-                .and_then(|s| s.to_str())
-                .unwrap_or("project");
-            workdir = format!("{}/{}", USER_HOME, base);
-            mounts.push("-v".to_string());
-            mounts.push(format!("{}:{}", cwd.display(), workdir));
-        }
-    } else {
-        workdir = format!("{}/project", USER_HOME);
-        for path in paths {
-            let abs = PathBuf::from(path);
-            let abs = if abs.is_absolute() {
-                abs
-            } else {
-                cwd.join(&abs)
-            };
-            let base = abs
-                .file_name()
-                .and_then(|s| s.to_str())
-                .unwrap_or("project");
-            mounts.push("-v".to_string());
-            mounts.push(format!("{}:{}/{}", abs.display(), workdir, base));
-        }
-    }
+    let (workdir, mounts) = resolve_workdir_and_mounts(settings, paths, skip_cwd, &cwd, &home)?;
 
     let mut args = vec!["run".to_string(), "-it".to_string()];
-    match engine {
-        Engine::Podman => args.push("--userns=keep-id".to_string()),
-        Engine::Docker => {
-            let (uid, gid) = host_uid_gid();
-            args.push("--user".to_string());
-            args.push(format!("{}:{}", uid, gid));
-        }
-    }
+    append_engine_identity_args(&mut args, engine);
     args.push("-w".to_string());
-    args.push(workdir.clone());
+    args.push(workdir);
 
     if !keep_container {
         args.push("--rm".to_string());
@@ -148,48 +83,28 @@ pub fn build_container_command(
         }
     }
 
-    if !env_args.is_empty() {
-        args.extend(env_args);
-    }
+    append_env_args(&mut args, settings.env_vars.as_deref().unwrap_or(&[]));
+    append_repeated_flag_args(
+        &mut args,
+        "--env-file",
+        settings.env_files.as_deref().unwrap_or(&[]),
+    );
+    append_repeated_flag_args(&mut args, "-p", settings.ports.as_deref().unwrap_or(&[]));
 
-    if !env_files.is_empty() {
-        for env_file in env_files {
-            let trimmed = env_file.trim();
-            if trimmed.is_empty() {
-                continue;
-            }
-            args.push("--env-file".to_string());
-            args.push(trimmed.to_string());
-        }
-    }
-
-    for port in ports {
-        let trimmed = port.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-        args.push("-p".to_string());
-        args.push(trimmed.to_string());
-    }
-
-    if let Some(args_list) = settings.engine_args.clone() {
-        args.extend(args_list);
+    if let Some(args_list) = settings.engine_args.as_deref() {
+        args.extend(args_list.iter().cloned());
     }
 
     args.extend(mounts);
 
-    if image.trim().is_empty() {
-        image = "localhost/dungeon".to_string();
-    }
-    args.push(image);
+    let image = settings
+        .image
+        .as_deref()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("localhost/dungeon");
+    args.push(image.to_string());
 
-    if run_command.trim().is_empty() {
-        args.push("bash".to_string());
-    } else {
-        args.push("bash".to_string());
-        args.push("-ic".to_string());
-        args.push(run_command);
-    }
+    append_run_command(&mut args, settings.run_command.as_deref());
 
     Ok(CommandSpec {
         program: engine.binary().to_string(),
@@ -198,31 +113,71 @@ pub fn build_container_command(
 }
 
 pub fn run_container_command(spec: CommandSpec) -> Result<(), AppError> {
-    let mut cmd = Command::new(spec.program);
-    cmd.args(spec.args);
-    run_command(&mut cmd)
+    crate::container::run_attached_command(&spec.program, &spec.args)
 }
 
-fn run_command(cmd: &mut Command) -> Result<(), AppError> {
-    cmd.stdin(Stdio::inherit());
-    cmd.stdout(Stdio::inherit());
-    cmd.stderr(Stdio::inherit());
-    match cmd.status() {
-        Ok(status) if status.success() => Ok(()),
-        Ok(status) => {
-            let code = status.code().unwrap_or(1);
-            let program = cmd.get_program().to_string_lossy().to_string();
-            Err(AppError::Subprocess(
-                code,
-                format!("{} exited with code {}", program, code),
-            ))
+fn resolve_workdir_and_mounts(
+    settings: &Settings,
+    paths: &[String],
+    skip_cwd: bool,
+    cwd: &Path,
+    home: &Path,
+) -> Result<(String, Vec<String>), AppError> {
+    let mut mounts = Vec::new();
+
+    for spec in settings.mounts.as_deref().unwrap_or(&[]) {
+        push_mount(&mut mounts, expand_mount_spec(spec, home));
+    }
+    for spec in settings.cache.as_deref().unwrap_or(&[]) {
+        push_mount(&mut mounts, format!("dungeon-cache:{}", spec));
+    }
+
+    if paths.is_empty() {
+        if !skip_cwd && same_dir(cwd, home) {
+            return Err(AppError::message(
+                "ERROR: refusing to run from home directory",
+            ));
         }
-        Err(err) => Err(AppError::Io(err)),
+        if skip_cwd {
+            return Ok((USER_HOME.to_string(), mounts));
+        }
+
+        let base = cwd
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("project");
+        let workdir = format!("{}/{}", USER_HOME, base);
+        push_mount(&mut mounts, format!("{}:{}", cwd.display(), workdir));
+        return Ok((workdir, mounts));
+    }
+
+    let workdir = format!("{}/project", USER_HOME);
+    for path in paths {
+        let abs = absolute_path(cwd, path);
+        let base = abs
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("project");
+        push_mount(
+            &mut mounts,
+            format!("{}:{}/{}", abs.display(), workdir, base),
+        );
+    }
+    Ok((workdir, mounts))
+}
+
+fn append_engine_identity_args(args: &mut Vec<String>, engine: Engine) {
+    match engine {
+        Engine::Podman => args.push("--userns=keep-id".to_string()),
+        Engine::Docker => {
+            let (uid, gid) = host_uid_gid();
+            args.push("--user".to_string());
+            args.push(format!("{}:{}", uid, gid));
+        }
     }
 }
 
-fn build_env_args(env_specs: &[String]) -> Vec<String> {
-    let mut args = Vec::new();
+fn append_env_args(args: &mut Vec<String>, env_specs: &[String]) {
     for spec in env_specs {
         let trimmed = spec.trim();
         if trimmed.is_empty() {
@@ -231,7 +186,41 @@ fn build_env_args(env_specs: &[String]) -> Vec<String> {
         args.push("--env".to_string());
         args.push(trimmed.to_string());
     }
-    args
+}
+
+fn append_repeated_flag_args(args: &mut Vec<String>, flag: &str, values: &[String]) {
+    for value in values {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        args.push(flag.to_string());
+        args.push(trimmed.to_string());
+    }
+}
+
+fn append_run_command(args: &mut Vec<String>, run_command: Option<&str>) {
+    args.push("bash".to_string());
+    if let Some(command) = run_command
+        && !command.trim().is_empty()
+    {
+        args.push("-ic".to_string());
+        args.push(command.to_string());
+    }
+}
+
+fn push_mount(mounts: &mut Vec<String>, spec: String) {
+    mounts.push("-v".to_string());
+    mounts.push(spec);
+}
+
+fn absolute_path(cwd: &Path, path: &str) -> PathBuf {
+    let raw = PathBuf::from(path);
+    if raw.is_absolute() {
+        raw
+    } else {
+        cwd.join(raw)
+    }
 }
 
 fn same_dir(a: &Path, b: &Path) -> bool {
