@@ -2,7 +2,9 @@ use crate::{cli, container, error::AppError};
 
 pub fn run() -> Result<(), AppError> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
-    let parsed = cli::parse_args(args)?;
+    let sources = crate::config::load_sources()?;
+    let parsed =
+        cli::parse_args_with_sources(args, &sources.defaults, &sources.file, &sources.env)?;
 
     if parsed.show_help {
         return Ok(());
@@ -26,12 +28,15 @@ pub fn run() -> Result<(), AppError> {
             container::engine::run_container_command(spec)
         }
         cli::Action::CacheReset(cache) => container::engine::reset_cache_volume(cache.engine),
-        cli::Action::Run => run_container_session(parsed),
+        cli::Action::Run => run_container_session(parsed, &sources),
     }
 }
 
-fn run_container_session(parsed: cli::ParsedCLI) -> Result<(), AppError> {
-    let resolved = crate::config::resolve_with_defaults(&parsed)?;
+fn run_container_session(
+    parsed: cli::ParsedCLI,
+    sources: &crate::config::LoadedConfigSources,
+) -> Result<(), AppError> {
+    let resolved = crate::config::resolve(&parsed, sources)?;
 
     if parsed.debug {
         let spec = container::engine::build_container_command(

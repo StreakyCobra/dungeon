@@ -1,0 +1,57 @@
+pub(crate) const SUBCOMMAND_RUN: &str = "run";
+pub(crate) const SUBCOMMAND_IMAGE: &str = "image";
+pub(crate) const SUBCOMMAND_IMAGE_BUILD: &str = "build";
+pub(crate) const SUBCOMMAND_CACHE: &str = "cache";
+pub(crate) const SUBCOMMAND_CACHE_RESET: &str = "reset";
+
+pub(crate) const FLAG_HELP: &str = "help";
+pub(crate) const FLAG_VERSION: &str = "version";
+pub(crate) const FLAG_DEBUG: &str = "debug";
+pub(crate) const FLAG_PERSIST: &str = "persist";
+pub(crate) const FLAG_PERSISTED: &str = "persisted";
+pub(crate) const FLAG_DISCARD: &str = "discard";
+pub(crate) const FLAG_ENGINE: &str = "engine";
+pub(crate) const FLAG_RUN: &str = "run";
+pub(crate) const FLAG_IMAGE: &str = "image";
+pub(crate) const FLAG_PORT: &str = "port";
+pub(crate) const FLAG_CACHE: &str = "cache";
+pub(crate) const FLAG_MOUNT: &str = "mount";
+pub(crate) const FLAG_ENV: &str = "env";
+pub(crate) const FLAG_ENV_FILE: &str = "env-file";
+pub(crate) const FLAG_ENGINE_ARG: &str = "engine-arg";
+pub(crate) const FLAG_SKIP_CWD: &str = "skip-cwd";
+pub(crate) const FLAG_TAG: &str = "tag";
+pub(crate) const FLAG_NO_CACHE: &str = "no-cache";
+pub(crate) const FLAG_CONTEXT: &str = "context";
+pub(crate) const ARG_PATHS: &str = "paths";
+pub(crate) const ARG_FLAVOR: &str = "flavor";
+
+pub(crate) const RESERVED_GROUP_NAMES: &[&str] = &[
+    "general",
+    FLAG_HELP,
+    FLAG_VERSION,
+    FLAG_DEBUG,
+    FLAG_PERSIST,
+    FLAG_PERSISTED,
+    FLAG_DISCARD,
+    FLAG_ENGINE,
+    FLAG_RUN,
+    FLAG_IMAGE,
+    FLAG_PORT,
+    FLAG_CACHE,
+    FLAG_MOUNT,
+    FLAG_ENV,
+    FLAG_ENV_FILE,
+    FLAG_ENGINE_ARG,
+    FLAG_SKIP_CWD,
+    FLAG_TAG,
+    FLAG_NO_CACHE,
+    FLAG_CONTEXT,
+    ARG_PATHS,
+    ARG_FLAVOR,
+    SUBCOMMAND_RUN,
+    SUBCOMMAND_IMAGE,
+    SUBCOMMAND_IMAGE_BUILD,
+    SUBCOMMAND_CACHE,
+    SUBCOMMAND_CACHE_RESET,
+];

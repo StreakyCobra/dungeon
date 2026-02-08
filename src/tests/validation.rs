@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::tests::support::{TestInput, run_input};
+use crate::tests::support::{TestInput, try_run_input};
 use crate::{cli, config};
 
 #[test]
@@ -13,8 +13,7 @@ fn errors_on_unknown_config_keys() {
         cwd_entries: &[],
     };
 
-    let result = std::panic::catch_unwind(|| run_input(input));
-    assert!(result.is_err());
+    assert_input_error_contains(input, "group \"unknown\" must be a table");
 }
 
 #[test]
@@ -27,8 +26,10 @@ fn errors_when_skip_cwd_with_paths() {
         cwd_entries: &["folder1/"],
     };
 
-    let result = std::panic::catch_unwind(|| run_input(input));
-    assert!(result.is_err());
+    assert_input_error_contains(
+        input,
+        "ERROR: --skip-cwd cannot be used with explicit paths",
+    );
 }
 
 #[test]
@@ -41,8 +42,10 @@ fn errors_on_group_name_conflict() {
         cwd_entries: &[],
     };
 
-    let result = std::panic::catch_unwind(|| run_input(input));
-    assert!(result.is_err());
+    assert_input_error_contains(
+        input,
+        "ERROR: group name 'env' conflicts with a reserved CLI flag",
+    );
 }
 
 #[test]
@@ -54,7 +57,7 @@ fn persisted_allows_group_flags_without_overrides() {
     let args = vec!["run".to_string(), "--persisted".to_string()];
 
     let parsed =
-        cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg).expect("parse args");
+        cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg).expect("parse args");
 
     assert_eq!(
         parsed.persist_mode,
@@ -75,7 +78,7 @@ fn persisted_allows_engine_flag() {
     ];
 
     let parsed =
-        cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg).expect("parse args");
+        cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg).expect("parse args");
 
     assert_eq!(
         parsed.persist_mode,
@@ -95,7 +98,7 @@ fn debug_rejects_persistence_flags() {
         "--persist".to_string(),
     ];
 
-    let result = cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg);
+    let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
 
     assert!(result.is_err());
 }
@@ -107,7 +110,7 @@ fn requires_subcommand() {
     let env_cfg = config::Config::default();
     let args = vec!["--debug".to_string()];
 
-    let result = cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg);
+    let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
 
     assert!(result.is_err());
 }
@@ -120,7 +123,7 @@ fn run_help_is_handled() {
     let args = vec!["run".to_string(), "--help".to_string()];
 
     let parsed =
-        cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg).expect("parse args");
+        cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg).expect("parse args");
 
     assert!(parsed.show_help);
 }
@@ -137,7 +140,7 @@ fn image_build_help_is_handled() {
     ];
 
     let parsed =
-        cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg).expect("parse args");
+        cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg).expect("parse args");
 
     assert!(parsed.show_help);
 }
@@ -154,7 +157,19 @@ fn cache_reset_help_is_handled() {
     ];
 
     let parsed =
-        cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg).expect("parse args");
+        cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg).expect("parse args");
 
     assert!(parsed.show_help);
+}
+
+fn assert_input_error_contains(input: TestInput<'_>, expected_substring: &str) {
+    let err = match try_run_input(input) {
+        Ok(_) => panic!("expected input to fail"),
+        Err(err) => err,
+    };
+    let message = err.to_string();
+    assert!(
+        message.contains(expected_substring),
+        "expected error containing '{expected_substring}', got '{message}'"
+    );
 }

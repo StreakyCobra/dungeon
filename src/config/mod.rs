@@ -12,17 +12,22 @@ pub use types::{Config, Engine, GroupConfig, ResolvedConfig, Settings, Sources};
 use crate::cli;
 use crate::error::AppError;
 
+#[derive(Debug, Clone)]
+pub struct LoadedConfigSources {
+    pub defaults: Config,
+    pub file: Config,
+    pub env: Config,
+}
+
 pub fn resolve(
     parsed: &cli::ParsedCLI,
-    defaults: Config,
-    file_cfg: Config,
-    env_cfg: Config,
+    sources: &LoadedConfigSources,
 ) -> Result<ResolvedConfig, AppError> {
-    let group_defs = merge_group_definitions(&defaults.groups, &file_cfg.groups)?;
+    let group_defs = merge_group_definitions(&sources.defaults.groups, &sources.file.groups)?;
     let base_order = normalize_group_order(&resolve_always_on_groups(
-        &defaults,
-        &file_cfg,
-        &env_cfg,
+        &sources.defaults,
+        &sources.file,
+        &sources.env,
         &Config::default(),
     ))?;
     build_group_selection(&group_defs, &base_order)?;
@@ -32,9 +37,9 @@ pub fn resolve(
 
     let final_settings = resolve_settings(
         Sources {
-            defaults: defaults.settings.clone(),
-            file: file_cfg.settings.clone(),
-            env: env_cfg.settings.clone(),
+            defaults: sources.defaults.settings.clone(),
+            file: sources.file.settings.clone(),
+            env: sources.env.settings.clone(),
             cli: parsed.settings.clone(),
         },
         &group_defs,
@@ -59,13 +64,6 @@ pub fn resolve(
     })
 }
 
-pub fn resolve_with_defaults(parsed: &cli::ParsedCLI) -> Result<ResolvedConfig, AppError> {
-    let defaults = load_defaults()?;
-    let file_cfg = load_from_file()?;
-    let env_cfg = load_from_env()?;
-    resolve(parsed, defaults, file_cfg, env_cfg)
-}
-
 pub fn load_defaults() -> Result<Config, AppError> {
     parse::load_defaults()
 }
@@ -76,4 +74,12 @@ pub fn load_from_file() -> Result<Config, AppError> {
 
 pub fn load_from_env() -> Result<Config, AppError> {
     parse::load_from_env()
+}
+
+pub fn load_sources() -> Result<LoadedConfigSources, AppError> {
+    Ok(LoadedConfigSources {
+        defaults: load_defaults()?,
+        file: load_from_file()?,
+        env: load_from_env()?,
+    })
 }

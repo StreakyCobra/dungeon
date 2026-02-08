@@ -12,7 +12,7 @@ fn image_build_defaults_to_podman_and_default_tag() {
     ];
 
     let parsed =
-        cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg).expect("parse args");
+        cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg).expect("parse args");
 
     let build = match parsed.action {
         cli::Action::ImageBuild(build) => build,
@@ -53,7 +53,7 @@ fn image_build_supports_docker_no_cache_and_custom_context() {
     ];
 
     let parsed =
-        cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg).expect("parse args");
+        cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg).expect("parse args");
 
     let build = match parsed.action {
         cli::Action::ImageBuild(build) => build,
@@ -88,7 +88,7 @@ fn cache_reset_uses_selected_engine() {
     ];
 
     let parsed =
-        cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg).expect("parse args");
+        cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg).expect("parse args");
 
     let cache = match parsed.action {
         cli::Action::CacheReset(cache) => cache,

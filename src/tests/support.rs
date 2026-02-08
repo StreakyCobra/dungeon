@@ -28,6 +28,10 @@ pub fn assert_command(input: TestInput<'_>, expected: &str) {
 }
 
 pub fn run_input(input: TestInput<'_>) -> TestOutput {
+    try_run_input(input).expect("run input")
+}
+
+pub fn try_run_input(input: TestInput<'_>) -> Result<TestOutput, AppError> {
     let _guard = TestLock::acquire();
     let temp_dir = tempfile::tempdir().expect("tempdir");
     let cwd = temp_dir.path().join(input.cwd_name);
@@ -47,20 +51,18 @@ pub fn run_input(input: TestInput<'_>) -> TestOutput {
         std::fs::write(&config_path, input.toml).expect("write config");
     }
 
-    let command = with_cwd(&cwd, || build_command_string(input)).expect("build command");
+    let command = with_cwd(&cwd, || build_command_string(input))?;
 
-    TestOutput { command, cwd, home }
+    Ok(TestOutput { command, cwd, home })
 }
 
 fn build_command_string(input: TestInput<'_>) -> Result<String, AppError> {
-    let defaults = config::load_defaults()?;
-    let file_cfg = config::load_from_file()?;
-    let env_cfg = config::load_from_env()?;
+    let sources = config::load_sources()?;
 
     let argv = input.args.iter().map(|arg| arg.to_string()).collect();
     let parsed =
-        cli::parse_args_with_sources(argv, defaults.clone(), file_cfg.clone(), env_cfg.clone())?;
-    let resolved = config::resolve(&parsed, defaults, file_cfg, env_cfg)?;
+        cli::parse_args_with_sources(argv, &sources.defaults, &sources.file, &sources.env)?;
+    let resolved = config::resolve(&parsed, &sources)?;
 
     let spec = container::engine::build_container_command(
         &resolved.settings,
