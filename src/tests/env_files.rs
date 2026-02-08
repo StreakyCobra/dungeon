@@ -7,7 +7,7 @@ fn includes_env_and_env_files() {
 run = "echo ok"
 env_files = [".env", "config.env"]
 "#,
-        args: &[],
+        args: &["run"],
         env: &[("DUNGEON_ENVS", "FOO=bar")],
         cwd_name: "env-project",
         cwd_entries: &[],

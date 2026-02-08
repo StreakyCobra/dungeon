@@ -4,8 +4,6 @@ pub fn run() -> Result<(), AppError> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
     let parsed = cli::parse_args(args)?;
 
-    let resolved = crate::config::resolve_with_defaults(&parsed)?;
-
     if parsed.show_help {
         return Ok(());
     }
@@ -14,6 +12,26 @@ pub fn run() -> Result<(), AppError> {
         println!("{}", cli::build_version());
         return Ok(());
     }
+
+    match &parsed.action {
+        cli::Action::None => Ok(()),
+        cli::Action::ImageBuild(build) => {
+            let spec = container::engine::build_image_command(
+                build.engine,
+                build.flavor.containerfile_path(),
+                &build.tag,
+                build.no_cache,
+                &build.context,
+            );
+            container::engine::run_container_command(spec)
+        }
+        cli::Action::CacheReset(cache) => container::engine::reset_cache_volume(cache.engine),
+        cli::Action::Run => run_container_session(parsed),
+    }
+}
+
+fn run_container_session(parsed: cli::ParsedCLI) -> Result<(), AppError> {
+    let resolved = crate::config::resolve_with_defaults(&parsed)?;
 
     if parsed.debug {
         let spec = container::engine::build_container_command(
@@ -25,11 +43,6 @@ pub fn run() -> Result<(), AppError> {
         )?;
         println!("{} {}", spec.program, spec.args.join(" "));
         return Ok(());
-    }
-
-    if parsed.reset_cache {
-        let engine = resolved.settings.engine.unwrap_or_default();
-        container::engine::reset_cache_volume(engine)?;
     }
 
     let engine = resolved.settings.engine.unwrap_or_default();

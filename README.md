@@ -19,13 +19,13 @@ podman run -it --rm --userns=keep-id -w /home/dungeon/myrepo \
 With dungeon it gets much simpler:
 
 ```shell
-dungeon --codex
+dungeon run --codex
 ```
 
 It gets even easier when a composition of tools/configurations is desired:
 
 ```shell
-dungeon --codex --obsidian
+dungeon run --codex --obsidian
 ```
 
 ## Getting started
@@ -37,6 +37,14 @@ Ensure you have all needed requirements:
 Build one of the provided images:
 
 ```shell
+dungeon image build archlinux
+# OR
+dungeon image build ubuntu
+
+# use docker and refresh layers
+dungeon image build ubuntu --engine docker --no-cache
+
+# manual equivalent
 podman build -f images/Containerfile.archlinux -t localhost/dungeon .
 # OR
 podman build -f images/Containerfile.ubuntu -t localhost/dungeon .
@@ -69,40 +77,35 @@ dungeon --help
 ## Usage
 
 ```text
-Usage: dungeon [OPTIONS] [paths]...
+Usage: dungeon [COMMAND]
 
-Arguments:
-  [paths]...  Paths to mount inside the container (default: current directory)
+Commands:
+  run    Run a container session
+  image  Manage dungeon images
+  cache  Manage dungeon cache
 
-  Options:
-      --help         Show help information
-      --reset-cache  Clear the dungeon-cache volume before running
-      --version      Show version information
-      --debug        Print the engine command without running
+Options:
+      --help     Show help information
+      --version  Show version information
+```
 
+Common commands:
 
-Persistence:
-      --persist    Create a persisted container (fails if it already exists)
-      --persisted  Connect to the existing persisted container
-      --discard    Remove the persisted container
+```shell
+# run a session
+dungeon run --codex
 
-Configurations:
-      --engine <engine>          Select the container engine (podman or docker)
-      --run <run>                Run a command inside the container
-      --image <image>            Select the container image
-      --port <port>              Publish a container port (repeatable)
-      --cache <cache>            Mount a cache volume target (repeatable)
-      --mount <mount>            Bind-mount a host path (repeatable)
-      --env <env>                Add a container environment variable (repeatable)
-      --env-file <env-file>      Add a container env-file (repeatable)
-      --engine-arg <engine-arg>  Append an extra engine run argument (repeatable)
-      --skip-cwd                 Skip mounting the current directory by default
+# run with explicit engine
+dungeon run --engine docker
 
-Groups:
-      --claude    Enable the claude group
-      --codex     Enable the codex group
-      --gemini    Enable the gemini group
-      --opencode  Enable the opencode group
+# build image
+dungeon image build archlinux
+
+# force image refresh
+dungeon image build archlinux --no-cache
+
+# clear cache volume
+dungeon cache reset
 ```
 
 ## Images
@@ -141,11 +144,25 @@ There are several ways to configure dungeon, in order of precedence:
 
 Single arguments like `run`, `image`, and `engine` override lower-level configuration. List arguments like ports, mounts, and groups are merged with lower-level configuration.
 
+Configuration file, env vars, and groups apply to `dungeon run` only.
+
 Groups defined in config replace defaults, and an empty table removes a default group. Groups are applied after the top-level config file, with explicit CLI group flags taking precedence over `always_on_groups`.
 
 ### CLI flags
 
-See `dungeon --help` in [Usage](#usage) above to see the available CLI configuration flags.
+Run-session flags live under `dungeon run`:
+
+- `--debug`
+- `--persist`, `--persisted`, `--discard`
+- `--engine`, `--run`, `--image`
+- `--port`, `--cache`, `--mount`, `--env`, `--env-file`, `--engine-arg`
+- `--skip-cwd`
+- group flags (for example `--codex`)
+
+Image and cache management:
+
+- `dungeon image build <archlinux|ubuntu> [--engine <podman|docker>] [--tag <tag>] [--no-cache] [--context <path>]`
+- `dungeon cache reset [--engine <podman|docker>]`
 
 ### Configuration file
 
@@ -218,15 +235,21 @@ The default config is embedded at build time from [`src/config/defaults.toml`](.
 
 ## Persistence
 
-Use the CLI `--persist` flag to tell the selected engine to keep a container instead of deleting it after the bash session closes or the run command terminates.
+Use `dungeon run --persist` to tell the selected engine to keep a container instead of deleting it after the bash session closes or the run command terminates.
 
-Persisted containers are tied to the current folder: they are named `dungeon-<folder_name>-<path_hash>`. When you run `dungeon --persisted` (no other arguments are allowed), dungeon restarts the container and opens a bash session for the container matching the current directory, if it exists.
+Persisted containers are tied to the current folder: they are named `dungeon-<folder_name>-<path_hash>`. When you run `dungeon run --persisted` (no other run arguments are allowed), dungeon restarts the container and opens a bash session for the container matching the current directory, if it exists.
 
 This enables project-level persisted containers if you prefer them over temporary containers.
 
 ## Cache
 
 A named volume `dungeon-cache` is used for caches. This lets you mount specific folders to cache between temporary sessions. This is typically used to speed up installing dependencies.
+
+Reset it with:
+
+```shell
+dungeon cache reset
+```
 
 ## License
 

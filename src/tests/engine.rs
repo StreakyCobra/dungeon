@@ -4,7 +4,7 @@ use crate::tests::support::{TestInput, assert_command, run_input};
 fn docker_engine_uses_host_uid_gid() {
     let input = TestInput {
         toml: "",
-        args: &["--engine", "docker"],
+        args: &["run", "--engine", "docker"],
         env: &[],
         cwd_name: "docker-project",
         cwd_entries: &[],
@@ -19,7 +19,7 @@ fn docker_engine_uses_host_uid_gid() {
 fn engine_from_env_overrides_default() {
     let input = TestInput {
         toml: "",
-        args: &[],
+        args: &["run"],
         env: &[("DUNGEON_ENGINE", "docker")],
         cwd_name: "engine-env-project",
         cwd_entries: &[],
@@ -34,7 +34,7 @@ fn engine_from_env_overrides_default() {
 fn engine_from_config_overrides_default() {
     let input = TestInput {
         toml: "engine = 'docker'",
-        args: &[],
+        args: &["run"],
         env: &[],
         cwd_name: "engine-config-project",
         cwd_entries: &[],
@@ -51,7 +51,7 @@ fn passes_engine_args_from_config_and_cli() {
         toml: r#"
 engine_args = ["--network=host"]
 "#,
-        args: &["--engine-arg=--security-opt=label=disable"],
+        args: &["run", "--engine-arg=--security-opt=label=disable"],
         env: &[],
         cwd_name: "engine-args-project",
         cwd_entries: &[],
@@ -66,7 +66,7 @@ engine_args = ["--network=host"]
 fn errors_on_invalid_engine_value() {
     let input = TestInput {
         toml: "engine = 'invalid'",
-        args: &[],
+        args: &["run"],
         env: &[],
         cwd_name: "invalid-engine",
         cwd_entries: &[],

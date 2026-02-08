@@ -9,6 +9,7 @@ caches = ["/var/cache/pacman/pkg:ro"]
 mounts = ["~/data:/data:ro"]
 "#,
         args: &[
+            "run",
             "--port",
             "127.0.0.1:8080:8080",
             "--cache",

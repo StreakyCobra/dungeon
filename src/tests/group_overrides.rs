@@ -12,7 +12,7 @@ image = "localhost/dungeon-codex"
 [obsidian]
 image = "localhost/dungeon-obsidian"
 "#,
-        args: &["--obsidian"],
+        args: &["run", "--obsidian"],
         env: &[],
         cwd_name: "group-project",
         cwd_entries: &[],

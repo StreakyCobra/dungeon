@@ -7,7 +7,7 @@ use crate::{cli, config};
 fn errors_on_unknown_config_keys() {
     let input = TestInput {
         toml: "unknown = 'value'",
-        args: &[],
+        args: &["run"],
         env: &[],
         cwd_name: "unknown-config",
         cwd_entries: &[],
@@ -21,7 +21,7 @@ fn errors_on_unknown_config_keys() {
 fn errors_when_skip_cwd_with_paths() {
     let input = TestInput {
         toml: "",
-        args: &["--skip-cwd", "folder1"],
+        args: &["run", "--skip-cwd", "folder1"],
         env: &[],
         cwd_name: "skip-cwd-paths",
         cwd_entries: &["folder1/"],
@@ -35,7 +35,7 @@ fn errors_when_skip_cwd_with_paths() {
 fn errors_on_group_name_conflict() {
     let input = TestInput {
         toml: "[env]\nrun = 'bash'\n",
-        args: &[],
+        args: &["run"],
         env: &[],
         cwd_name: "conflicting-group",
         cwd_entries: &[],
@@ -51,7 +51,7 @@ fn persisted_allows_group_flags_without_overrides() {
     let mut file_cfg = config::Config::default();
     file_cfg.groups = BTreeMap::from([("x11".to_string(), config::GroupConfig::default())]);
     let env_cfg = config::Config::default();
-    let args = vec!["--persisted".to_string()];
+    let args = vec!["run".to_string(), "--persisted".to_string()];
 
     let parsed =
         cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg).expect("parse args");
@@ -68,6 +68,7 @@ fn persisted_allows_engine_flag() {
     let file_cfg = config::Config::default();
     let env_cfg = config::Config::default();
     let args = vec![
+        "run".to_string(),
         "--persisted".to_string(),
         "--engine".to_string(),
         "docker".to_string(),
@@ -88,7 +89,11 @@ fn debug_rejects_persistence_flags() {
     let defaults = config::Config::default();
     let file_cfg = config::Config::default();
     let env_cfg = config::Config::default();
-    let args = vec!["--debug".to_string(), "--persist".to_string()];
+    let args = vec![
+        "run".to_string(),
+        "--debug".to_string(),
+        "--persist".to_string(),
+    ];
 
     let result = cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg);
 
@@ -96,11 +101,11 @@ fn debug_rejects_persistence_flags() {
 }
 
 #[test]
-fn debug_rejects_reset_cache() {
+fn requires_subcommand() {
     let defaults = config::Config::default();
     let file_cfg = config::Config::default();
     let env_cfg = config::Config::default();
-    let args = vec!["--debug".to_string(), "--reset-cache".to_string()];
+    let args = vec!["--debug".to_string()];
 
     let result = cli::parse_args_with_sources(args, defaults, file_cfg, env_cfg);
 

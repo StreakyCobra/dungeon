@@ -4,7 +4,7 @@ use crate::tests::support::{TestInput, assert_command, run_input};
 fn basic_run_uses_cwd_mount() {
     let input = TestInput {
         toml: "",
-        args: &[],
+        args: &["run"],
         env: &[],
         cwd_name: "alpha",
         cwd_entries: &[],
@@ -19,7 +19,7 @@ fn basic_run_uses_cwd_mount() {
 fn basic_run_errors_from_home_dir() {
     let input = TestInput {
         toml: "",
-        args: &[],
+        args: &["run"],
         env: &[],
         cwd_name: "home",
         cwd_entries: &[],
@@ -33,7 +33,7 @@ fn basic_run_errors_from_home_dir() {
 fn skip_cwd_allows_home_dir_run() {
     let input = TestInput {
         toml: "",
-        args: &["--skip-cwd"],
+        args: &["run", "--skip-cwd"],
         env: &[],
         cwd_name: "home",
         cwd_entries: &[],

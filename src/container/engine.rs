@@ -16,10 +16,45 @@ pub struct CommandSpec {
     pub args: Vec<String>,
 }
 
+pub fn build_cache_reset_command(engine: Engine) -> CommandSpec {
+    CommandSpec {
+        program: engine.binary().to_string(),
+        args: vec![
+            "volume".to_string(),
+            "rm".to_string(),
+            "-f".to_string(),
+            "dungeon-cache".to_string(),
+        ],
+    }
+}
+
 pub fn reset_cache_volume(engine: Engine) -> Result<(), AppError> {
-    let mut cmd = Command::new(engine.binary());
-    cmd.arg("volume").arg("rm").arg("-f").arg("dungeon-cache");
-    run_command(&mut cmd)
+    run_container_command(build_cache_reset_command(engine))
+}
+
+pub fn build_image_command(
+    engine: Engine,
+    containerfile: &str,
+    tag: &str,
+    no_cache: bool,
+    context: &str,
+) -> CommandSpec {
+    let mut args = vec![
+        "build".to_string(),
+        "-f".to_string(),
+        containerfile.to_string(),
+        "-t".to_string(),
+        tag.to_string(),
+    ];
+    if no_cache {
+        args.push("--no-cache".to_string());
+    }
+    args.push(context.to_string());
+
+    CommandSpec {
+        program: engine.binary().to_string(),
+        args,
+    }
 }
 
 pub fn build_container_command(

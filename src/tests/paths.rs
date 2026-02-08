@@ -4,7 +4,7 @@ use crate::tests::support::{TestInput, assert_command};
 fn mounts_cli_paths_with_custom_names() {
     let input = TestInput {
         toml: "",
-        args: &["file1", "folder1"],
+        args: &["run", "file1", "folder1"],
         env: &[],
         cwd_name: "paths-project",
         cwd_entries: &["file1", "folder1/"],
@@ -19,7 +19,7 @@ fn mounts_cli_paths_with_custom_names() {
 fn skips_cwd_mount_when_flagged() {
     let input = TestInput {
         toml: "",
-        args: &["--skip-cwd"],
+        args: &["run", "--skip-cwd"],
         env: &[],
         cwd_name: "paths-project",
         cwd_entries: &[],
