@@ -200,7 +200,7 @@ impl Drop for EnvGuard {
 
 const DUNGEON_ENV_KEYS: &[&str] = &[
     "DUNGEON_ENGINE",
-    "DUNGEON_RUN",
+    "DUNGEON_COMMAND",
     "DUNGEON_IMAGE",
     "DUNGEON_PORTS",
     "DUNGEON_CACHES",

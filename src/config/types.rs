@@ -19,7 +19,7 @@ impl Engine {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Settings {
     pub engine: Option<Engine>,
-    pub run_command: Option<String>,
+    pub command: Option<String>,
     pub image: Option<String>,
     pub ports: Option<Vec<String>>,
     pub cache: Option<Vec<String>>,

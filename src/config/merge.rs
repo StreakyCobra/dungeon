@@ -47,8 +47,8 @@ fn merge_settings(base: Settings, override_settings: Settings) -> Settings {
     if let Some(value) = override_settings.engine {
         merged.engine = Some(value);
     }
-    if let Some(value) = override_settings.run_command {
-        merged.run_command = Some(value);
+    if let Some(value) = override_settings.command {
+        merged.command = Some(value);
     }
     if let Some(value) = override_settings.image {
         merged.image = Some(value);

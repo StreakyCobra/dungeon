@@ -76,7 +76,7 @@ Common commands:
 dungeon run
 
 # run a session with codex available
-dungeon run --codex --run codex
+dungeon run --codex --command codex
 
 # build image
 dungeon image build archlinux
@@ -110,7 +110,7 @@ There are several ways to configure dungeon, in order of precedence:
 - [Configuration file](#configuration-file)
 - [Default configuration](#default-configuration)
 
-For `dungeon run`, single settings like `run`, `image`, and `engine` override lower-level configuration. List settings like ports, mounts, and groups are merged with lower-level configuration.
+For `dungeon run`, single settings like `command`, `image`, and `engine` override lower-level configuration. List settings like ports, mounts, and groups are merged with lower-level configuration.
 
 Configuration file, env vars, and groups apply to `dungeon run` only.
 
@@ -123,7 +123,7 @@ Run-session flags live under `dungeon run`:
 - `--debug` to print the generated command instead of running it.
 - `--persist`, `--persisted`, `--discard` to manage container persistence.
 - `--engine` to select `podman` or `docker` engine.
-- `--run`, `--image`, `--port`, `--cache`, `--mount`, `--env`, `--env-file`, `--engine-arg` to customize container.
+- `--command`, `--image`, `--port`, `--cache`, `--mount`, `--env`, `--env-file`, `--engine-arg` to customize container.
 - `--skip-cwd` to skip mounting the current directory.
 - group flags (for example `--codex`)
 
@@ -139,7 +139,7 @@ Defaults live in `src/config/defaults.toml` (embedded at build time). User confi
 Example:
 ```toml
 [general]
-run = "codex"
+command = "codex"
 engine = "podman"
 image = "localhost/dungeon"
 ports = ["127.0.0.1:8888:8888"]
@@ -175,13 +175,13 @@ Group behavior:
 - `envs` entries are passed directly to the selected engine (`NAME` or `NAME=VALUE`).
 - `env_files` entries are passed to the selected engine via `--env-file`.
 - `mounts`, `caches`, `envs`, `env_files`, `ports`, and `engine_args` extend the base settings when enabled.
-- `run` and `image` use the last enabled group when multiple are set.
+- `command` and `image` use the last enabled group when multiple are set.
 - `engine` also uses the last enabled group when multiple are set.
 
 ### Environment variables
 
 Environment overrides use:
-- `DUNGEON_RUN`
+- `DUNGEON_COMMAND`
 - `DUNGEON_ENGINE`
 - `DUNGEON_IMAGE`
 - `DUNGEON_PORTS` (comma-separated)

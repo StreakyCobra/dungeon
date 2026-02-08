@@ -77,7 +77,7 @@ Follow existing patterns in `src/` and `src/tests/`.
 - Functions/variables/modules: `snake_case`.
 - Constants: `SCREAMING_SNAKE_CASE`.
 - Keep CLI flag/key constants centralized and reused.
-- Use descriptive names (`persist_mode`, `group_defs`, `run_command`).
+- Use descriptive names (`persist_mode`, `group_defs`, `command`).
 
 ### Types and Data Modeling
 

@@ -5,7 +5,7 @@ fn includes_env_and_env_files() {
     let input = TestInput {
         toml: r#"
 [general]
-run = "echo ok"
+command = "echo ok"
 env_files = [".env", "config.env"]
 "#,
         args: &["run"],

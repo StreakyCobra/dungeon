@@ -11,7 +11,7 @@ pub(crate) const FLAG_PERSIST: &str = "persist";
 pub(crate) const FLAG_PERSISTED: &str = "persisted";
 pub(crate) const FLAG_DISCARD: &str = "discard";
 pub(crate) const FLAG_ENGINE: &str = "engine";
-pub(crate) const FLAG_RUN: &str = "run";
+pub(crate) const FLAG_COMMAND: &str = "command";
 pub(crate) const FLAG_IMAGE: &str = "image";
 pub(crate) const FLAG_PORT: &str = "port";
 pub(crate) const FLAG_CACHE: &str = "cache";
@@ -35,7 +35,7 @@ pub(crate) const RESERVED_GROUP_NAMES: &[&str] = &[
     FLAG_PERSISTED,
     FLAG_DISCARD,
     FLAG_ENGINE,
-    FLAG_RUN,
+    FLAG_COMMAND,
     FLAG_IMAGE,
     FLAG_PORT,
     FLAG_CACHE,

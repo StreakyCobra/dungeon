@@ -16,6 +16,36 @@ fn docker_engine_uses_host_uid_gid() {
 }
 
 #[test]
+fn command_flag_runs_command_in_container() {
+    let input = TestInput {
+        toml: "",
+        args: &["run", "--command", "echo ok"],
+        env: &[],
+        cwd_name: "command-flag-project",
+        cwd_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/command-flag-project --rm -v <CWD>:/home/dungeon/command-flag-project localhost/dungeon bash -ic echo ok";
+
+    assert_command(input, expected);
+}
+
+#[test]
+fn command_from_env_runs_command_in_container() {
+    let input = TestInput {
+        toml: "",
+        args: &["run"],
+        env: &[("DUNGEON_COMMAND", "echo env")],
+        cwd_name: "command-env-project",
+        cwd_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/command-env-project --rm -v <CWD>:/home/dungeon/command-env-project localhost/dungeon bash -ic echo env";
+
+    assert_command(input, expected);
+}
+
+#[test]
 fn engine_from_env_overrides_default() {
     let input = TestInput {
         toml: "",

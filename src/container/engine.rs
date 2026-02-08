@@ -104,7 +104,7 @@ pub fn build_container_command(
         .unwrap_or("localhost/dungeon");
     args.push(image.to_string());
 
-    append_run_command(&mut args, settings.run_command.as_deref());
+    append_command(&mut args, settings.command.as_deref());
 
     Ok(CommandSpec {
         program: engine.binary().to_string(),
@@ -199,9 +199,9 @@ fn append_repeated_flag_args(args: &mut Vec<String>, flag: &str, values: &[Strin
     }
 }
 
-fn append_run_command(args: &mut Vec<String>, run_command: Option<&str>) {
+fn append_command(args: &mut Vec<String>, command: Option<&str>) {
     args.push("bash".to_string());
-    if let Some(command) = run_command
+    if let Some(command) = command
         && !command.trim().is_empty()
     {
         args.push("-ic".to_string());

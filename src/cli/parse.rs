@@ -11,11 +11,11 @@ use crate::{
 use super::{
     build::{base_command, print_targeted_help},
     constants::{
-        ARG_FLAVOR, ARG_PATHS, FLAG_CACHE, FLAG_CONTEXT, FLAG_DEBUG, FLAG_DISCARD, FLAG_ENGINE,
-        FLAG_ENGINE_ARG, FLAG_ENV, FLAG_ENV_FILE, FLAG_IMAGE, FLAG_MOUNT, FLAG_NO_CACHE,
-        FLAG_PERSIST, FLAG_PERSISTED, FLAG_PORT, FLAG_RUN, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION,
-        SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD,
-        SUBCOMMAND_RUN,
+        ARG_FLAVOR, ARG_PATHS, FLAG_CACHE, FLAG_COMMAND, FLAG_CONTEXT, FLAG_DEBUG, FLAG_DISCARD,
+        FLAG_ENGINE, FLAG_ENGINE_ARG, FLAG_ENV, FLAG_ENV_FILE, FLAG_IMAGE, FLAG_MOUNT,
+        FLAG_NO_CACHE, FLAG_PERSIST, FLAG_PERSISTED, FLAG_PORT, FLAG_SKIP_CWD, FLAG_TAG,
+        FLAG_VERSION, SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE,
+        SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
     },
     types::{Action, CacheResetAction, GroupFlag, ImageBuildAction, ImageFlavor, ParsedCLI},
     validate::{
@@ -240,7 +240,7 @@ fn collect_paths(matches: &ArgMatches) -> Vec<String> {
 }
 
 fn has_config_override(matches: &ArgMatches) -> bool {
-    matches.get_one::<String>(FLAG_RUN).is_some()
+    matches.get_one::<String>(FLAG_COMMAND).is_some()
         || matches.get_one::<String>(FLAG_IMAGE).is_some()
         || matches.get_many::<String>(FLAG_PORT).is_some()
         || matches.get_many::<String>(FLAG_CACHE).is_some()
@@ -257,8 +257,8 @@ fn settings_from_matches(matches: &ArgMatches) -> Result<Settings, AppError> {
     if let Some(value) = matches.get_one::<String>(FLAG_ENGINE) {
         settings.engine = Some(parse_engine(value)?);
     }
-    if let Some(value) = matches.get_one::<String>(FLAG_RUN) {
-        settings.run_command = Some(value.to_string());
+    if let Some(value) = matches.get_one::<String>(FLAG_COMMAND) {
+        settings.command = Some(value.to_string());
     }
     if let Some(value) = matches.get_one::<String>(FLAG_IMAGE) {
         settings.image = Some(value.to_string());

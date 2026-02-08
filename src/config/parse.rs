@@ -36,8 +36,8 @@ pub fn load_from_env() -> Result<Config, AppError> {
     if let Ok(value) = env::var(format!("{}ENGINE", ENV_PREFIX)) {
         cfg.settings.engine = Some(parse_engine_value("engine", value.trim())?);
     }
-    if let Ok(value) = env::var(format!("{}RUN", ENV_PREFIX)) {
-        cfg.settings.run_command = Some(value.trim().to_string());
+    if let Ok(value) = env::var(format!("{}COMMAND", ENV_PREFIX)) {
+        cfg.settings.command = Some(value.trim().to_string());
     }
     if let Ok(value) = env::var(format!("{}IMAGE", ENV_PREFIX)) {
         cfg.settings.image = Some(value.trim().to_string());
@@ -167,8 +167,8 @@ fn parse_settings_key(
             settings.env_files = Some(parse_string_vec(scope, key, value)?);
             Ok(true)
         }
-        "run" => {
-            settings.run_command = Some(parse_string(scope, key, value)?);
+        "command" => {
+            settings.command = Some(parse_string(scope, key, value)?);
             Ok(true)
         }
         "image" => {

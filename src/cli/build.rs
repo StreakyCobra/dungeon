@@ -5,9 +5,9 @@ use clap::{Arg, ArgAction, ArgMatches, Command};
 use crate::{config, error::AppError};
 
 use super::constants::{
-    ARG_FLAVOR, ARG_PATHS, FLAG_CACHE, FLAG_CONTEXT, FLAG_DEBUG, FLAG_DISCARD, FLAG_ENGINE,
-    FLAG_ENGINE_ARG, FLAG_ENV, FLAG_ENV_FILE, FLAG_HELP, FLAG_IMAGE, FLAG_MOUNT, FLAG_NO_CACHE,
-    FLAG_PERSIST, FLAG_PERSISTED, FLAG_PORT, FLAG_RUN, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION,
+    ARG_FLAVOR, ARG_PATHS, FLAG_CACHE, FLAG_COMMAND, FLAG_CONTEXT, FLAG_DEBUG, FLAG_DISCARD,
+    FLAG_ENGINE, FLAG_ENGINE_ARG, FLAG_ENV, FLAG_ENV_FILE, FLAG_HELP, FLAG_IMAGE, FLAG_MOUNT,
+    FLAG_NO_CACHE, FLAG_PERSIST, FLAG_PERSISTED, FLAG_PORT, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION,
     SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD,
     SUBCOMMAND_RUN,
 };
@@ -142,8 +142,8 @@ fn run_subcommand(group_defs: &BTreeMap<String, config::GroupConfig>) -> Command
                 .action(ArgAction::Set),
         )
         .arg(
-            Arg::new(FLAG_RUN)
-                .long(FLAG_RUN)
+            Arg::new(FLAG_COMMAND)
+                .long(FLAG_COMMAND)
                 .help("Run a command inside the container")
                 .help_heading("Configurations")
                 .num_args(1)

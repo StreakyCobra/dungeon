@@ -35,7 +35,7 @@ fn errors_when_skip_cwd_with_paths() {
 #[test]
 fn errors_on_group_name_conflict() {
     let input = TestInput {
-        toml: "[env]\nrun = 'bash'\n",
+        toml: "[env]\ncommand = 'bash'\n",
         args: &["run"],
         env: &[],
         cwd_name: "conflicting-group",
