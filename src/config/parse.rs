@@ -93,30 +93,16 @@ fn parse_general_config(value: &toml::Value, cfg: &mut Config) -> Result<(), App
         .ok_or_else(|| AppError::message("[general] must be a table"))?;
 
     for (key, value) in table {
-        match key.as_str() {
-            "engine" => {
-                let raw = parse_string("general", key, value)?;
-                cfg.settings.engine = Some(parse_engine_value("general.engine", raw.trim())?);
-            }
-            "mounts" => cfg.settings.mounts = Some(parse_string_vec("general", key, value)?),
-            "caches" => cfg.settings.cache = Some(parse_string_vec("general", key, value)?),
-            "envs" => cfg.settings.env_vars = Some(parse_string_vec("general", key, value)?),
-            "env_files" => cfg.settings.env_files = Some(parse_string_vec("general", key, value)?),
-            "run" => cfg.settings.run_command = Some(parse_string("general", key, value)?),
-            "image" => cfg.settings.image = Some(parse_string("general", key, value)?),
-            "ports" => cfg.settings.ports = Some(parse_string_vec("general", key, value)?),
-            "engine_args" => {
-                cfg.settings.engine_args = Some(parse_string_vec("general", key, value)?)
-            }
-            "always_on_groups" => {
-                cfg.always_on_groups = Some(parse_string_vec("general", key, value)?)
-            }
-            _ => {
-                return Err(AppError::message(format!(
-                    "[general] has unknown key \"{}\"",
-                    key
-                )));
-            }
+        if key == "always_on_groups" {
+            cfg.always_on_groups = Some(parse_string_vec("general", key, value)?);
+            continue;
+        }
+
+        if !parse_settings_key(&mut cfg.settings, "general", key, value)? {
+            return Err(AppError::message(format!(
+                "[general] has unknown key \"{}\"",
+                key
+            )));
         }
     }
 
@@ -136,28 +122,11 @@ fn parse_group_config(name: &str, value: &toml::Value) -> Result<GroupConfig, Ap
 
     let mut settings = Settings::default();
     for (key, value) in table {
-        match key.as_str() {
-            "engine" => {
-                let raw = parse_string(name, key, value)?;
-                settings.engine = Some(parse_engine_value(
-                    &format!("{}.{}", name, key),
-                    raw.trim(),
-                )?);
-            }
-            "mounts" => settings.mounts = Some(parse_string_vec(name, key, value)?),
-            "caches" => settings.cache = Some(parse_string_vec(name, key, value)?),
-            "envs" => settings.env_vars = Some(parse_string_vec(name, key, value)?),
-            "env_files" => settings.env_files = Some(parse_string_vec(name, key, value)?),
-            "run" => settings.run_command = Some(parse_string(name, key, value)?),
-            "image" => settings.image = Some(parse_string(name, key, value)?),
-            "ports" => settings.ports = Some(parse_string_vec(name, key, value)?),
-            "engine_args" => settings.engine_args = Some(parse_string_vec(name, key, value)?),
-            _ => {
-                return Err(AppError::message(format!(
-                    "group \"{}\" has unknown key \"{}\"",
-                    name, key
-                )));
-            }
+        if !parse_settings_key(&mut settings, name, key, value)? {
+            return Err(AppError::message(format!(
+                "group \"{}\" has unknown key \"{}\"",
+                name, key
+            )));
         }
     }
 
@@ -165,6 +134,57 @@ fn parse_group_config(name: &str, value: &toml::Value) -> Result<GroupConfig, Ap
         settings,
         disabled: false,
     })
+}
+
+fn parse_settings_key(
+    settings: &mut Settings,
+    scope: &str,
+    key: &str,
+    value: &toml::Value,
+) -> Result<bool, AppError> {
+    match key {
+        "engine" => {
+            let raw = parse_string(scope, key, value)?;
+            settings.engine = Some(parse_engine_value(
+                &format!("{}.{}", scope, key),
+                raw.trim(),
+            )?);
+            Ok(true)
+        }
+        "mounts" => {
+            settings.mounts = Some(parse_string_vec(scope, key, value)?);
+            Ok(true)
+        }
+        "caches" => {
+            settings.cache = Some(parse_string_vec(scope, key, value)?);
+            Ok(true)
+        }
+        "envs" => {
+            settings.env_vars = Some(parse_string_vec(scope, key, value)?);
+            Ok(true)
+        }
+        "env_files" => {
+            settings.env_files = Some(parse_string_vec(scope, key, value)?);
+            Ok(true)
+        }
+        "run" => {
+            settings.run_command = Some(parse_string(scope, key, value)?);
+            Ok(true)
+        }
+        "image" => {
+            settings.image = Some(parse_string(scope, key, value)?);
+            Ok(true)
+        }
+        "ports" => {
+            settings.ports = Some(parse_string_vec(scope, key, value)?);
+            Ok(true)
+        }
+        "engine_args" => {
+            settings.engine_args = Some(parse_string_vec(scope, key, value)?);
+            Ok(true)
+        }
+        _ => Ok(false),
+    }
 }
 
 fn parse_string(group: &str, key: &str, value: &toml::Value) -> Result<String, AppError> {
