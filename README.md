@@ -1,5 +1,7 @@
 # dungeon
 
+> ⚠️ Warning: this project is currently vibe-coded and still alpha, so breaking changes are expected. I plan to review the code once the program behavior and interface are settled, to move it toward vibe-engineered.
+
 `dungeon` is a Podman/Docker wrapper to create sandboxed development containers with minimal configuration.
 
 ## How it works
@@ -22,7 +24,7 @@ With dungeon it gets much simpler:
 dungeon run --codex
 ```
 
-It gets even easier when a composition of tools/configurations is desired:
+It gets even easier when you want a composition of tools/configurations:
 
 ```shell
 dungeon run --codex --obsidian
@@ -30,7 +32,7 @@ dungeon run --codex --obsidian
 
 ## Getting started
 
-Ensure you have all needed requirements:
+Ensure you have the required tools:
 - [podman](https://podman.io/) (recommended in [rootless](https://github.com/containers/podman/blob/main/README.md#rootless) mode) or [docker](https://www.docker.com/)
 - [rust](https://rust-lang.org/)
 
@@ -127,7 +129,7 @@ There are several ways to configure dungeon, in order of precedence:
 - [Configuration file](#configuration-file)
 - [Default configuration](#default-configuration)
 
-Single arguments like `run`, `image`, and `engine` override lower-level configuration. List arguments like ports, mounts, and groups are merged with lower-level configuration.
+For `dungeon run`, single settings like `run`, `image`, and `engine` override lower-level configuration. List settings like ports, mounts, and groups are merged with lower-level configuration.
 
 Configuration file, env vars, and groups apply to `dungeon run` only.
 
