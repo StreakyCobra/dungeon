@@ -106,3 +106,52 @@ fn errors_on_invalid_engine_value() {
     let result = std::panic::catch_unwind(|| run_input(input));
     assert!(result.is_err());
 }
+
+#[test]
+fn blank_command_does_not_append_shell_exec_flag() {
+    let input = TestInput {
+        toml: "[general]\ncommand = '   '",
+        args: &["run"],
+        env: &[],
+        cwd_name: "blank-command-project",
+        cwd_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/blank-command-project --rm -v <CWD>:/home/dungeon/blank-command-project localhost/dungeon bash";
+
+    assert_command(input, expected);
+}
+
+#[test]
+fn blank_image_falls_back_to_default_image() {
+    let input = TestInput {
+        toml: "[general]\nimage = ''",
+        args: &["run"],
+        env: &[],
+        cwd_name: "blank-image-project",
+        cwd_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/blank-image-project --rm -v <CWD>:/home/dungeon/blank-image-project localhost/dungeon bash";
+
+    assert_command(input, expected);
+}
+
+#[test]
+fn skips_blank_env_and_env_file_values() {
+    let input = TestInput {
+        toml: r#"
+[general]
+envs = [" ", "FOO=bar", ""]
+env_files = ["", "  ", "./.env"]
+"#,
+        args: &["run"],
+        env: &[],
+        cwd_name: "blank-env-values",
+        cwd_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/blank-env-values --rm --env FOO=bar --env-file ./.env -v <CWD>:/home/dungeon/blank-env-values localhost/dungeon bash";
+
+    assert_command(input, expected);
+}

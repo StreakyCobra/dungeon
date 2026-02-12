@@ -29,3 +29,18 @@ fn skips_cwd_mount_when_flagged() {
 
     assert_command(input, expected);
 }
+
+#[test]
+fn mounts_nonexistent_explicit_paths_without_validation() {
+    let input = TestInput {
+        toml: "",
+        args: &["run", "missing-file.txt"],
+        env: &[],
+        cwd_name: "paths-project",
+        cwd_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/project --rm -v <CWD>/missing-file.txt:/home/dungeon/project/missing-file.txt localhost/dungeon bash";
+
+    assert_command(input, expected);
+}

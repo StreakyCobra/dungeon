@@ -18,3 +18,18 @@ env_files = [".env", "config.env"]
 
     assert_command(input, expected);
 }
+
+#[test]
+fn env_list_from_env_var_trims_and_drops_empty_entries() {
+    let input = TestInput {
+        toml: "",
+        args: &["run"],
+        env: &[("DUNGEON_ENVS", " ,FOO=bar,  , BAR=baz ,")],
+        cwd_name: "env-list-project",
+        cwd_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/env-list-project --rm --env FOO=bar --env BAR=baz -v <CWD>:/home/dungeon/env-list-project localhost/dungeon bash";
+
+    assert_command(input, expected);
+}

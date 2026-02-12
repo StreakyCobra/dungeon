@@ -23,3 +23,29 @@ image = "localhost/dungeon-obsidian"
 
     assert_command(input, expected);
 }
+
+#[test]
+fn always_on_groups_apply_in_order_with_last_winning_scalars() {
+    let input = TestInput {
+        toml: r#"
+[general]
+always_on_groups = ["alpha", "beta"]
+
+[alpha]
+image = "localhost/dungeon-alpha"
+command = "echo alpha"
+
+[beta]
+image = "localhost/dungeon-beta"
+command = "echo beta"
+"#,
+        args: &["run"],
+        env: &[],
+        cwd_name: "group-order-project",
+        cwd_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/group-order-project --rm -v <CWD>:/home/dungeon/group-order-project localhost/dungeon-beta bash -ic echo beta";
+
+    assert_command(input, expected);
+}

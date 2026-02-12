@@ -88,6 +88,108 @@ fn persisted_allows_engine_flag() {
 }
 
 #[test]
+fn persistence_flags_are_mutually_exclusive() {
+    let defaults = config::Config::default();
+    let file_cfg = config::Config::default();
+    let env_cfg = config::Config::default();
+
+    for args in [
+        vec![
+            "run".to_string(),
+            "--persist".to_string(),
+            "--persisted".to_string(),
+        ],
+        vec![
+            "run".to_string(),
+            "--persist".to_string(),
+            "--discard".to_string(),
+        ],
+        vec![
+            "run".to_string(),
+            "--persisted".to_string(),
+            "--discard".to_string(),
+        ],
+    ] {
+        let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
+        let err = result.expect_err("expected mutually exclusive flag error");
+        assert!(
+            err.to_string()
+                .contains("ERROR: --persist, --persisted, and --discard are mutually exclusive")
+        );
+    }
+}
+
+#[test]
+fn persisted_rejects_config_group_and_path_overrides() {
+    let defaults = config::Config::default();
+    let mut file_cfg = config::Config::default();
+    file_cfg
+        .groups
+        .insert("codex".to_string(), config::GroupConfig::default());
+    let env_cfg = config::Config::default();
+
+    for args in [
+        vec![
+            "run".to_string(),
+            "--persisted".to_string(),
+            "--command".to_string(),
+            "echo ok".to_string(),
+        ],
+        vec![
+            "run".to_string(),
+            "--persisted".to_string(),
+            "--codex".to_string(),
+        ],
+        vec![
+            "run".to_string(),
+            "--persisted".to_string(),
+            "folder1".to_string(),
+        ],
+    ] {
+        let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
+        let err = result.expect_err("expected persisted override rejection");
+        assert!(err.to_string().contains(
+            "ERROR: --persisted and --discard do not accept config, group, or path arguments"
+        ));
+    }
+}
+
+#[test]
+fn discard_rejects_config_group_and_path_overrides() {
+    let defaults = config::Config::default();
+    let mut file_cfg = config::Config::default();
+    file_cfg
+        .groups
+        .insert("obsidian".to_string(), config::GroupConfig::default());
+    let env_cfg = config::Config::default();
+
+    for args in [
+        vec![
+            "run".to_string(),
+            "--discard".to_string(),
+            "--image".to_string(),
+            "localhost/custom".to_string(),
+        ],
+        vec![
+            "run".to_string(),
+            "--discard".to_string(),
+            "--obsidian".to_string(),
+        ],
+        vec![
+            "run".to_string(),
+            "--discard".to_string(),
+            "./any-path".to_string(),
+        ],
+    ] {
+        let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
+        let err = result.expect_err("expected discard override rejection");
+        assert!(err.to_string().contains(
+            "ERROR: --persisted and --discard do not accept config, group, or path arguments"
+        ));
+    }
+}
+
+#[test]
 fn debug_rejects_persistence_flags() {
     let defaults = config::Config::default();
     let file_cfg = config::Config::default();
@@ -113,6 +215,32 @@ fn requires_subcommand() {
     let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
 
     assert!(result.is_err());
+}
+
+#[test]
+fn top_level_help_is_handled() {
+    let defaults = config::Config::default();
+    let file_cfg = config::Config::default();
+    let env_cfg = config::Config::default();
+    let args = vec!["--help".to_string()];
+
+    let parsed =
+        cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg).expect("parse args");
+
+    assert!(parsed.show_help);
+}
+
+#[test]
+fn top_level_version_is_handled() {
+    let defaults = config::Config::default();
+    let file_cfg = config::Config::default();
+    let env_cfg = config::Config::default();
+    let args = vec!["--version".to_string()];
+
+    let parsed =
+        cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg).expect("parse args");
+
+    assert!(parsed.show_version);
 }
 
 #[test]
@@ -160,6 +288,52 @@ fn cache_reset_help_is_handled() {
         cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg).expect("parse args");
 
     assert!(parsed.show_help);
+}
+
+#[test]
+fn image_requires_subcommand() {
+    let defaults = config::Config::default();
+    let file_cfg = config::Config::default();
+    let env_cfg = config::Config::default();
+    let args = vec!["image".to_string()];
+
+    let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
+    let err = result.expect_err("expected image subcommand error");
+    assert!(
+        err.to_string()
+            .contains("ERROR: image requires a subcommand (use: image build)")
+    );
+}
+
+#[test]
+fn cache_requires_subcommand() {
+    let defaults = config::Config::default();
+    let file_cfg = config::Config::default();
+    let env_cfg = config::Config::default();
+    let args = vec!["cache".to_string()];
+
+    let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
+    let err = result.expect_err("expected cache subcommand error");
+    assert!(
+        err.to_string()
+            .contains("ERROR: cache requires a subcommand (use: cache reset)")
+    );
+}
+
+#[test]
+fn unknown_always_on_group_errors() {
+    let defaults = config::Config::default();
+    let mut file_cfg = config::Config::default();
+    file_cfg.always_on_groups = Some(vec!["missing-group".to_string()]);
+    let env_cfg = config::Config::default();
+    let args = vec!["run".to_string()];
+
+    let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
+    let err = result.expect_err("expected unknown group error");
+    assert!(
+        err.to_string()
+            .contains("ERROR: always_on_groups includes unknown group \"missing-group\"")
+    );
 }
 
 fn assert_input_error_contains(input: TestInput<'_>, expected_substring: &str) {
