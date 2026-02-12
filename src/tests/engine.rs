@@ -63,7 +63,10 @@ fn engine_from_env_overrides_default() {
 #[test]
 fn engine_from_config_overrides_default() {
     let input = TestInput {
-        toml: "[general]\nengine = 'docker'",
+        toml: r#"
+[general]
+engine = "docker"
+"#,
         args: &["run"],
         env: &[],
         cwd_name: "engine-config-project",
@@ -96,7 +99,10 @@ engine_args = ["--network=host"]
 #[test]
 fn errors_on_invalid_engine_value() {
     let input = TestInput {
-        toml: "[general]\nengine = 'invalid'",
+        toml: r#"
+[general]
+engine = "invalid"
+"#,
         args: &["run"],
         env: &[],
         cwd_name: "invalid-engine",
@@ -110,7 +116,10 @@ fn errors_on_invalid_engine_value() {
 #[test]
 fn blank_command_does_not_append_shell_exec_flag() {
     let input = TestInput {
-        toml: "[general]\ncommand = '   '",
+        toml: r#"
+[general]
+command = "   "
+"#,
         args: &["run"],
         env: &[],
         cwd_name: "blank-command-project",
@@ -125,7 +134,10 @@ fn blank_command_does_not_append_shell_exec_flag() {
 #[test]
 fn blank_image_falls_back_to_default_image() {
     let input = TestInput {
-        toml: "[general]\nimage = ''",
+        toml: r#"
+[general]
+image = ""
+"#,
         args: &["run"],
         env: &[],
         cwd_name: "blank-image-project",

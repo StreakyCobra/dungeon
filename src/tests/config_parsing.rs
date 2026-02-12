@@ -3,7 +3,10 @@ use crate::tests::support::{TestInput, try_run_input};
 #[test]
 fn errors_on_unknown_general_key() {
     let input = TestInput {
-        toml: "[general]\nunknown = 'value'",
+        toml: r#"
+[general]
+unknown = "value"
+"#,
         args: &["run"],
         env: &[],
         cwd_name: "unknown-general-key",
@@ -16,7 +19,10 @@ fn errors_on_unknown_general_key() {
 #[test]
 fn errors_on_non_string_general_engine() {
     let input = TestInput {
-        toml: "[general]\nengine = 1",
+        toml: r#"
+[general]
+engine = 1
+"#,
         args: &["run"],
         env: &[],
         cwd_name: "non-string-engine",
@@ -29,7 +35,10 @@ fn errors_on_non_string_general_engine() {
 #[test]
 fn errors_on_non_list_ports() {
     let input = TestInput {
-        toml: "[general]\nports = '127.0.0.1:3000:3000'",
+        toml: r#"
+[general]
+ports = "127.0.0.1:3000:3000"
+"#,
         args: &["run"],
         env: &[],
         cwd_name: "non-list-ports",
@@ -42,7 +51,10 @@ fn errors_on_non_list_ports() {
 #[test]
 fn errors_on_non_string_port_entries() {
     let input = TestInput {
-        toml: "[general]\nports = [1234]",
+        toml: r#"
+[general]
+ports = [1234]
+"#,
         args: &["run"],
         env: &[],
         cwd_name: "non-string-port-entry",
@@ -55,7 +67,10 @@ fn errors_on_non_string_port_entries() {
 #[test]
 fn errors_on_unknown_group_key() {
     let input = TestInput {
-        toml: "[workspace]\nunknown = 'value'",
+        toml: r#"
+[workspace]
+unknown = "value"
+"#,
         args: &["run"],
         env: &[],
         cwd_name: "unknown-group-key",
