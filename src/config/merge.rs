@@ -71,6 +71,9 @@ fn merge_settings(base: Settings, override_settings: Settings) -> Settings {
     if let Some(values) = override_settings.engine_args {
         merged.engine_args = Some(append_strings(merged.engine_args, values));
     }
+    if let Some(values) = override_settings.forbidden_markers {
+        merged.forbidden_markers = Some(append_strings(merged.forbidden_markers, values));
+    }
     merged
 }
 

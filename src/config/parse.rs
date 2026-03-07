@@ -60,6 +60,9 @@ pub fn load_from_env() -> Result<Config, AppError> {
     if let Ok(value) = env::var(format!("{}ENGINE_ARGS", ENV_PREFIX)) {
         cfg.settings.engine_args = Some(split_env_list(&value));
     }
+    if let Ok(value) = env::var(format!("{}FORBIDDEN_MARKERS", ENV_PREFIX)) {
+        cfg.settings.forbidden_markers = Some(split_env_list(&value));
+    }
     if let Ok(value) = env::var(format!("{}ALWAYS_ON_GROUPS", ENV_PREFIX)) {
         cfg.always_on_groups = Some(split_env_list(&value));
     }
@@ -181,6 +184,10 @@ fn parse_settings_key(
         }
         "engine_args" => {
             settings.engine_args = Some(parse_string_vec(scope, key, value)?);
+            Ok(true)
+        }
+        "forbidden_markers" => {
+            settings.forbidden_markers = Some(parse_string_vec(scope, key, value)?);
             Ok(true)
         }
         _ => Ok(false),

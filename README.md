@@ -148,6 +148,7 @@ mounts = ["~/projects:/home/dungeon/projects:rw"]
 envs = ["OPENAI_API_KEY", "SECRET=abc123"]
 env_files = [".env", "secrets.env"]
 engine_args = ["--cap-add=SYS_PTRACE"]
+forbidden_markers = [".no-dungeon"]
 always_on_groups = ["codex"]
 
 [codex]
@@ -171,6 +172,8 @@ Group behavior:
 - `always_on_groups` lists groups that are always enabled, in order of precedence (later entries take precedence).
 - `mounts` entries are passed directly to the selected engine as `-v` arguments; dungeon only checks to prevent a home-directory mount.
 - `--skip-cwd` prevents the implicit current-directory mount when no paths are provided.
+- dungeon refuses to run when `.dungeon-forbidden` exists in the current directory or any parent directory.
+- `forbidden_markers` adds extra marker filenames (also checked from current directory up to root).
 - `caches` entries are passed directly as `dungeon-cache:<spec>` volume mounts.
 - `envs` entries are passed directly to the selected engine (`NAME` or `NAME=VALUE`).
 - `env_files` entries are passed to the selected engine via `--env-file`.
@@ -190,6 +193,7 @@ Environment overrides use:
 - `DUNGEON_ENVS` (comma-separated)
 - `DUNGEON_ENV_FILES` (comma-separated)
 - `DUNGEON_ENGINE_ARGS` (comma-separated)
+- `DUNGEON_FORBIDDEN_MARKERS` (comma-separated)
 - `DUNGEON_ALWAYS_ON_GROUPS` (comma-separated)
 
 ## Engine behavior

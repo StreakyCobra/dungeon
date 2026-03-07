@@ -93,6 +93,38 @@ fn errors_on_invalid_engine_from_env() {
     assert_input_error_contains(input, "engine must be one of: podman, docker");
 }
 
+#[test]
+fn errors_on_non_list_forbidden_markers() {
+    let input = TestInput {
+        toml: r#"
+[general]
+forbidden_markers = ".blocked"
+"#,
+        args: &["run"],
+        env: &[],
+        cwd_name: "non-list-forbidden-markers",
+        cwd_entries: &[],
+    };
+
+    assert_input_error_contains(input, "general.forbidden_markers must be a list of strings");
+}
+
+#[test]
+fn errors_on_non_string_forbidden_marker_entries() {
+    let input = TestInput {
+        toml: r#"
+[general]
+forbidden_markers = [123]
+"#,
+        args: &["run"],
+        env: &[],
+        cwd_name: "non-string-forbidden-marker-entry",
+        cwd_entries: &[],
+    };
+
+    assert_input_error_contains(input, "general.forbidden_markers must be a list of strings");
+}
+
 fn assert_input_error_contains(input: TestInput<'_>, expected_substring: &str) {
     let err = match try_run_input(input) {
         Ok(_) => panic!("expected input to fail"),

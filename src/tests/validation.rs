@@ -339,6 +339,48 @@ fn unknown_always_on_group_errors() {
     );
 }
 
+#[test]
+fn refuses_to_run_when_default_forbidden_marker_exists_in_cwd() {
+    let input = TestInput {
+        toml: "",
+        args: &["run"],
+        env: &[],
+        cwd_name: "forbidden-cwd",
+        cwd_entries: &[".dungeon-forbidden"],
+    };
+
+    assert_input_error_contains(input, "\".dungeon-forbidden\" is present");
+}
+
+#[test]
+fn refuses_to_run_when_default_forbidden_marker_exists_in_parent() {
+    let input = TestInput {
+        toml: "",
+        args: &["run"],
+        env: &[],
+        cwd_name: "parent-forbidden/child",
+        cwd_entries: &["../.dungeon-forbidden"],
+    };
+
+    assert_input_error_contains(input, "\".dungeon-forbidden\" is present");
+}
+
+#[test]
+fn refuses_to_run_when_configured_forbidden_marker_exists() {
+    let input = TestInput {
+        toml: r#"
+[general]
+forbidden_markers = [".no-dungeon-here"]
+"#,
+        args: &["run"],
+        env: &[],
+        cwd_name: "forbidden-configured",
+        cwd_entries: &[".no-dungeon-here"],
+    };
+
+    assert_input_error_contains(input, "\".no-dungeon-here\" is present");
+}
+
 fn assert_input_error_contains(input: TestInput<'_>, expected_substring: &str) {
     let err = match try_run_input(input) {
         Ok(_) => panic!("expected input to fail"),

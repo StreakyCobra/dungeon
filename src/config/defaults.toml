@@ -1,5 +1,6 @@
 [general]
 engine = "podman"
+forbidden_markers = []
 
 [claude]
 mounts = ["~/.claude:/home/dungeon/.claude:rw"]

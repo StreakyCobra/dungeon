@@ -27,6 +27,7 @@ pub struct Settings {
     pub env_vars: Option<Vec<String>>,
     pub env_files: Option<Vec<String>>,
     pub engine_args: Option<Vec<String>>,
+    pub forbidden_markers: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Default)]

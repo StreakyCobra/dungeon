@@ -3,6 +3,8 @@ mod merge;
 mod parse;
 mod types;
 
+use std::collections::BTreeSet;
+
 pub use groups::{
     build_group_selection, merge_group_definitions, normalize_group_order, resolve_group_order,
 };
@@ -11,6 +13,8 @@ pub use types::{Config, Engine, GroupConfig, ResolvedConfig, Settings, Sources};
 
 use crate::cli;
 use crate::error::AppError;
+
+const DEFAULT_FORBIDDEN_MARKER: &str = ".dungeon-forbidden";
 
 #[derive(Debug, Clone)]
 pub struct LoadedConfigSources {
@@ -46,6 +50,8 @@ pub fn resolve(
         &group_order,
     )?;
 
+    ensure_workdir_is_allowed(&final_settings)?;
+
     let container_name =
         crate::container::persist::resolve_container_name(parsed.persist_mode, &parsed.paths)?;
     let engine = final_settings.engine.unwrap_or_default();
@@ -62,6 +68,42 @@ pub fn resolve(
         container_name,
         skip_cwd: parsed.skip_cwd,
     })
+}
+
+fn ensure_workdir_is_allowed(settings: &Settings) -> Result<(), AppError> {
+    let cwd = std::env::current_dir().map_err(AppError::Io)?;
+    let markers = collect_forbidden_markers(settings);
+
+    for dir in cwd.ancestors() {
+        for marker in &markers {
+            let marker_path = dir.join(marker);
+            if marker_path.exists() {
+                return Err(AppError::message(format!(
+                    "ERROR: refusing to run in \"{}\" because \"{}\" is present in \"{}\"",
+                    cwd.display(),
+                    marker,
+                    dir.display()
+                )));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn collect_forbidden_markers(settings: &Settings) -> Vec<String> {
+    let mut markers = BTreeSet::new();
+    markers.insert(DEFAULT_FORBIDDEN_MARKER.to_string());
+
+    for marker in settings.forbidden_markers.as_deref().unwrap_or(&[]) {
+        let trimmed = marker.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        markers.insert(trimmed.to_string());
+    }
+
+    markers.into_iter().collect()
 }
 
 pub fn load_defaults() -> Result<Config, AppError> {
