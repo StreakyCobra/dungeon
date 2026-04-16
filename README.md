@@ -128,7 +128,7 @@ Run-session flags live under `dungeon run`:
 - `--persist`, `--persisted`, `--discard` to manage container persistence.
 - `--command`, `--image`, `--port`, `--cache`, `--mount`, `--env`, `--env-file`, `--engine-arg` to customize container.
 - `--skip-cwd` to skip mounting the current directory.
-- `--network-ipv6`, `--network-no-ipv6`, `--allow-dns`, `--deny-dns`, `--allow-domain`, `--allow-host` to customize the outbound network policy.
+- `--ipv6`, `--no-ipv6`, `--allow-dns`, `--deny-dns`, `--allow-domain`, `--allow-host` to customize the outbound network policy.
 - group flags (for example `--codex`)
 
 Image and cache management:
@@ -152,8 +152,6 @@ envs = ["OPENAI_API_KEY", "SECRET=abc123"]
 env_files = [".env", "secrets.env"]
 engine_args = ["--cap-add=SYS_PTRACE"]
 always_on_groups = ["codex"]
-
-[general.network]
 ipv6 = false
 allow_dns = false
 allowed_tcp_domains = ["crates.io", "index.crates.io"]
@@ -162,7 +160,6 @@ allowed_tcp_hosts = ["10.0.0.0/8"]
 [codex]
 mounts = ["~/.codex:/home/dungeon/.codex:rw"]
 
-[codex.network]
 allowed_tcp_domains = ["api.openai.com"]
 
 [obsidian]
@@ -179,8 +176,6 @@ Group behavior:
 - Each other top-level table (for example `[codex]`) defines a group.
 - Each group name becomes a CLI flag (example: `--codex`).
 - An empty group table removes a default group of the same name.
-- Each group may also define `[group_name.network]` to add network settings.
-
 - `always_on_groups` lists groups that are always enabled, in order of precedence (later entries take precedence).
 - `mounts` entries are passed directly to Podman as `-v` arguments; dungeon only checks to prevent a home-directory mount.
 - `--skip-cwd` prevents the implicit current-directory mount when no paths are provided.
@@ -189,7 +184,7 @@ Group behavior:
 - `env_files` entries are passed to Podman via `--env-file`.
 - `mounts`, `caches`, `envs`, `env_files`, `ports`, `engine_args`, and network allowlists extend the base settings when enabled.
 - `command` and `image` use the last enabled group when multiple are set.
-- `network.ipv6` and `network.allow_dns` use the highest-precedence value.
+- `ipv6` and `allow_dns` use the highest-precedence value.
 
 ### Network policy
 
@@ -197,9 +192,9 @@ Group behavior:
 
 - If `allowed_tcp_domains` and `allowed_tcp_hosts` are both empty after merging all config layers, egress is unrestricted for enabled families.
 - If either list is non-empty, egress is restricted to the merged allowlist.
-- `network.ipv6 = false` disables IPv6 entirely.
-- `network.ipv6 = true` enables IPv6 and applies the same filtering model as IPv4.
-- `network.allow_dns = false` blocks container DNS queries after bootstrap has finished resolving any configured domains.
+- `ipv6 = false` disables IPv6 entirely.
+- `ipv6 = true` enables IPv6 and applies the same filtering model as IPv4.
+- `allow_dns = false` blocks container DNS queries after bootstrap has finished resolving any configured domains.
 
 ### Environment variables
 
@@ -212,10 +207,10 @@ Environment overrides use:
 - `DUNGEON_ENVS` (comma-separated)
 - `DUNGEON_ENV_FILES` (comma-separated)
 - `DUNGEON_ENGINE_ARGS` (comma-separated)
-- `DUNGEON_NETWORK_IPV6`
-- `DUNGEON_NETWORK_ALLOW_DNS`
-- `DUNGEON_NETWORK_ALLOWED_TCP_DOMAINS` (comma-separated)
-- `DUNGEON_NETWORK_ALLOWED_TCP_HOSTS` (comma-separated)
+- `DUNGEON_IPV6`
+- `DUNGEON_ALLOW_DNS`
+- `DUNGEON_ALLOWED_TCP_DOMAINS` (comma-separated)
+- `DUNGEON_ALLOWED_TCP_HOSTS` (comma-separated)
 - `DUNGEON_ALWAYS_ON_GROUPS` (comma-separated)
 
 ## Runtime behavior

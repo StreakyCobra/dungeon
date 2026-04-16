@@ -190,7 +190,7 @@ fn includes_network_env_for_non_default_settings() {
         toml: "",
         args: &[
             "run",
-            "--network-ipv6",
+            "--ipv6",
             "--allow-dns",
             "--allow-domain",
             "crates.io",
@@ -205,10 +205,10 @@ fn includes_network_env_for_non_default_settings() {
     let output = run_input(input);
 
     for fragment in [
-        "--env DUNGEON_NETWORK_IPV6=1",
-        "--env DUNGEON_NETWORK_ALLOW_DNS=1",
-        "--env DUNGEON_NETWORK_ALLOWED_TCP_DOMAINS=crates.io",
-        "--env DUNGEON_NETWORK_ALLOWED_TCP_HOSTS=127.0.0.1",
+        "--env DUNGEON_IPV6=1",
+        "--env DUNGEON_ALLOW_DNS=1",
+        "--env DUNGEON_ALLOWED_TCP_DOMAINS=crates.io",
+        "--env DUNGEON_ALLOWED_TCP_HOSTS=127.0.0.1",
     ] {
         assert!(
             output.command.contains(fragment),

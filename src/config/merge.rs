@@ -71,19 +71,17 @@ fn merge_settings(base: Settings, override_settings: Settings) -> Settings {
     if let Some(values) = override_settings.engine_args {
         merged.engine_args = Some(append_strings(merged.engine_args, values));
     }
-    if let Some(value) = override_settings.network.ipv6 {
-        merged.network.ipv6 = Some(value);
+    if let Some(value) = override_settings.ipv6 {
+        merged.ipv6 = Some(value);
     }
-    if let Some(value) = override_settings.network.allow_dns {
-        merged.network.allow_dns = Some(value);
+    if let Some(value) = override_settings.allow_dns {
+        merged.allow_dns = Some(value);
     }
-    if let Some(values) = override_settings.network.allowed_tcp_domains {
-        merged.network.allowed_tcp_domains =
-            Some(append_strings(merged.network.allowed_tcp_domains, values));
+    if let Some(values) = override_settings.allowed_tcp_domains {
+        merged.allowed_tcp_domains = Some(append_strings(merged.allowed_tcp_domains, values));
     }
-    if let Some(values) = override_settings.network.allowed_tcp_hosts {
-        merged.network.allowed_tcp_hosts =
-            Some(append_strings(merged.network.allowed_tcp_hosts, values));
+    if let Some(values) = override_settings.allowed_tcp_hosts {
+        merged.allowed_tcp_hosts = Some(append_strings(merged.allowed_tcp_hosts, values));
     }
     merged
 }

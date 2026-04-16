@@ -10,8 +10,8 @@ use crate::{
 };
 
 use super::constants::{
-    FLAG_ALLOW_DNS, FLAG_DEBUG, FLAG_DENY_DNS, FLAG_DISCARD, FLAG_NETWORK_IPV6,
-    FLAG_NETWORK_NO_IPV6, FLAG_PERSISTED, FLAG_SKIP_CWD, RESERVED_GROUP_NAMES,
+    FLAG_ALLOW_DNS, FLAG_DEBUG, FLAG_DENY_DNS, FLAG_DISCARD, FLAG_IPV6, FLAG_NO_IPV6,
+    FLAG_PERSISTED, FLAG_SKIP_CWD, RESERVED_GROUP_NAMES,
 };
 
 pub(crate) fn validate_persist_flags(
@@ -48,7 +48,7 @@ pub(crate) fn validate_debug_flags(
 }
 
 pub fn validate_settings(settings: &Settings) -> Result<(), AppError> {
-    validate_network_settings(&settings.network)
+    validate_network_settings(settings)
 }
 
 pub(crate) fn validate_cli_settings(settings: &Settings) -> Result<(), AppError> {
@@ -56,9 +56,9 @@ pub(crate) fn validate_cli_settings(settings: &Settings) -> Result<(), AppError>
 }
 
 pub(crate) fn validate_cli_flag_conflicts(matches: &ArgMatches) -> Result<(), AppError> {
-    if matches.get_flag(FLAG_NETWORK_IPV6) && matches.get_flag(FLAG_NETWORK_NO_IPV6) {
+    if matches.get_flag(FLAG_IPV6) && matches.get_flag(FLAG_NO_IPV6) {
         return Err(AppError::message(
-            "ERROR: --network-ipv6 and --network-no-ipv6 are mutually exclusive",
+            "ERROR: --ipv6 and --no-ipv6 are mutually exclusive",
         ));
     }
     if matches.get_flag(FLAG_ALLOW_DNS) && matches.get_flag(FLAG_DENY_DNS) {
@@ -83,8 +83,8 @@ pub(crate) fn validate_group_names(
     Ok(())
 }
 
-fn validate_network_settings(network: &crate::config::NetworkSettings) -> Result<(), AppError> {
-    if let Some(domains) = &network.allowed_tcp_domains {
+fn validate_network_settings(settings: &Settings) -> Result<(), AppError> {
+    if let Some(domains) = &settings.allowed_tcp_domains {
         for domain in domains {
             let trimmed = domain.trim();
             if trimmed.is_empty() {
@@ -99,7 +99,7 @@ fn validate_network_settings(network: &crate::config::NetworkSettings) -> Result
         }
     }
 
-    if let Some(hosts) = &network.allowed_tcp_hosts {
+    if let Some(hosts) = &settings.allowed_tcp_hosts {
         for host in hosts {
             let trimmed = host.trim();
             if trimmed.is_empty() {

@@ -1,7 +1,7 @@
 use crate::error::AppError;
 use std::{env, fs, path::PathBuf};
 
-use super::{Config, Engine, GroupConfig, NetworkSettings, Settings};
+use super::{Config, Engine, GroupConfig, Settings};
 
 const ENV_PREFIX: &str = "DUNGEON_";
 
@@ -60,17 +60,17 @@ pub fn load_from_env() -> Result<Config, AppError> {
     if let Ok(value) = env::var(format!("{}ENGINE_ARGS", ENV_PREFIX)) {
         cfg.settings.engine_args = Some(split_env_list(&value));
     }
-    if let Ok(value) = env::var(format!("{}NETWORK_IPV6", ENV_PREFIX)) {
-        cfg.settings.network.ipv6 = Some(parse_bool_value("network.ipv6", value.trim())?);
+    if let Ok(value) = env::var(format!("{}IPV6", ENV_PREFIX)) {
+        cfg.settings.ipv6 = Some(parse_bool_value("ipv6", value.trim())?);
     }
-    if let Ok(value) = env::var(format!("{}NETWORK_ALLOW_DNS", ENV_PREFIX)) {
-        cfg.settings.network.allow_dns = Some(parse_bool_value("network.allow_dns", value.trim())?);
+    if let Ok(value) = env::var(format!("{}ALLOW_DNS", ENV_PREFIX)) {
+        cfg.settings.allow_dns = Some(parse_bool_value("allow_dns", value.trim())?);
     }
-    if let Ok(value) = env::var(format!("{}NETWORK_ALLOWED_TCP_DOMAINS", ENV_PREFIX)) {
-        cfg.settings.network.allowed_tcp_domains = Some(split_env_list(&value));
+    if let Ok(value) = env::var(format!("{}ALLOWED_TCP_DOMAINS", ENV_PREFIX)) {
+        cfg.settings.allowed_tcp_domains = Some(split_env_list(&value));
     }
-    if let Ok(value) = env::var(format!("{}NETWORK_ALLOWED_TCP_HOSTS", ENV_PREFIX)) {
-        cfg.settings.network.allowed_tcp_hosts = Some(split_env_list(&value));
+    if let Ok(value) = env::var(format!("{}ALLOWED_TCP_HOSTS", ENV_PREFIX)) {
+        cfg.settings.allowed_tcp_hosts = Some(split_env_list(&value));
     }
     if let Ok(value) = env::var(format!("{}ALWAYS_ON_GROUPS", ENV_PREFIX)) {
         cfg.always_on_groups = Some(split_env_list(&value));
@@ -110,11 +110,6 @@ fn parse_general_config(value: &toml::Value, cfg: &mut Config) -> Result<(), App
             continue;
         }
 
-        if key == "network" {
-            cfg.settings.network = parse_network_settings("general.network", value)?;
-            continue;
-        }
-
         if !parse_settings_key(&mut cfg.settings, "general", key, value)? {
             return Err(AppError::message(format!(
                 "[general] has unknown key \"{}\"",
@@ -139,12 +134,6 @@ fn parse_group_config(name: &str, value: &toml::Value) -> Result<GroupConfig, Ap
 
     let mut settings = Settings::default();
     for (key, value) in table {
-        if key == "network" {
-            settings.network =
-                parse_network_settings(&format!("group \"{}\".network", name), value)?;
-            continue;
-        }
-
         if !parse_settings_key(&mut settings, name, key, value)? {
             return Err(AppError::message(format!(
                 "group \"{}\" has unknown key \"{}\"",
@@ -206,6 +195,22 @@ fn parse_settings_key(
             settings.engine_args = Some(parse_string_vec(scope, key, value)?);
             Ok(true)
         }
+        "ipv6" => {
+            settings.ipv6 = Some(parse_bool(scope, key, value)?);
+            Ok(true)
+        }
+        "allow_dns" => {
+            settings.allow_dns = Some(parse_bool(scope, key, value)?);
+            Ok(true)
+        }
+        "allowed_tcp_domains" => {
+            settings.allowed_tcp_domains = Some(parse_string_vec(scope, key, value)?);
+            Ok(true)
+        }
+        "allowed_tcp_hosts" => {
+            settings.allowed_tcp_hosts = Some(parse_string_vec(scope, key, value)?);
+            Ok(true)
+        }
         _ => Ok(false),
     }
 }
@@ -247,34 +252,6 @@ fn split_env_list(value: &str) -> Vec<String> {
         .filter(|part| !part.is_empty())
         .map(|part| part.to_string())
         .collect()
-}
-
-fn parse_network_settings(scope: &str, value: &toml::Value) -> Result<NetworkSettings, AppError> {
-    let table = value
-        .as_table()
-        .ok_or_else(|| AppError::message(format!("{} must be a table", scope)))?;
-    let mut network = NetworkSettings::default();
-
-    for (key, value) in table {
-        match key.as_str() {
-            "ipv6" => network.ipv6 = Some(parse_bool(scope, key, value)?),
-            "allow_dns" => network.allow_dns = Some(parse_bool(scope, key, value)?),
-            "allowed_tcp_domains" => {
-                network.allowed_tcp_domains = Some(parse_string_vec(scope, key, value)?);
-            }
-            "allowed_tcp_hosts" => {
-                network.allowed_tcp_hosts = Some(parse_string_vec(scope, key, value)?);
-            }
-            _ => {
-                return Err(AppError::message(format!(
-                    "{} has unknown key \"{}\"",
-                    scope, key
-                )));
-            }
-        }
-    }
-
-    Ok(network)
 }
 
 fn parse_bool_value(scope: &str, value: &str) -> Result<bool, AppError> {

@@ -7,7 +7,7 @@ pub use groups::{
     build_group_selection, merge_group_definitions, normalize_group_order, resolve_group_order,
 };
 pub use merge::{resolve_always_on_groups, resolve_settings};
-pub use types::{Config, Engine, GroupConfig, NetworkSettings, ResolvedConfig, Settings, Sources};
+pub use types::{Config, Engine, GroupConfig, ResolvedConfig, Settings, Sources};
 
 use crate::cli;
 use crate::error::AppError;

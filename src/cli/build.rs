@@ -7,8 +7,8 @@ use crate::{config, error::AppError};
 use super::constants::{
     ARG_PATHS, FLAG_ALLOW_DNS, FLAG_ALLOW_DOMAIN, FLAG_ALLOW_HOST, FLAG_CACHE, FLAG_COMMAND,
     FLAG_CONTEXT, FLAG_DEBUG, FLAG_DENY_DNS, FLAG_DISCARD, FLAG_ENGINE_ARG, FLAG_ENV,
-    FLAG_ENV_FILE, FLAG_HELP, FLAG_IMAGE, FLAG_MOUNT, FLAG_NETWORK_IPV6, FLAG_NETWORK_NO_IPV6,
-    FLAG_NO_CACHE, FLAG_PERSIST, FLAG_PERSISTED, FLAG_PORT, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION,
+    FLAG_ENV_FILE, FLAG_HELP, FLAG_IMAGE, FLAG_IPV6, FLAG_MOUNT, FLAG_NO_CACHE, FLAG_NO_IPV6,
+    FLAG_PERSIST, FLAG_PERSISTED, FLAG_PORT, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION,
     SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD,
     SUBCOMMAND_RUN,
 };
@@ -205,15 +205,15 @@ fn run_subcommand(group_defs: &BTreeMap<String, config::GroupConfig>) -> Command
                 .action(ArgAction::SetTrue),
         )
         .arg(
-            Arg::new(FLAG_NETWORK_IPV6)
-                .long(FLAG_NETWORK_IPV6)
+            Arg::new(FLAG_IPV6)
+                .long(FLAG_IPV6)
                 .help("Enable IPv6 egress filtering and traffic")
                 .help_heading("Network")
                 .action(ArgAction::SetTrue),
         )
         .arg(
-            Arg::new(FLAG_NETWORK_NO_IPV6)
-                .long(FLAG_NETWORK_NO_IPV6)
+            Arg::new(FLAG_NO_IPV6)
+                .long(FLAG_NO_IPV6)
                 .help("Disable IPv6 traffic entirely")
                 .help_heading("Network")
                 .action(ArgAction::SetTrue),

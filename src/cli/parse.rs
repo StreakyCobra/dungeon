@@ -13,10 +13,10 @@ use super::{
     constants::{
         ARG_PATHS, FLAG_ALLOW_DNS, FLAG_ALLOW_DOMAIN, FLAG_ALLOW_HOST, FLAG_CACHE, FLAG_COMMAND,
         FLAG_CONTEXT, FLAG_DEBUG, FLAG_DENY_DNS, FLAG_DISCARD, FLAG_ENGINE_ARG, FLAG_ENV,
-        FLAG_ENV_FILE, FLAG_IMAGE, FLAG_MOUNT, FLAG_NETWORK_IPV6, FLAG_NETWORK_NO_IPV6,
-        FLAG_NO_CACHE, FLAG_PERSIST, FLAG_PERSISTED, FLAG_PORT, FLAG_SKIP_CWD, FLAG_TAG,
-        FLAG_VERSION, SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE,
-        SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
+        FLAG_ENV_FILE, FLAG_IMAGE, FLAG_IPV6, FLAG_MOUNT, FLAG_NO_CACHE, FLAG_NO_IPV6,
+        FLAG_PERSIST, FLAG_PERSISTED, FLAG_PORT, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION,
+        SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD,
+        SUBCOMMAND_RUN,
     },
     types::{Action, CacheResetAction, GroupFlag, ImageBuildAction, ParsedCLI},
     validate::{
@@ -240,8 +240,8 @@ fn has_config_override(matches: &ArgMatches) -> bool {
         || matches.get_many::<String>(FLAG_ENV).is_some()
         || matches.get_many::<String>(FLAG_ENV_FILE).is_some()
         || matches.get_many::<String>(FLAG_ENGINE_ARG).is_some()
-        || matches.get_flag(FLAG_NETWORK_IPV6)
-        || matches.get_flag(FLAG_NETWORK_NO_IPV6)
+        || matches.get_flag(FLAG_IPV6)
+        || matches.get_flag(FLAG_NO_IPV6)
         || matches.get_flag(FLAG_ALLOW_DNS)
         || matches.get_flag(FLAG_DENY_DNS)
         || matches.get_many::<String>(FLAG_ALLOW_DOMAIN).is_some()
@@ -276,24 +276,23 @@ fn settings_from_matches(matches: &ArgMatches) -> Result<Settings, AppError> {
     if let Some(values) = matches.get_many::<String>(FLAG_ENGINE_ARG) {
         settings.engine_args = Some(values.map(|value| value.to_string()).collect());
     }
-    if matches.get_flag(FLAG_NETWORK_IPV6) {
-        settings.network.ipv6 = Some(true);
+    if matches.get_flag(FLAG_IPV6) {
+        settings.ipv6 = Some(true);
     }
-    if matches.get_flag(FLAG_NETWORK_NO_IPV6) {
-        settings.network.ipv6 = Some(false);
+    if matches.get_flag(FLAG_NO_IPV6) {
+        settings.ipv6 = Some(false);
     }
     if matches.get_flag(FLAG_ALLOW_DNS) {
-        settings.network.allow_dns = Some(true);
+        settings.allow_dns = Some(true);
     }
     if matches.get_flag(FLAG_DENY_DNS) {
-        settings.network.allow_dns = Some(false);
+        settings.allow_dns = Some(false);
     }
     if let Some(values) = matches.get_many::<String>(FLAG_ALLOW_DOMAIN) {
-        settings.network.allowed_tcp_domains =
-            Some(values.map(|value| value.to_string()).collect());
+        settings.allowed_tcp_domains = Some(values.map(|value| value.to_string()).collect());
     }
     if let Some(values) = matches.get_many::<String>(FLAG_ALLOW_HOST) {
-        settings.network.allowed_tcp_hosts = Some(values.map(|value| value.to_string()).collect());
+        settings.allowed_tcp_hosts = Some(values.map(|value| value.to_string()).collect());
     }
 
     Ok(settings)

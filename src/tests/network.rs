@@ -4,33 +4,31 @@ use crate::tests::support::{TestInput, resolve_input, try_resolve_input};
 fn merges_network_settings_across_config_layers() {
     let input = TestInput {
         toml: r#"
-[general.network]
+[general]
 ipv6 = false
 allow_dns = false
 allowed_tcp_domains = ["crates.io"]
 
-[codex.network]
+[codex]
 allow_dns = true
 allowed_tcp_domains = ["index.crates.io"]
 allowed_tcp_hosts = ["10.0.0.0/8"]
 "#,
         args: &["run", "--codex", "--allow-host", "2001:db8::/32"],
-        env: &[("DUNGEON_NETWORK_ALLOWED_TCP_HOSTS", "192.168.1.10")],
+        env: &[("DUNGEON_ALLOWED_TCP_HOSTS", "192.168.1.10")],
         cwd_name: "network-merge-project",
         cwd_entries: &[],
     };
 
     let output = resolve_input(input);
-    let network = output.resolved.settings.network;
-
-    assert_eq!(network.ipv6, Some(false));
-    assert_eq!(network.allow_dns, Some(true));
+    assert_eq!(output.resolved.settings.ipv6, Some(false));
+    assert_eq!(output.resolved.settings.allow_dns, Some(true));
     assert_eq!(
-        network.allowed_tcp_domains,
+        output.resolved.settings.allowed_tcp_domains,
         Some(vec!["crates.io".to_string(), "index.crates.io".to_string()])
     );
     assert_eq!(
-        network.allowed_tcp_hosts,
+        output.resolved.settings.allowed_tcp_hosts,
         Some(vec![
             "10.0.0.0/8".to_string(),
             "192.168.1.10".to_string(),
@@ -45,7 +43,7 @@ fn parses_network_flags_from_cli() {
         toml: "",
         args: &[
             "run",
-            "--network-ipv6",
+            "--ipv6",
             "--allow-dns",
             "--allow-domain",
             "crates.io",
@@ -58,16 +56,14 @@ fn parses_network_flags_from_cli() {
     };
 
     let output = resolve_input(input);
-    let network = output.resolved.settings.network;
-
-    assert_eq!(network.ipv6, Some(true));
-    assert_eq!(network.allow_dns, Some(true));
+    assert_eq!(output.resolved.settings.ipv6, Some(true));
+    assert_eq!(output.resolved.settings.allow_dns, Some(true));
     assert_eq!(
-        network.allowed_tcp_domains,
+        output.resolved.settings.allowed_tcp_domains,
         Some(vec!["crates.io".to_string()])
     );
     assert_eq!(
-        network.allowed_tcp_hosts,
+        output.resolved.settings.allowed_tcp_hosts,
         Some(vec!["127.0.0.1".to_string()])
     );
 }
@@ -76,7 +72,7 @@ fn parses_network_flags_from_cli() {
 fn rejects_invalid_network_domain() {
     let input = TestInput {
         toml: r#"
-[general.network]
+[general]
 allowed_tcp_domains = ["bad domain"]
 "#,
         args: &["run"],
@@ -113,7 +109,7 @@ fn rejects_invalid_network_host() {
 fn rejects_conflicting_network_flags() {
     let input = TestInput {
         toml: "",
-        args: &["run", "--network-ipv6", "--network-no-ipv6"],
+        args: &["run", "--ipv6", "--no-ipv6"],
         env: &[],
         cwd_name: "conflicting-network-flags",
         cwd_entries: &[],
@@ -122,6 +118,6 @@ fn rejects_conflicting_network_flags() {
     let err = try_resolve_input(input).expect_err("expected conflicting flag error");
     assert!(
         err.to_string()
-            .contains("ERROR: --network-ipv6 and --network-no-ipv6 are mutually exclusive")
+            .contains("ERROR: --ipv6 and --no-ipv6 are mutually exclusive")
     );
 }

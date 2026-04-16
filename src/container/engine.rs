@@ -203,39 +203,29 @@ fn append_env_args(args: &mut Vec<String>, env_specs: &[String]) {
 }
 
 fn append_network_env_args(args: &mut Vec<String>, settings: &Settings) {
-    let network = &settings.network;
-
-    if let Some(ipv6) = network.ipv6
+    if let Some(ipv6) = settings.ipv6
         && ipv6 != DEFAULT_NETWORK_IPV6
     {
-        push_env_arg(args, "DUNGEON_NETWORK_IPV6", if ipv6 { "1" } else { "0" });
+        push_env_arg(args, "DUNGEON_IPV6", if ipv6 { "1" } else { "0" });
     }
-    if let Some(allow_dns) = network.allow_dns
+    if let Some(allow_dns) = settings.allow_dns
         && allow_dns != DEFAULT_NETWORK_ALLOW_DNS
     {
-        push_env_arg(
-            args,
-            "DUNGEON_NETWORK_ALLOW_DNS",
-            if allow_dns { "1" } else { "0" },
-        );
+        push_env_arg(args, "DUNGEON_ALLOW_DNS", if allow_dns { "1" } else { "0" });
     }
-    if let Some(domains) = network
+    if let Some(domains) = settings
         .allowed_tcp_domains
         .as_ref()
         .filter(|values| !values.is_empty())
     {
-        push_env_arg(
-            args,
-            "DUNGEON_NETWORK_ALLOWED_TCP_DOMAINS",
-            &domains.join(","),
-        );
+        push_env_arg(args, "DUNGEON_ALLOWED_TCP_DOMAINS", &domains.join(","));
     }
-    if let Some(hosts) = network
+    if let Some(hosts) = settings
         .allowed_tcp_hosts
         .as_ref()
         .filter(|values| !values.is_empty())
     {
-        push_env_arg(args, "DUNGEON_NETWORK_ALLOWED_TCP_HOSTS", &hosts.join(","));
+        push_env_arg(args, "DUNGEON_ALLOWED_TCP_HOSTS", &hosts.join(","));
     }
 }
 
