@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use clap::{ArgMatches, Command};
 
 use crate::{
-    config::{self, Engine, Settings},
+    config::{self, Settings},
     container::persist::PersistMode,
     error::AppError,
 };
@@ -11,13 +11,13 @@ use crate::{
 use super::{
     build::{base_command, print_targeted_help},
     constants::{
-        ARG_FLAVOR, ARG_PATHS, FLAG_CACHE, FLAG_COMMAND, FLAG_CONTEXT, FLAG_DEBUG, FLAG_DISCARD,
-        FLAG_ENGINE, FLAG_ENGINE_ARG, FLAG_ENV, FLAG_ENV_FILE, FLAG_IMAGE, FLAG_MOUNT,
-        FLAG_NO_CACHE, FLAG_PERSIST, FLAG_PERSISTED, FLAG_PORT, FLAG_SKIP_CWD, FLAG_TAG,
-        FLAG_VERSION, SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE,
-        SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
+        ARG_PATHS, FLAG_CACHE, FLAG_COMMAND, FLAG_CONTEXT, FLAG_DEBUG, FLAG_DISCARD,
+        FLAG_ENGINE_ARG, FLAG_ENV, FLAG_ENV_FILE, FLAG_IMAGE, FLAG_MOUNT, FLAG_NO_CACHE,
+        FLAG_PERSIST, FLAG_PERSISTED, FLAG_PORT, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION,
+        SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD,
+        SUBCOMMAND_RUN,
     },
-    types::{Action, CacheResetAction, GroupFlag, ImageBuildAction, ImageFlavor, ParsedCLI},
+    types::{Action, CacheResetAction, GroupFlag, ImageBuildAction, ParsedCLI},
     validate::{
         resolve_persist_mode_from_flags, validate_cli_settings, validate_debug_flags,
         validate_group_names, validate_persist_flags,
@@ -142,12 +142,6 @@ fn parse_image_action(matches: &ArgMatches) -> Result<ParsedCLI, AppError> {
         )));
     }
 
-    let engine = parse_optional_engine(sub_matches.get_one::<String>(FLAG_ENGINE))?;
-    let flavor = parse_image_flavor(
-        sub_matches
-            .get_one::<String>(ARG_FLAVOR)
-            .ok_or_else(|| AppError::message("ERROR: missing image flavor"))?,
-    )?;
     let tag = sub_matches
         .get_one::<String>(FLAG_TAG)
         .map(|value| value.to_string())
@@ -160,8 +154,6 @@ fn parse_image_action(matches: &ArgMatches) -> Result<ParsedCLI, AppError> {
 
     Ok(ParsedCLI {
         action: Action::ImageBuild(ImageBuildAction {
-            engine,
-            flavor,
             tag,
             no_cache,
             context,
@@ -178,7 +170,7 @@ fn parse_image_action(matches: &ArgMatches) -> Result<ParsedCLI, AppError> {
 }
 
 fn parse_cache_action(matches: &ArgMatches) -> Result<ParsedCLI, AppError> {
-    let (sub_name, sub_matches) = matches.subcommand().ok_or_else(|| {
+    let (sub_name, _sub_matches) = matches.subcommand().ok_or_else(|| {
         AppError::message("ERROR: cache requires a subcommand (use: cache reset)")
     })?;
 
@@ -189,10 +181,8 @@ fn parse_cache_action(matches: &ArgMatches) -> Result<ParsedCLI, AppError> {
         )));
     }
 
-    let engine = parse_optional_engine(sub_matches.get_one::<String>(FLAG_ENGINE))?;
-
     Ok(ParsedCLI {
-        action: Action::CacheReset(CacheResetAction { engine }),
+        action: Action::CacheReset(CacheResetAction),
         settings: Settings::default(),
         paths: Vec::new(),
         show_help: false,
@@ -254,9 +244,6 @@ fn has_config_override(matches: &ArgMatches) -> bool {
 fn settings_from_matches(matches: &ArgMatches) -> Result<Settings, AppError> {
     let mut settings = Settings::default();
 
-    if let Some(value) = matches.get_one::<String>(FLAG_ENGINE) {
-        settings.engine = Some(parse_engine(value)?);
-    }
     if let Some(value) = matches.get_one::<String>(FLAG_COMMAND) {
         settings.command = Some(value.to_string());
     }
@@ -283,32 +270,4 @@ fn settings_from_matches(matches: &ArgMatches) -> Result<Settings, AppError> {
     }
 
     Ok(settings)
-}
-
-fn parse_optional_engine(value: Option<&String>) -> Result<Engine, AppError> {
-    if let Some(value) = value {
-        parse_engine(value)
-    } else {
-        Ok(Engine::Podman)
-    }
-}
-
-fn parse_engine(value: &str) -> Result<Engine, AppError> {
-    match value {
-        "podman" => Ok(Engine::Podman),
-        "docker" => Ok(Engine::Docker),
-        _ => Err(AppError::message(
-            "ERROR: --engine must be podman or docker",
-        )),
-    }
-}
-
-fn parse_image_flavor(value: &str) -> Result<ImageFlavor, AppError> {
-    match value {
-        "archlinux" => Ok(ImageFlavor::Archlinux),
-        "ubuntu" => Ok(ImageFlavor::Ubuntu),
-        _ => Err(AppError::message(
-            "ERROR: flavor must be one of: archlinux, ubuntu",
-        )),
-    }
 }

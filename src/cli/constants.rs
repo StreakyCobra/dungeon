@@ -10,7 +10,6 @@ pub(crate) const FLAG_DEBUG: &str = "debug";
 pub(crate) const FLAG_PERSIST: &str = "persist";
 pub(crate) const FLAG_PERSISTED: &str = "persisted";
 pub(crate) const FLAG_DISCARD: &str = "discard";
-pub(crate) const FLAG_ENGINE: &str = "engine";
 pub(crate) const FLAG_COMMAND: &str = "command";
 pub(crate) const FLAG_IMAGE: &str = "image";
 pub(crate) const FLAG_PORT: &str = "port";
@@ -24,7 +23,6 @@ pub(crate) const FLAG_TAG: &str = "tag";
 pub(crate) const FLAG_NO_CACHE: &str = "no-cache";
 pub(crate) const FLAG_CONTEXT: &str = "context";
 pub(crate) const ARG_PATHS: &str = "paths";
-pub(crate) const ARG_FLAVOR: &str = "flavor";
 
 pub(crate) const RESERVED_GROUP_NAMES: &[&str] = &[
     "general",
@@ -34,7 +32,6 @@ pub(crate) const RESERVED_GROUP_NAMES: &[&str] = &[
     FLAG_PERSIST,
     FLAG_PERSISTED,
     FLAG_DISCARD,
-    FLAG_ENGINE,
     FLAG_COMMAND,
     FLAG_IMAGE,
     FLAG_PORT,
@@ -48,7 +45,6 @@ pub(crate) const RESERVED_GROUP_NAMES: &[&str] = &[
     FLAG_NO_CACHE,
     FLAG_CONTEXT,
     ARG_PATHS,
-    ARG_FLAVOR,
     SUBCOMMAND_RUN,
     SUBCOMMAND_IMAGE,
     SUBCOMMAND_IMAGE_BUILD,

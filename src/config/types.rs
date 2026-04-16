@@ -4,14 +4,12 @@ use std::collections::BTreeMap;
 pub enum Engine {
     #[default]
     Podman,
-    Docker,
 }
 
 impl Engine {
     pub fn binary(self) -> &'static str {
         match self {
             Engine::Podman => "podman",
-            Engine::Docker => "docker",
         }
     }
 }

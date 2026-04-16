@@ -116,18 +116,11 @@ pub fn sanitize_container_base(name: &str) -> String {
 
 pub fn container_exists(name: &str, engine: Engine) -> Result<bool, AppError> {
     validate_container_name(name)?;
-    let status = match engine {
-        Engine::Podman => Command::new(engine.binary())
-            .arg("container")
-            .arg("exists")
-            .arg(name)
-            .status()?,
-        Engine::Docker => Command::new(engine.binary())
-            .arg("container")
-            .arg("inspect")
-            .arg(name)
-            .status()?,
-    };
+    let status = Command::new(engine.binary())
+        .arg("container")
+        .arg("exists")
+        .arg(name)
+        .status()?;
     Ok(status.success())
 }
 

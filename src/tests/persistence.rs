@@ -1,15 +1,12 @@
-use std::{
-    env,
-    sync::{Mutex, OnceLock},
-};
+use std::env;
 
 use crate::{
     config::Engine,
     container::persist::{
-        PersistMode, persisted_container_name, resolve_container_name, sanitize_container_base,
-        validate_container_name,
+        persisted_container_name, resolve_container_name, sanitize_container_base,
+        validate_container_name, PersistMode,
     },
-    tests::support::{TestInput, run_input},
+    tests::support::{acquire_test_lock, run_input, TestInput},
 };
 
 #[test]
@@ -113,12 +110,8 @@ fn validate_container_name_rejects_empty_and_too_long_names() {
 #[test]
 fn engine_binary_mapping_is_stable() {
     assert_eq!(Engine::Podman.binary(), "podman");
-    assert_eq!(Engine::Docker.binary(), "docker");
 }
 
 fn cwd_lock() -> std::sync::MutexGuard<'static, ()> {
-    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| Mutex::new(()))
-        .lock()
-        .unwrap_or_else(|err| err.into_inner())
+    acquire_test_lock()
 }

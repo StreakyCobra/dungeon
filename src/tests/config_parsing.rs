@@ -1,4 +1,4 @@
-use crate::tests::support::{TestInput, try_run_input};
+use crate::tests::support::{try_run_input, TestInput};
 
 #[test]
 fn errors_on_unknown_general_key() {
@@ -90,7 +90,7 @@ fn errors_on_invalid_engine_from_env() {
         cwd_entries: &[],
     };
 
-    assert_input_error_contains(input, "engine must be one of: podman, docker");
+    assert_input_error_contains(input, "engine must be one of: podman");
 }
 
 fn assert_input_error_contains(input: TestInput<'_>, expected_substring: &str) {

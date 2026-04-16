@@ -5,11 +5,10 @@ use clap::{Arg, ArgAction, ArgMatches, Command};
 use crate::{config, error::AppError};
 
 use super::constants::{
-    ARG_FLAVOR, ARG_PATHS, FLAG_CACHE, FLAG_COMMAND, FLAG_CONTEXT, FLAG_DEBUG, FLAG_DISCARD,
-    FLAG_ENGINE, FLAG_ENGINE_ARG, FLAG_ENV, FLAG_ENV_FILE, FLAG_HELP, FLAG_IMAGE, FLAG_MOUNT,
-    FLAG_NO_CACHE, FLAG_PERSIST, FLAG_PERSISTED, FLAG_PORT, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION,
-    SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD,
-    SUBCOMMAND_RUN,
+    ARG_PATHS, FLAG_CACHE, FLAG_COMMAND, FLAG_CONTEXT, FLAG_DEBUG, FLAG_DISCARD, FLAG_ENGINE_ARG,
+    FLAG_ENV, FLAG_ENV_FILE, FLAG_HELP, FLAG_IMAGE, FLAG_MOUNT, FLAG_NO_CACHE, FLAG_PERSIST,
+    FLAG_PERSISTED, FLAG_PORT, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE,
+    SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
 };
 
 pub(crate) fn print_targeted_help(
@@ -133,15 +132,6 @@ fn run_subcommand(group_defs: &BTreeMap<String, config::GroupConfig>) -> Command
                 .action(ArgAction::SetTrue),
         )
         .arg(
-            Arg::new(FLAG_ENGINE)
-                .long(FLAG_ENGINE)
-                .help("Select the container engine (podman or docker)")
-                .help_heading("Configurations")
-                .value_parser(["podman", "docker"])
-                .num_args(1)
-                .action(ArgAction::Set),
-        )
-        .arg(
             Arg::new(FLAG_COMMAND)
                 .long(FLAG_COMMAND)
                 .help("Run a command inside the container")
@@ -260,21 +250,6 @@ fn image_build_subcommand() -> Command {
                 .action(ArgAction::SetTrue),
         )
         .arg(
-            Arg::new(ARG_FLAVOR)
-                .help("Image flavor to build")
-                .value_parser(["archlinux", "ubuntu"])
-                .required_unless_present(FLAG_HELP)
-                .action(ArgAction::Set),
-        )
-        .arg(
-            Arg::new(FLAG_ENGINE)
-                .long(FLAG_ENGINE)
-                .help("Select the container engine (podman or docker)")
-                .value_parser(["podman", "docker"])
-                .num_args(1)
-                .action(ArgAction::Set),
-        )
-        .arg(
             Arg::new(FLAG_TAG)
                 .long(FLAG_TAG)
                 .help("Image tag to produce")
@@ -322,13 +297,5 @@ fn cache_reset_subcommand() -> Command {
                 .help("Show help information")
                 .help_heading("Options")
                 .action(ArgAction::SetTrue),
-        )
-        .arg(
-            Arg::new(FLAG_ENGINE)
-                .long(FLAG_ENGINE)
-                .help("Select the container engine (podman or docker)")
-                .value_parser(["podman", "docker"])
-                .num_args(1)
-                .action(ArgAction::Set),
         )
 }

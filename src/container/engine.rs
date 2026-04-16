@@ -30,8 +30,6 @@ pub fn reset_cache_volume(engine: Engine) -> Result<(), AppError> {
 }
 
 pub fn build_image_command(
-    engine: Engine,
-    containerfile: &str,
     tag: &str,
     no_cache: bool,
     context: &str,
@@ -39,7 +37,7 @@ pub fn build_image_command(
     let mut args = vec![
         "build".to_string(),
         "-f".to_string(),
-        containerfile.to_string(),
+        "images/Containerfile.archlinux".to_string(),
         "-t".to_string(),
         tag.to_string(),
     ];
@@ -49,7 +47,7 @@ pub fn build_image_command(
     args.push(context.to_string());
 
     CommandSpec {
-        program: engine.binary().to_string(),
+        program: Engine::Podman.binary().to_string(),
         args,
     }
 }
@@ -169,11 +167,6 @@ fn resolve_workdir_and_mounts(
 fn append_engine_identity_args(args: &mut Vec<String>, engine: Engine) {
     match engine {
         Engine::Podman => args.push("--userns=keep-id".to_string()),
-        Engine::Docker => {
-            let (uid, gid) = host_uid_gid();
-            args.push("--user".to_string());
-            args.push(format!("{}:{}", uid, gid));
-        }
     }
 }
 
@@ -252,18 +245,4 @@ fn expand_home_or_env(source: &str, home: &Path) -> String {
         return format!("{}{}", home.display(), stripped);
     }
     source.to_string()
-}
-
-fn host_uid_gid() -> (u32, u32) {
-    #[cfg(unix)]
-    {
-        let uid = unsafe { libc::geteuid() };
-        let gid = unsafe { libc::getegid() };
-        (uid, gid)
-    }
-
-    #[cfg(not(unix))]
-    {
-        (1000, 1000)
-    }
 }

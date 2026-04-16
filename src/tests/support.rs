@@ -32,7 +32,7 @@ pub fn run_input(input: TestInput<'_>) -> TestOutput {
 }
 
 pub fn try_run_input(input: TestInput<'_>) -> Result<TestOutput, AppError> {
-    let _guard = TestLock::acquire();
+    let _guard = acquire_test_lock();
     let temp_dir = tempfile::tempdir().expect("tempdir");
     let cwd = temp_dir.path().join(input.cwd_name);
     let home = temp_dir.path().join("home");
@@ -79,15 +79,11 @@ fn build_command_string(input: TestInput<'_>) -> Result<String, AppError> {
     Ok(format!("{} {}", spec.program, spec.args.join(" ")))
 }
 
-struct TestLock;
-
-impl TestLock {
-    fn acquire() -> std::sync::MutexGuard<'static, ()> {
-        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        LOCK.get_or_init(|| Mutex::new(()))
-            .lock()
-            .unwrap_or_else(|err| err.into_inner())
-    }
+pub fn acquire_test_lock() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+        .lock()
+        .unwrap_or_else(|err| err.into_inner())
 }
 
 fn normalize_command(command: &str, cwd: &PathBuf, home: &PathBuf) -> String {

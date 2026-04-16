@@ -1,19 +1,4 @@
-use crate::tests::support::{TestInput, assert_command, run_input};
-
-#[test]
-fn docker_engine_uses_host_uid_gid() {
-    let input = TestInput {
-        toml: "",
-        args: &["run", "--engine", "docker"],
-        env: &[],
-        cwd_name: "docker-project",
-        cwd_entries: &[],
-    };
-
-    let expected = "docker run -it --user <UID>:<GID> -w /home/dungeon/docker-project --rm -v <CWD>:/home/dungeon/docker-project localhost/dungeon bash";
-
-    assert_command(input, expected);
-}
+use crate::tests::support::{assert_command, run_input, TestInput};
 
 #[test]
 fn command_flag_runs_command_in_container() {
@@ -46,26 +31,26 @@ fn command_from_env_runs_command_in_container() {
 }
 
 #[test]
-fn engine_from_env_overrides_default() {
+fn engine_from_env_accepts_podman() {
     let input = TestInput {
         toml: "",
         args: &["run"],
-        env: &[("DUNGEON_ENGINE", "docker")],
+        env: &[("DUNGEON_ENGINE", "podman")],
         cwd_name: "engine-env-project",
         cwd_entries: &[],
     };
 
-    let expected = "docker run -it --user <UID>:<GID> -w /home/dungeon/engine-env-project --rm -v <CWD>:/home/dungeon/engine-env-project localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/engine-env-project --rm -v <CWD>:/home/dungeon/engine-env-project localhost/dungeon bash";
 
     assert_command(input, expected);
 }
 
 #[test]
-fn engine_from_config_overrides_default() {
+fn engine_from_config_accepts_podman() {
     let input = TestInput {
         toml: r#"
 [general]
-engine = "docker"
+engine = "podman"
 "#,
         args: &["run"],
         env: &[],
@@ -73,7 +58,7 @@ engine = "docker"
         cwd_entries: &[],
     };
 
-    let expected = "docker run -it --user <UID>:<GID> -w /home/dungeon/engine-config-project --rm -v <CWD>:/home/dungeon/engine-config-project localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /home/dungeon/engine-config-project --rm -v <CWD>:/home/dungeon/engine-config-project localhost/dungeon bash";
 
     assert_command(input, expected);
 }

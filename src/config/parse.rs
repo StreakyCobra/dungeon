@@ -223,9 +223,8 @@ fn split_env_list(value: &str) -> Vec<String> {
 fn parse_engine_value(scope: &str, value: &str) -> Result<Engine, AppError> {
     match value {
         "podman" => Ok(Engine::Podman),
-        "docker" => Ok(Engine::Docker),
         _ => Err(AppError::message(format!(
-            "{} must be one of: podman, docker",
+            "{} must be one of: podman",
             scope
         ))),
     }

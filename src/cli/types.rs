@@ -1,9 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{
-    config::{Engine, Settings},
-    container::persist::PersistMode,
-};
+use crate::{config::Settings, container::persist::PersistMode};
 
 #[derive(Debug, Clone)]
 pub struct ParsedCLI {
@@ -28,32 +25,13 @@ pub enum Action {
 
 #[derive(Debug, Clone)]
 pub struct ImageBuildAction {
-    pub engine: Engine,
-    pub flavor: ImageFlavor,
     pub tag: String,
     pub no_cache: bool,
     pub context: String,
 }
 
 #[derive(Debug, Clone)]
-pub struct CacheResetAction {
-    pub engine: Engine,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ImageFlavor {
-    Archlinux,
-    Ubuntu,
-}
-
-impl ImageFlavor {
-    pub fn containerfile_path(self) -> &'static str {
-        match self {
-            ImageFlavor::Archlinux => "images/Containerfile.archlinux",
-            ImageFlavor::Ubuntu => "images/Containerfile.ubuntu",
-        }
-    }
-}
+pub struct CacheResetAction;
 
 #[derive(Default, Clone, Debug)]
 pub struct GroupFlag {

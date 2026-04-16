@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::tests::support::{TestInput, try_run_input};
+use crate::tests::support::{try_run_input, TestInput};
 use crate::{cli, config};
 
 #[test]
@@ -69,28 +69,6 @@ fn persisted_allows_group_flags_without_overrides() {
 }
 
 #[test]
-fn persisted_allows_engine_flag() {
-    let defaults = config::Config::default();
-    let file_cfg = config::Config::default();
-    let env_cfg = config::Config::default();
-    let args = vec![
-        "run".to_string(),
-        "--persisted".to_string(),
-        "--engine".to_string(),
-        "docker".to_string(),
-    ];
-
-    let parsed =
-        cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg).expect("parse args");
-
-    assert_eq!(
-        parsed.persist_mode,
-        crate::container::persist::PersistMode::Reuse
-    );
-    assert_eq!(parsed.settings.engine, Some(config::Engine::Docker));
-}
-
-#[test]
 fn persistence_flags_are_mutually_exclusive() {
     let defaults = config::Config::default();
     let file_cfg = config::Config::default();
@@ -115,10 +93,9 @@ fn persistence_flags_are_mutually_exclusive() {
     ] {
         let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
         let err = result.expect_err("expected mutually exclusive flag error");
-        assert!(
-            err.to_string()
-                .contains("ERROR: --persist, --persisted, and --discard are mutually exclusive")
-        );
+        assert!(err
+            .to_string()
+            .contains("ERROR: --persist, --persisted, and --discard are mutually exclusive"));
     }
 }
 
@@ -302,10 +279,9 @@ fn image_requires_subcommand() {
 
     let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
     let err = result.expect_err("expected image subcommand error");
-    assert!(
-        err.to_string()
-            .contains("ERROR: image requires a subcommand (use: image build)")
-    );
+    assert!(err
+        .to_string()
+        .contains("ERROR: image requires a subcommand (use: image build)"));
 }
 
 #[test]
@@ -317,10 +293,9 @@ fn cache_requires_subcommand() {
 
     let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
     let err = result.expect_err("expected cache subcommand error");
-    assert!(
-        err.to_string()
-            .contains("ERROR: cache requires a subcommand (use: cache reset)")
-    );
+    assert!(err
+        .to_string()
+        .contains("ERROR: cache requires a subcommand (use: cache reset)"));
 }
 
 #[test]
@@ -333,10 +308,9 @@ fn unknown_always_on_group_errors() {
 
     let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
     let err = result.expect_err("expected unknown group error");
-    assert!(
-        err.to_string()
-            .contains("ERROR: always_on_groups includes unknown group \"missing-group\"")
-    );
+    assert!(err
+        .to_string()
+        .contains("ERROR: always_on_groups includes unknown group \"missing-group\""));
 }
 
 fn assert_input_error_contains(input: TestInput<'_>, expected_substring: &str) {

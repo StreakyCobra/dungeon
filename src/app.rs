@@ -18,16 +18,13 @@ pub fn run() -> Result<(), AppError> {
     match &parsed.action {
         cli::Action::None => Ok(()),
         cli::Action::ImageBuild(build) => {
-            let spec = container::engine::build_image_command(
-                build.engine,
-                build.flavor.containerfile_path(),
-                &build.tag,
-                build.no_cache,
-                &build.context,
-            );
+            let spec =
+                container::engine::build_image_command(&build.tag, build.no_cache, &build.context);
             container::engine::run_container_command(spec)
         }
-        cli::Action::CacheReset(cache) => container::engine::reset_cache_volume(cache.engine),
+        cli::Action::CacheReset(_) => {
+            container::engine::reset_cache_volume(crate::config::Engine::Podman)
+        }
         cli::Action::Run => run_container_session(parsed, &sources),
     }
 }
