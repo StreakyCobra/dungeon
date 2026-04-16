@@ -20,7 +20,7 @@ fn image_build_defaults_to_podman_and_default_tag() {
 
     assert_eq!(
         command,
-        "podman build -f images/Containerfile.archlinux -t localhost/dungeon ."
+        "podman build -f images/Containerfile -t localhost/dungeon ."
     );
 }
 
@@ -52,7 +52,7 @@ fn image_build_supports_no_cache_and_custom_context() {
 
     assert_eq!(
         command,
-        "podman build -f images/Containerfile.archlinux -t localhost/dungeon-dev --no-cache ./images"
+        "podman build -f images/Containerfile -t localhost/dungeon-dev --no-cache ./images"
     );
 }
 

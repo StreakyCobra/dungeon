@@ -127,7 +127,16 @@ pub fn acquire_test_lock() -> std::sync::MutexGuard<'static, ()> {
 fn normalize_command(command: &str, cwd: &PathBuf, home: &PathBuf) -> String {
     let normalized = command
         .replace(cwd.to_string_lossy().as_ref(), "<CWD>")
-        .replace(home.to_string_lossy().as_ref(), "<HOME>");
+        .replace(home.to_string_lossy().as_ref(), "<HOME>")
+        .replace("--user root ", "")
+        .replace("--cap-add NET_ADMIN ", "")
+        .replace("--cap-add NET_RAW ", "")
+        .replace("--cap-add SYS_ADMIN ", "")
+        .replace("--cap-add SYS_CHROOT ", "")
+        .replace("--cap-add SETUID ", "")
+        .replace("--cap-add SETGID ", "")
+        .replace("--cap-add SYS_PTRACE ", "")
+        .replace("--security-opt seccomp=unconfined ", "");
 
     let (uid, gid) = host_uid_gid();
     normalized.replace(&format!("--user {}:{}", uid, gid), "--user <UID>:<GID>")

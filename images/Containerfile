@@ -1,24 +1,33 @@
-FROM docker.io/ubuntu:latest
+FROM docker.io/archlinux:latest
+
+COPY images/dungeon-bootstrap /usr/local/bin/dungeon-bootstrap
+COPY images/dungeon-install /usr/local/bin/dungeon-install
 
 # Update and install packages
-RUN apt-get update \
-    && apt-get install -y \
+RUN pacman -Syu --noconfirm \
+    && pacman -S --noconfirm \
+      bubblewrap \
       ca-certificates \
       curl \
       git \
       less \
-      neovim \
-      python3 \
+      nvim \
+      ipset \
+      iptables \
+      python \
       ripgrep \
       sudo \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt
+      which \
+    && rm -rf /var/cache/pacman/pkg
 
 # Setup user
-RUN groupmod -n dungeon "$(getent group 1000 | cut -d: -f1)" && \
-    usermod -l dungeon "$(getent passwd 1000 | cut -d: -f1)" && \
-    usermod -d /home/dungeon -m dungeon && \
-    usermod -g 1000 -aG sudo dungeon && \
-    echo "dungeon ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+RUN groupadd -g 1000 dungeon && \
+    useradd -m -u 1000 -g 1000 dungeon && \
+    chmod 4755 /usr/bin/bwrap && \
+    install -d /etc/sudoers.d && \
+    printf 'dungeon ALL=(root) NOPASSWD: /usr/local/bin/dungeon-install\n' > /etc/sudoers.d/dungeon-install && \
+    chmod 0440 /etc/sudoers.d/dungeon-install && \
+    chmod 0755 /usr/local/bin/dungeon-bootstrap /usr/local/bin/dungeon-install
 USER dungeon
 
 # Setup git
@@ -48,3 +57,5 @@ RUN export NVM_DIR="$HOME/.nvm" \
     && npm i -g @anthropic-ai/claude-code@latest \
     && npm i -g @google/gemini-cli \
     && rm -rf /home/dungeon/.npm
+
+ENTRYPOINT ["/usr/local/bin/dungeon-bootstrap"]

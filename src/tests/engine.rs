@@ -1,6 +1,37 @@
 use crate::tests::support::{TestInput, assert_command, run_input};
 
 #[test]
+fn includes_bootstrap_security_args() {
+    let input = TestInput {
+        toml: "",
+        args: &["run"],
+        env: &[],
+        cwd_name: "security-args-project",
+        cwd_entries: &[],
+    };
+
+    let output = run_input(input);
+
+    for fragment in [
+        "--user root",
+        "--cap-add NET_ADMIN",
+        "--cap-add NET_RAW",
+        "--cap-add SYS_ADMIN",
+        "--cap-add SYS_CHROOT",
+        "--cap-add SETUID",
+        "--cap-add SETGID",
+        "--cap-add SYS_PTRACE",
+        "--security-opt seccomp=unconfined",
+    ] {
+        assert!(
+            output.command.contains(fragment),
+            "expected command to contain {fragment}: {}",
+            output.command
+        );
+    }
+}
+
+#[test]
 fn command_flag_runs_command_in_container() {
     let input = TestInput {
         toml: "",
@@ -151,4 +182,38 @@ env_files = ["", "  ", "./.env"]
     let expected = "podman run -it --userns=keep-id -w /home/dungeon/blank-env-values --rm --env FOO=bar --env-file ./.env -v <CWD>:/home/dungeon/blank-env-values localhost/dungeon bash";
 
     assert_command(input, expected);
+}
+
+#[test]
+fn includes_network_env_for_non_default_settings() {
+    let input = TestInput {
+        toml: "",
+        args: &[
+            "run",
+            "--network-ipv6",
+            "--allow-dns",
+            "--allow-domain",
+            "crates.io",
+            "--allow-host",
+            "127.0.0.1",
+        ],
+        env: &[],
+        cwd_name: "network-env-project",
+        cwd_entries: &[],
+    };
+
+    let output = run_input(input);
+
+    for fragment in [
+        "--env DUNGEON_NETWORK_IPV6=1",
+        "--env DUNGEON_NETWORK_ALLOW_DNS=1",
+        "--env DUNGEON_NETWORK_ALLOWED_TCP_DOMAINS=crates.io",
+        "--env DUNGEON_NETWORK_ALLOWED_TCP_HOSTS=127.0.0.1",
+    ] {
+        assert!(
+            output.command.contains(fragment),
+            "expected command to contain {fragment}: {}",
+            output.command
+        );
+    }
 }

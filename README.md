@@ -2,14 +2,18 @@
 
 > ⚠️ Warning: this project is currently vibe-coded and still alpha, so breaking changes are expected. I plan to review the code once the program behavior and interface are settled, to move it toward vibe-engineered.
 
-`dungeon` is a Podman/Docker wrapper to create sandboxed development containers with minimal configuration.
+`dungeon` is a Podman wrapper to create sandboxed development containers with minimal configuration.
 
 ## How it works
 
 This is the Podman command to create a temporary container, mount the current directory, and make Codex config and auth available:
 
 ```shell
-podman run -it --rm --userns=keep-id -w /home/dungeon/myrepo \
+podman run -it --rm --user root --userns=keep-id \
+  --cap-add NET_ADMIN --cap-add NET_RAW --cap-add SYS_ADMIN \
+  --cap-add SYS_CHROOT --cap-add SETUID --cap-add SETGID --cap-add SYS_PTRACE \
+  --security-opt seccomp=unconfined \
+  -w /home/dungeon/myrepo \
   -v "$HOME:/home/dungeon/.codex" \
   -v "$PWD:/home/dungeon/myrepo" \
   localhost/dungeon \
@@ -31,15 +35,13 @@ dungeon run --codex --obsidian
 ## Getting started
 
 Ensure you have the required tools:
-- [podman](https://podman.io/) (recommended in [rootless](https://github.com/containers/podman/blob/main/README.md#rootless) mode) or [docker](https://www.docker.com/)
+- [podman](https://podman.io/) (recommended in [rootless](https://github.com/containers/podman/blob/main/README.md#rootless) mode)
 - [rust](https://rust-lang.org/)
 
-Build one of the provided images, based on your personal favorite:
+Build the provided image:
 
 ```shell
-dungeon image build archlinux
-# OR
-dungeon image build ubuntu
+dungeon image build
 ```
 
 If you only want to test `dungeon`, you can build it and run it from there:
@@ -79,23 +81,25 @@ dungeon run
 dungeon run --codex --command codex
 
 # build image
-dungeon image build archlinux
+dungeon image build
 ```
 
 ## Images
 
 Container files live in `images/`:
-- `images/Containerfile.archlinux`
-- `images/Containerfile.ubuntu`
+- `images/Containerfile`
 
-These images provide the base setup to work with dungeon and use AI agents inside. They are meant to be customized to include the tools you usually need for your projects. Note that passwordless sudo is allowed within the container.
+The image provides the base setup to work with dungeon and use AI agents inside. It is meant to be customized to include the tools you usually need for your projects.
 
-Build the one you like with Podman or Docker:
+Notable defaults:
+- `dungeon` always starts the container through a root bootstrap that installs the network policy, then drops to the unprivileged `dungeon` user.
+- passwordless sudo is limited to `sudo dungeon-install ...`, a small wrapper around `pacman` with a denylist for security-sensitive packages.
+- `bubblewrap` is installed and configured so Codex can use its sandbox inside the container.
+
+Build it with Podman:
 
 ```shell
-dungeon image build archlinux
-# OR
-dungeon image build ubuntu
+dungeon image build
 ```
 You can build several images with different tags using `--tag`, and use the [Configuration](#configuration) below to switch images.
 
@@ -110,7 +114,7 @@ There are several ways to configure dungeon, in order of precedence:
 - [Configuration file](#configuration-file)
 - [Default configuration](#default-configuration)
 
-For `dungeon run`, single settings like `command`, `image`, and `engine` override lower-level configuration. List settings like ports, mounts, and groups are merged with lower-level configuration.
+For `dungeon run`, single settings like `command`, `image`, and the `network` booleans override lower-level configuration. List settings like ports, mounts, groups, and network allowlists are merged with lower-level configuration.
 
 Configuration file, env vars, and groups apply to `dungeon run` only.
 
@@ -122,15 +126,15 @@ Run-session flags live under `dungeon run`:
 
 - `--debug` to print the generated command instead of running it.
 - `--persist`, `--persisted`, `--discard` to manage container persistence.
-- `--engine` to select `podman` or `docker` engine.
 - `--command`, `--image`, `--port`, `--cache`, `--mount`, `--env`, `--env-file`, `--engine-arg` to customize container.
 - `--skip-cwd` to skip mounting the current directory.
+- `--network-ipv6`, `--network-no-ipv6`, `--allow-dns`, `--deny-dns`, `--allow-domain`, `--allow-host` to customize the outbound network policy.
 - group flags (for example `--codex`)
 
 Image and cache management:
 
-- `dungeon image build <archlinux|ubuntu> [--engine <podman|docker>] [--tag <tag>] [--no-cache] [--context <path>]`
-- `dungeon cache reset [--engine <podman|docker>]`
+- `dungeon image build [--tag <tag>] [--no-cache] [--context <path>]`
+- `dungeon cache reset`
 
 ### Configuration file
 
@@ -140,7 +144,6 @@ Example:
 ```toml
 [general]
 command = "codex"
-engine = "podman"
 image = "localhost/dungeon"
 ports = ["127.0.0.1:8888:8888"]
 caches = [".cache/pip:rw"]
@@ -150,8 +153,17 @@ env_files = [".env", "secrets.env"]
 engine_args = ["--cap-add=SYS_PTRACE"]
 always_on_groups = ["codex"]
 
+[general.network]
+ipv6 = false
+allow_dns = false
+allowed_tcp_domains = ["crates.io", "index.crates.io"]
+allowed_tcp_hosts = ["10.0.0.0/8"]
+
 [codex]
 mounts = ["~/.codex:/home/dungeon/.codex:rw"]
+
+[codex.network]
+allowed_tcp_domains = ["api.openai.com"]
 
 [obsidian]
 mounts = ["~/my_vault:/home/dungeon/obsidian:ro"]
@@ -167,22 +179,32 @@ Group behavior:
 - Each other top-level table (for example `[codex]`) defines a group.
 - Each group name becomes a CLI flag (example: `--codex`).
 - An empty group table removes a default group of the same name.
+- Each group may also define `[group_name.network]` to add network settings.
 
 - `always_on_groups` lists groups that are always enabled, in order of precedence (later entries take precedence).
-- `mounts` entries are passed directly to the selected engine as `-v` arguments; dungeon only checks to prevent a home-directory mount.
+- `mounts` entries are passed directly to Podman as `-v` arguments; dungeon only checks to prevent a home-directory mount.
 - `--skip-cwd` prevents the implicit current-directory mount when no paths are provided.
 - `caches` entries are passed directly as `dungeon-cache:<spec>` volume mounts.
-- `envs` entries are passed directly to the selected engine (`NAME` or `NAME=VALUE`).
-- `env_files` entries are passed to the selected engine via `--env-file`.
-- `mounts`, `caches`, `envs`, `env_files`, `ports`, and `engine_args` extend the base settings when enabled.
+- `envs` entries are passed directly to Podman (`NAME` or `NAME=VALUE`).
+- `env_files` entries are passed to Podman via `--env-file`.
+- `mounts`, `caches`, `envs`, `env_files`, `ports`, `engine_args`, and network allowlists extend the base settings when enabled.
 - `command` and `image` use the last enabled group when multiple are set.
-- `engine` also uses the last enabled group when multiple are set.
+- `network.ipv6` and `network.allow_dns` use the highest-precedence value.
+
+### Network policy
+
+`dungeon` always starts with its firewall/bootstrap path enabled.
+
+- If `allowed_tcp_domains` and `allowed_tcp_hosts` are both empty after merging all config layers, egress is unrestricted for enabled families.
+- If either list is non-empty, egress is restricted to the merged allowlist.
+- `network.ipv6 = false` disables IPv6 entirely.
+- `network.ipv6 = true` enables IPv6 and applies the same filtering model as IPv4.
+- `network.allow_dns = false` blocks container DNS queries after bootstrap has finished resolving any configured domains.
 
 ### Environment variables
 
 Environment overrides use:
 - `DUNGEON_COMMAND`
-- `DUNGEON_ENGINE`
 - `DUNGEON_IMAGE`
 - `DUNGEON_PORTS` (comma-separated)
 - `DUNGEON_CACHES` (comma-separated)
@@ -190,14 +212,26 @@ Environment overrides use:
 - `DUNGEON_ENVS` (comma-separated)
 - `DUNGEON_ENV_FILES` (comma-separated)
 - `DUNGEON_ENGINE_ARGS` (comma-separated)
+- `DUNGEON_NETWORK_IPV6`
+- `DUNGEON_NETWORK_ALLOW_DNS`
+- `DUNGEON_NETWORK_ALLOWED_TCP_DOMAINS` (comma-separated)
+- `DUNGEON_NETWORK_ALLOWED_TCP_HOSTS` (comma-separated)
 - `DUNGEON_ALWAYS_ON_GROUPS` (comma-separated)
 
-## Engine behavior
+## Runtime behavior
 
-- `engine = "podman"` uses `--userns=keep-id`, which keeps file ownership aligned with the host user in bind mounts.
-- `engine = "docker"` uses `--user <uid>:<gid>` so files created in bind mounts belong to the host user.
-- The provided images remain Podman-compatible and still default to the `dungeon` user.
-- The default engine is `podman`.
+- `dungeon run` always starts the container as root, installs the firewall policy, and then drops to the `dungeon` user.
+- The Podman command keeps `--userns=keep-id`, so bind-mounted files still line up with the host user.
+- The image entrypoint is `dungeon-bootstrap`, which applies the runtime network policy.
+- Codex can rely on `bubblewrap`; there is no `CODEX_UNSAFE_ALLOW_NO_SANDBOX` fallback configured.
+
+## Installing packages
+
+Use `sudo dungeon-install ...` inside the container when the agent needs extra Arch packages.
+
+- It is a small wrapper around `pacman -S --needed --noconfirm`.
+- It rejects flags, local package files, URLs, and a denylist of security-sensitive packages.
+- Broad root access is not available inside the container.
 
 ### Default configuration
 

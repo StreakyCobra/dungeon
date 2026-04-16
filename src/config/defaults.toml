@@ -1,6 +1,10 @@
 [general]
 engine = "podman"
 
+[general.network]
+ipv6 = false
+allow_dns = false
+
 [claude]
 mounts = ["~/.claude:/home/dungeon/.claude:rw"]
 

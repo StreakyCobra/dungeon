@@ -6,6 +6,8 @@ use crate::{
 };
 
 const USER_HOME: &str = "/home/dungeon";
+const DEFAULT_NETWORK_IPV6: bool = false;
+const DEFAULT_NETWORK_ALLOW_DNS: bool = false;
 
 #[derive(Debug, Clone)]
 pub struct CommandSpec {
@@ -29,15 +31,11 @@ pub fn reset_cache_volume(engine: Engine) -> Result<(), AppError> {
     run_container_command(build_cache_reset_command(engine))
 }
 
-pub fn build_image_command(
-    tag: &str,
-    no_cache: bool,
-    context: &str,
-) -> CommandSpec {
+pub fn build_image_command(tag: &str, no_cache: bool, context: &str) -> CommandSpec {
     let mut args = vec![
         "build".to_string(),
         "-f".to_string(),
-        "images/Containerfile.archlinux".to_string(),
+        "images/Containerfile".to_string(),
         "-t".to_string(),
         tag.to_string(),
     ];
@@ -67,6 +65,7 @@ pub fn build_container_command(
     let (workdir, mounts) = resolve_workdir_and_mounts(settings, paths, skip_cwd, &cwd, &home)?;
 
     let mut args = vec!["run".to_string(), "-it".to_string()];
+    append_engine_security_args(&mut args);
     append_engine_identity_args(&mut args, engine);
     args.push("-w".to_string());
     args.push(workdir);
@@ -82,6 +81,7 @@ pub fn build_container_command(
     }
 
     append_env_args(&mut args, settings.env_vars.as_deref().unwrap_or(&[]));
+    append_network_env_args(&mut args, settings);
     append_repeated_flag_args(
         &mut args,
         "--env-file",
@@ -108,6 +108,27 @@ pub fn build_container_command(
         program: engine.binary().to_string(),
         args,
     })
+}
+
+fn append_engine_security_args(args: &mut Vec<String>) {
+    args.push("--user".to_string());
+    args.push("root".to_string());
+
+    for capability in [
+        "NET_ADMIN",
+        "NET_RAW",
+        "SYS_ADMIN",
+        "SYS_CHROOT",
+        "SETUID",
+        "SETGID",
+        "SYS_PTRACE",
+    ] {
+        args.push("--cap-add".to_string());
+        args.push(capability.to_string());
+    }
+
+    args.push("--security-opt".to_string());
+    args.push("seccomp=unconfined".to_string());
 }
 
 pub fn run_container_command(spec: CommandSpec) -> Result<(), AppError> {
@@ -179,6 +200,48 @@ fn append_env_args(args: &mut Vec<String>, env_specs: &[String]) {
         args.push("--env".to_string());
         args.push(trimmed.to_string());
     }
+}
+
+fn append_network_env_args(args: &mut Vec<String>, settings: &Settings) {
+    let network = &settings.network;
+
+    if let Some(ipv6) = network.ipv6
+        && ipv6 != DEFAULT_NETWORK_IPV6
+    {
+        push_env_arg(args, "DUNGEON_NETWORK_IPV6", if ipv6 { "1" } else { "0" });
+    }
+    if let Some(allow_dns) = network.allow_dns
+        && allow_dns != DEFAULT_NETWORK_ALLOW_DNS
+    {
+        push_env_arg(
+            args,
+            "DUNGEON_NETWORK_ALLOW_DNS",
+            if allow_dns { "1" } else { "0" },
+        );
+    }
+    if let Some(domains) = network
+        .allowed_tcp_domains
+        .as_ref()
+        .filter(|values| !values.is_empty())
+    {
+        push_env_arg(
+            args,
+            "DUNGEON_NETWORK_ALLOWED_TCP_DOMAINS",
+            &domains.join(","),
+        );
+    }
+    if let Some(hosts) = network
+        .allowed_tcp_hosts
+        .as_ref()
+        .filter(|values| !values.is_empty())
+    {
+        push_env_arg(args, "DUNGEON_NETWORK_ALLOWED_TCP_HOSTS", &hosts.join(","));
+    }
+}
+
+fn push_env_arg(args: &mut Vec<String>, key: &str, value: &str) {
+    args.push("--env".to_string());
+    args.push(format!("{}={}", key, value));
 }
 
 fn append_repeated_flag_args(args: &mut Vec<String>, flag: &str, values: &[String]) {
