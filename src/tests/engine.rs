@@ -1,4 +1,4 @@
-use crate::tests::support::{assert_command, run_input, TestInput};
+use crate::tests::support::{TestInput, assert_command, run_input};
 
 #[test]
 fn command_flag_runs_command_in_container() {

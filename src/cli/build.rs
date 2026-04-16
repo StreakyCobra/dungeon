@@ -5,10 +5,12 @@ use clap::{Arg, ArgAction, ArgMatches, Command};
 use crate::{config, error::AppError};
 
 use super::constants::{
-    ARG_PATHS, FLAG_CACHE, FLAG_COMMAND, FLAG_CONTEXT, FLAG_DEBUG, FLAG_DISCARD, FLAG_ENGINE_ARG,
-    FLAG_ENV, FLAG_ENV_FILE, FLAG_HELP, FLAG_IMAGE, FLAG_MOUNT, FLAG_NO_CACHE, FLAG_PERSIST,
-    FLAG_PERSISTED, FLAG_PORT, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE,
-    SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
+    ARG_PATHS, FLAG_ALLOW_DNS, FLAG_ALLOW_DOMAIN, FLAG_ALLOW_HOST, FLAG_CACHE, FLAG_COMMAND,
+    FLAG_CONTEXT, FLAG_DEBUG, FLAG_DENY_DNS, FLAG_DISCARD, FLAG_ENGINE_ARG, FLAG_ENV,
+    FLAG_ENV_FILE, FLAG_HELP, FLAG_IMAGE, FLAG_MOUNT, FLAG_NETWORK_IPV6, FLAG_NETWORK_NO_IPV6,
+    FLAG_NO_CACHE, FLAG_PERSIST, FLAG_PERSISTED, FLAG_PORT, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION,
+    SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD,
+    SUBCOMMAND_RUN,
 };
 
 pub(crate) fn print_targeted_help(
@@ -201,6 +203,50 @@ fn run_subcommand(group_defs: &BTreeMap<String, config::GroupConfig>) -> Command
                 .help("Skip mounting the current directory by default")
                 .help_heading("Configurations")
                 .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new(FLAG_NETWORK_IPV6)
+                .long(FLAG_NETWORK_IPV6)
+                .help("Enable IPv6 egress filtering and traffic")
+                .help_heading("Network")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new(FLAG_NETWORK_NO_IPV6)
+                .long(FLAG_NETWORK_NO_IPV6)
+                .help("Disable IPv6 traffic entirely")
+                .help_heading("Network")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new(FLAG_ALLOW_DNS)
+                .long(FLAG_ALLOW_DNS)
+                .help("Allow DNS queries from inside the container")
+                .help_heading("Network")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new(FLAG_DENY_DNS)
+                .long(FLAG_DENY_DNS)
+                .help("Block DNS queries from inside the container")
+                .help_heading("Network")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new(FLAG_ALLOW_DOMAIN)
+                .long(FLAG_ALLOW_DOMAIN)
+                .help("Allow outbound TCP to a domain (repeatable)")
+                .help_heading("Network")
+                .num_args(1)
+                .action(ArgAction::Append),
+        )
+        .arg(
+            Arg::new(FLAG_ALLOW_HOST)
+                .long(FLAG_ALLOW_HOST)
+                .help("Allow outbound TCP to an IP or CIDR (repeatable)")
+                .help_heading("Network")
+                .num_args(1)
+                .action(ArgAction::Append),
         )
         .arg(
             Arg::new(ARG_PATHS)

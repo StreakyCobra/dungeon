@@ -3,10 +3,10 @@ use std::env;
 use crate::{
     config::Engine,
     container::persist::{
-        persisted_container_name, resolve_container_name, sanitize_container_base,
-        validate_container_name, PersistMode,
+        PersistMode, persisted_container_name, resolve_container_name, sanitize_container_base,
+        validate_container_name,
     },
-    tests::support::{acquire_test_lock, run_input, TestInput},
+    tests::support::{TestInput, acquire_test_lock, run_input},
 };
 
 #[test]

@@ -25,6 +25,15 @@ pub struct Settings {
     pub env_vars: Option<Vec<String>>,
     pub env_files: Option<Vec<String>>,
     pub engine_args: Option<Vec<String>>,
+    pub network: NetworkSettings,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct NetworkSettings {
+    pub ipv6: Option<bool>,
+    pub allow_dns: Option<bool>,
+    pub allowed_tcp_domains: Option<Vec<String>>,
+    pub allowed_tcp_hosts: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -47,6 +56,7 @@ pub struct Sources {
     pub cli: Settings,
 }
 
+#[derive(Debug)]
 pub struct ResolvedConfig {
     pub settings: Settings,
     pub paths: Vec<String>,

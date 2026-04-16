@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::tests::support::{try_run_input, TestInput};
+use crate::tests::support::{TestInput, try_run_input};
 use crate::{cli, config};
 
 #[test]
@@ -93,9 +93,10 @@ fn persistence_flags_are_mutually_exclusive() {
     ] {
         let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
         let err = result.expect_err("expected mutually exclusive flag error");
-        assert!(err
-            .to_string()
-            .contains("ERROR: --persist, --persisted, and --discard are mutually exclusive"));
+        assert!(
+            err.to_string()
+                .contains("ERROR: --persist, --persisted, and --discard are mutually exclusive")
+        );
     }
 }
 
@@ -279,9 +280,10 @@ fn image_requires_subcommand() {
 
     let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
     let err = result.expect_err("expected image subcommand error");
-    assert!(err
-        .to_string()
-        .contains("ERROR: image requires a subcommand (use: image build)"));
+    assert!(
+        err.to_string()
+            .contains("ERROR: image requires a subcommand (use: image build)")
+    );
 }
 
 #[test]
@@ -293,9 +295,10 @@ fn cache_requires_subcommand() {
 
     let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
     let err = result.expect_err("expected cache subcommand error");
-    assert!(err
-        .to_string()
-        .contains("ERROR: cache requires a subcommand (use: cache reset)"));
+    assert!(
+        err.to_string()
+            .contains("ERROR: cache requires a subcommand (use: cache reset)")
+    );
 }
 
 #[test]
@@ -308,9 +311,10 @@ fn unknown_always_on_group_errors() {
 
     let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
     let err = result.expect_err("expected unknown group error");
-    assert!(err
-        .to_string()
-        .contains("ERROR: always_on_groups includes unknown group \"missing-group\""));
+    assert!(
+        err.to_string()
+            .contains("ERROR: always_on_groups includes unknown group \"missing-group\"")
+    );
 }
 
 fn assert_input_error_contains(input: TestInput<'_>, expected_substring: &str) {

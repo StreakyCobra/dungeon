@@ -1,4 +1,4 @@
-use crate::tests::support::{try_run_input, TestInput};
+use crate::tests::support::{TestInput, try_run_input};
 
 #[test]
 fn errors_on_unknown_general_key() {

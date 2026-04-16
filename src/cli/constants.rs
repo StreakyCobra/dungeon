@@ -19,6 +19,12 @@ pub(crate) const FLAG_ENV: &str = "env";
 pub(crate) const FLAG_ENV_FILE: &str = "env-file";
 pub(crate) const FLAG_ENGINE_ARG: &str = "engine-arg";
 pub(crate) const FLAG_SKIP_CWD: &str = "skip-cwd";
+pub(crate) const FLAG_NETWORK_IPV6: &str = "network-ipv6";
+pub(crate) const FLAG_NETWORK_NO_IPV6: &str = "network-no-ipv6";
+pub(crate) const FLAG_ALLOW_DNS: &str = "allow-dns";
+pub(crate) const FLAG_DENY_DNS: &str = "deny-dns";
+pub(crate) const FLAG_ALLOW_DOMAIN: &str = "allow-domain";
+pub(crate) const FLAG_ALLOW_HOST: &str = "allow-host";
 pub(crate) const FLAG_TAG: &str = "tag";
 pub(crate) const FLAG_NO_CACHE: &str = "no-cache";
 pub(crate) const FLAG_CONTEXT: &str = "context";
@@ -41,6 +47,12 @@ pub(crate) const RESERVED_GROUP_NAMES: &[&str] = &[
     FLAG_ENV_FILE,
     FLAG_ENGINE_ARG,
     FLAG_SKIP_CWD,
+    FLAG_NETWORK_IPV6,
+    FLAG_NETWORK_NO_IPV6,
+    FLAG_ALLOW_DNS,
+    FLAG_DENY_DNS,
+    FLAG_ALLOW_DOMAIN,
+    FLAG_ALLOW_HOST,
     FLAG_TAG,
     FLAG_NO_CACHE,
     FLAG_CONTEXT,

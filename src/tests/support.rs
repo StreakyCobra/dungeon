@@ -21,6 +21,11 @@ pub struct TestOutput {
     pub home: PathBuf,
 }
 
+#[derive(Debug)]
+pub struct ResolvedTestOutput {
+    pub resolved: config::ResolvedConfig,
+}
+
 pub fn assert_command(input: TestInput<'_>, expected: &str) {
     let output = run_input(input);
     let normalized = normalize_command(&output.command, &output.cwd, &output.home);
@@ -29,6 +34,10 @@ pub fn assert_command(input: TestInput<'_>, expected: &str) {
 
 pub fn run_input(input: TestInput<'_>) -> TestOutput {
     try_run_input(input).expect("run input")
+}
+
+pub fn resolve_input(input: TestInput<'_>) -> ResolvedTestOutput {
+    try_resolve_input(input).expect("resolve input")
 }
 
 pub fn try_run_input(input: TestInput<'_>) -> Result<TestOutput, AppError> {
@@ -56,13 +65,33 @@ pub fn try_run_input(input: TestInput<'_>) -> Result<TestOutput, AppError> {
     Ok(TestOutput { command, cwd, home })
 }
 
-fn build_command_string(input: TestInput<'_>) -> Result<String, AppError> {
-    let sources = config::load_sources()?;
+pub fn try_resolve_input(input: TestInput<'_>) -> Result<ResolvedTestOutput, AppError> {
+    let _guard = acquire_test_lock();
+    let temp_dir = tempfile::tempdir().expect("tempdir");
+    let cwd = temp_dir.path().join(input.cwd_name);
+    let home = temp_dir.path().join("home");
+    let config_home = temp_dir.path().join("config");
+    let config_path = config_home.join("dungeon").join("config.toml");
 
-    let argv = input.args.iter().map(|arg| arg.to_string()).collect();
-    let parsed =
-        cli::parse_args_with_sources(argv, &sources.defaults, &sources.file, &sources.env)?;
-    let resolved = config::resolve(&parsed, &sources)?;
+    std::fs::create_dir_all(&cwd).expect("create cwd");
+    std::fs::create_dir_all(&home).expect("create home");
+    std::fs::create_dir_all(config_path.parent().expect("config parent")).expect("config parent");
+
+    create_cwd_entries(&cwd, input.cwd_entries).expect("create entries");
+
+    let _env_guard = EnvGuard::new(&home, &config_home, input.env);
+
+    if !input.toml.trim().is_empty() {
+        std::fs::write(&config_path, input.toml).expect("write config");
+    }
+
+    let resolved = with_cwd(&cwd, || resolve_settings(input))?;
+
+    Ok(ResolvedTestOutput { resolved })
+}
+
+fn build_command_string(input: TestInput<'_>) -> Result<String, AppError> {
+    let resolved = resolve_settings(input)?;
 
     let spec = container::engine::build_container_command(
         &resolved.settings,
@@ -77,6 +106,15 @@ fn build_command_string(input: TestInput<'_>) -> Result<String, AppError> {
     )?;
 
     Ok(format!("{} {}", spec.program, spec.args.join(" ")))
+}
+
+fn resolve_settings(input: TestInput<'_>) -> Result<config::ResolvedConfig, AppError> {
+    let sources = config::load_sources()?;
+
+    let argv = input.args.iter().map(|arg| arg.to_string()).collect();
+    let parsed =
+        cli::parse_args_with_sources(argv, &sources.defaults, &sources.file, &sources.env)?;
+    config::resolve(&parsed, &sources)
 }
 
 pub fn acquire_test_lock() -> std::sync::MutexGuard<'static, ()> {
@@ -204,5 +242,9 @@ const DUNGEON_ENV_KEYS: &[&str] = &[
     "DUNGEON_ENVS",
     "DUNGEON_ENV_FILES",
     "DUNGEON_ENGINE_ARGS",
+    "DUNGEON_NETWORK_IPV6",
+    "DUNGEON_NETWORK_ALLOW_DNS",
+    "DUNGEON_NETWORK_ALLOWED_TCP_DOMAINS",
+    "DUNGEON_NETWORK_ALLOWED_TCP_HOSTS",
     "DUNGEON_ALWAYS_ON_GROUPS",
 ];
