@@ -3,10 +3,10 @@ set -euo pipefail
 IFS=$'\n\t'
 
 runtime_user="${DUNGEON_RUNTIME_USER:-dungeon}"
-ipv6_enabled="${DUNGEON_NETWORK_IPV6:-0}"
-allow_dns="${DUNGEON_NETWORK_ALLOW_DNS:-0}"
-allowed_domains_raw="${DUNGEON_NETWORK_ALLOWED_TCP_DOMAINS:-}"
-allowed_hosts_raw="${DUNGEON_NETWORK_ALLOWED_TCP_HOSTS:-}"
+ipv6_enabled="${DUNGEON_IPV6:-0}"
+allow_dns="${DUNGEON_ALLOW_DNS:-1}"
+allowed_domains_raw="${DUNGEON_ALLOWED_TCP_DOMAINS:-}"
+allowed_hosts_raw="${DUNGEON_ALLOWED_TCP_HOSTS:-}"
 
 if [ "$#" -eq 0 ]; then
     set -- bash
