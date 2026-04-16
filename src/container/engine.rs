@@ -7,7 +7,7 @@ use crate::{
 
 const USER_HOME: &str = "/home/dungeon";
 const DEFAULT_NETWORK_IPV6: bool = false;
-const DEFAULT_NETWORK_ALLOW_DNS: bool = false;
+const DEFAULT_NETWORK_ALLOW_DNS: bool = true;
 
 #[derive(Debug, Clone)]
 pub struct CommandSpec {

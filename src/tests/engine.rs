@@ -206,7 +206,6 @@ fn includes_network_env_for_non_default_settings() {
 
     for fragment in [
         "--env DUNGEON_IPV6=1",
-        "--env DUNGEON_ALLOW_DNS=1",
         "--env DUNGEON_ALLOWED_TCP_DOMAINS=crates.io",
         "--env DUNGEON_ALLOWED_TCP_HOSTS=127.0.0.1",
     ] {

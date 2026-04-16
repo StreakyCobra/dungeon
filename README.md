@@ -153,7 +153,7 @@ env_files = [".env", "secrets.env"]
 engine_args = ["--cap-add=SYS_PTRACE"]
 always_on_groups = ["codex"]
 ipv6 = false
-allow_dns = false
+allow_dns = true
 allowed_tcp_domains = ["crates.io", "index.crates.io"]
 allowed_tcp_hosts = ["10.0.0.0/8"]
 
@@ -194,6 +194,7 @@ Group behavior:
 - If either list is non-empty, egress is restricted to the merged allowlist.
 - `ipv6 = false` disables IPv6 entirely.
 - `ipv6 = true` enables IPv6 and applies the same filtering model as IPv4.
+- `allow_dns = true` allows container DNS queries by default.
 - `allow_dns = false` blocks container DNS queries after bootstrap has finished resolving any configured domains.
 
 ### Environment variables
