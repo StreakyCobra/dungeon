@@ -25,6 +25,12 @@ RUN groupadd -g 1000 dungeon && \
     printf 'dungeon ALL=(root) NOPASSWD: /usr/local/bin/dungeon-install\n' > /etc/sudoers.d/dungeon-install && \
     chmod 0440 /etc/sudoers.d/dungeon-install
 
+COPY images/dungeon-bootstrap /usr/local/bin/dungeon-bootstrap
+COPY images/dungeon-install /usr/local/bin/dungeon-install
+RUN chmod 0755 /usr/local/bin/dungeon-bootstrap /usr/local/bin/dungeon-install
+
+USER dungeon
+
 # Setup git
 RUN git config --global user.name "dungeon" && \
     git config --global user.email "dungeon@example.com"
@@ -52,11 +58,5 @@ RUN export NVM_DIR="$HOME/.nvm" \
     && npm i -g @anthropic-ai/claude-code@latest \
     && npm i -g @google/gemini-cli \
     && rm -rf /home/dungeon/.npm
-
-COPY images/dungeon-bootstrap /usr/local/bin/dungeon-bootstrap
-COPY images/dungeon-install /usr/local/bin/dungeon-install
-RUN chmod 0755 /usr/local/bin/dungeon-bootstrap /usr/local/bin/dungeon-install
-
-USER dungeon
 
 ENTRYPOINT ["/usr/local/bin/dungeon-bootstrap"]
