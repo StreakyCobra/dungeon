@@ -5,7 +5,7 @@ use crate::{
     error::AppError,
 };
 
-const USER_HOME: &str = "/home/dungeon";
+const WORKSPACE_ROOT: &str = "/workspace";
 const DEFAULT_NETWORK_IPV6: bool = false;
 const DEFAULT_NETWORK_ALLOW_DNS: bool = true;
 
@@ -158,19 +158,19 @@ fn resolve_workdir_and_mounts(
             ));
         }
         if skip_cwd {
-            return Ok((USER_HOME.to_string(), mounts));
+            return Ok((WORKSPACE_ROOT.to_string(), mounts));
         }
 
         let base = cwd
             .file_name()
             .and_then(|s| s.to_str())
             .unwrap_or("project");
-        let workdir = format!("{}/{}", USER_HOME, base);
+        let workdir = format!("{}/{}", WORKSPACE_ROOT, base);
         push_mount(&mut mounts, format!("{}:{}", cwd.display(), workdir));
         return Ok((workdir, mounts));
     }
 
-    let workdir = format!("{}/project", USER_HOME);
+    let workdir = format!("{}/project", WORKSPACE_ROOT);
     for path in paths {
         let abs = absolute_path(cwd, path);
         let base = abs

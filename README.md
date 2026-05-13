@@ -13,9 +13,9 @@ podman run -it --rm --user root --userns=keep-id \
   --cap-add NET_ADMIN --cap-add NET_RAW --cap-add SYS_ADMIN \
   --cap-add SYS_CHROOT --cap-add SETUID --cap-add SETGID --cap-add SYS_PTRACE \
   --security-opt seccomp=unconfined \
-  -w /home/dungeon/myrepo \
+  -w /workspace/myrepo \
   -v "$HOME:/home/dungeon/.codex" \
-  -v "$PWD:/home/dungeon/myrepo" \
+  -v "$PWD:/workspace/myrepo" \
   localhost/dungeon \
   bash
 ```
