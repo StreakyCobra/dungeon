@@ -89,7 +89,7 @@ pub fn build_container_command(
     );
     append_repeated_flag_args(&mut args, "-p", settings.ports.as_deref().unwrap_or(&[]));
 
-    if let Some(args_list) = settings.engine_args.as_deref() {
+    if let Some(args_list) = settings.run_args.as_deref() {
         args.extend(args_list.iter().cloned());
     }
 

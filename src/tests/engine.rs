@@ -95,19 +95,19 @@ engine = "podman"
 }
 
 #[test]
-fn passes_engine_args_from_config_and_cli() {
+fn passes_run_args_from_config_and_cli() {
     let input = TestInput {
         toml: r#"
 [general]
-engine_args = ["--network=host"]
+run_args = ["--network=host"]
 "#,
-        args: &["run", "--engine-arg=--security-opt=label=disable"],
+        args: &["run", "--run-arg=--security-opt=label=disable"],
         env: &[],
-        cwd_name: "engine-args-project",
+        cwd_name: "run-args-project",
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/engine-args-project --rm --network=host --security-opt=label=disable -v <CWD>:/workspace/engine-args-project localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /workspace/run-args-project --rm --network=host --security-opt=label=disable -v <CWD>:/workspace/run-args-project localhost/dungeon bash";
 
     assert_command(input, expected);
 }

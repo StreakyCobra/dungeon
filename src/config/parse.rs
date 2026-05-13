@@ -57,8 +57,8 @@ pub fn load_from_env() -> Result<Config, AppError> {
     if let Ok(value) = env::var(format!("{}ENV_FILES", ENV_PREFIX)) {
         cfg.settings.env_files = Some(split_env_list(&value));
     }
-    if let Ok(value) = env::var(format!("{}ENGINE_ARGS", ENV_PREFIX)) {
-        cfg.settings.engine_args = Some(split_env_list(&value));
+    if let Ok(value) = env::var(format!("{}RUN_ARGS", ENV_PREFIX)) {
+        cfg.settings.run_args = Some(split_env_list(&value));
     }
     if let Ok(value) = env::var(format!("{}IPV6", ENV_PREFIX)) {
         cfg.settings.ipv6 = Some(parse_bool_value("ipv6", value.trim())?);
@@ -191,8 +191,8 @@ fn parse_settings_key(
             settings.ports = Some(parse_string_vec(scope, key, value)?);
             Ok(true)
         }
-        "engine_args" => {
-            settings.engine_args = Some(parse_string_vec(scope, key, value)?);
+        "run_args" => {
+            settings.run_args = Some(parse_string_vec(scope, key, value)?);
             Ok(true)
         }
         "ipv6" => {
