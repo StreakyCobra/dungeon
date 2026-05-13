@@ -20,6 +20,7 @@ RUN pacman -Syu --noconfirm \
 # Setup user
 RUN groupadd -g 1000 dungeon && \
     useradd -m -u 1000 -g 1000 dungeon && \
+    mkdir -p /workspace && \
     chmod 4755 /usr/bin/bwrap && \
     install -d /etc/sudoers.d && \
     printf 'dungeon ALL=(root) NOPASSWD: /usr/local/bin/dungeon-install\n' > /etc/sudoers.d/dungeon-install && \
@@ -30,6 +31,8 @@ COPY images/dungeon-install /usr/local/bin/dungeon-install
 RUN chmod 0755 /usr/local/bin/dungeon-bootstrap /usr/local/bin/dungeon-install
 
 USER dungeon
+
+WORKDIR /workspace
 
 # Setup git
 RUN git config --global user.name "dungeon" && \
