@@ -118,7 +118,7 @@ For `dungeon run`, single settings like `command`, `image`, and the `network` bo
 
 Configuration file, env vars, and groups apply to `dungeon run` only.
 
-`dungeon` ships with a few default groups. Redefining these groups overrides the default ones. Groups are applied after the `[general]` configuration, with explicit CLI group flags taking precedence over `always_on_groups`.
+`dungeon` ships with two default groups: `codex` and `opencode`. Redefining these groups overrides the default ones. Groups are applied after the `[general]` configuration, with explicit CLI group flags taking precedence over `always_on_groups`.
 
 ### CLI flags
 
