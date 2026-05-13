@@ -113,6 +113,24 @@ run_args = ["--network=host"]
 }
 
 #[test]
+fn passes_podman_args_before_run_subcommand() {
+    let input = TestInput {
+        toml: r#"
+[general]
+podman_args = ["-c", "agent-vm"]
+"#,
+        args: &["run", "--podman-arg=--log-level=debug"],
+        env: &[],
+        cwd_name: "podman-args-project",
+        cwd_entries: &[],
+    };
+
+    let expected = "podman -c agent-vm --log-level=debug run -it --userns=keep-id -w /workspace/podman-args-project --rm -v <CWD>:/workspace/podman-args-project localhost/dungeon bash";
+
+    assert_command(input, expected);
+}
+
+#[test]
 fn errors_on_invalid_engine_value() {
     let input = TestInput {
         toml: r#"

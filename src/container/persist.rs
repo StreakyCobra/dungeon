@@ -2,7 +2,11 @@ use std::{path::PathBuf, process::Command};
 
 use sha2::{Digest, Sha256};
 
-use crate::{config::Engine, container::engine::CommandSpec, error::AppError};
+use crate::{
+    config::Settings,
+    container::engine::{CommandSpec, build_podman_command},
+    error::AppError,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PersistMode {
@@ -28,9 +32,9 @@ pub fn resolve_container_name(
 pub fn ensure_container_exists(
     persist_mode: PersistMode,
     container_name: &str,
-    engine: Engine,
+    settings: &Settings,
 ) -> Result<(), AppError> {
-    if persist_mode == PersistMode::Reuse && !container_exists(container_name, engine)? {
+    if persist_mode == PersistMode::Reuse && !container_exists(container_name, settings)? {
         return Err(AppError::message(format!(
             "ERROR: container \"{}\" does not exist",
             container_name
@@ -114,56 +118,48 @@ pub fn sanitize_container_base(name: &str) -> String {
     }
 }
 
-pub fn container_exists(name: &str, engine: Engine) -> Result<bool, AppError> {
+pub fn container_exists(name: &str, settings: &Settings) -> Result<bool, AppError> {
     validate_container_name(name)?;
-    let status = Command::new(engine.binary())
-        .arg("container")
-        .arg("exists")
-        .arg(name)
-        .status()?;
+    let status = podman_command(settings, &["container", "exists", name]).status()?;
     Ok(status.success())
 }
 
-pub fn container_running(name: &str, engine: Engine) -> Result<bool, AppError> {
+pub fn container_running(name: &str, settings: &Settings) -> Result<bool, AppError> {
     validate_container_name(name)?;
-    let output = Command::new(engine.binary())
-        .arg("inspect")
-        .arg("-f")
-        .arg("{{.State.Running}}")
-        .arg(name)
-        .output()?;
+    let output =
+        podman_command(settings, &["inspect", "-f", "{{.State.Running}}", name]).output()?;
     Ok(String::from_utf8_lossy(&output.stdout).trim() == "true")
 }
 
-pub fn start_container(name: &str, engine: Engine) -> Result<(), AppError> {
+pub fn start_container(name: &str, settings: &Settings) -> Result<(), AppError> {
     validate_container_name(name)?;
-    run_engine(engine, &["start", name])
+    run_podman(settings, &["start", name])
 }
 
-pub fn exec_into_container(name: &str, engine: Engine) -> Result<(), AppError> {
+pub fn exec_into_container(name: &str, settings: &Settings) -> Result<(), AppError> {
     validate_container_name(name)?;
-    run_engine(engine, &["exec", "-it", name, "bash"])
+    run_podman(settings, &["exec", "-it", name, "bash"])
 }
 
-pub fn ensure_container_session(name: &str, engine: Engine) -> Result<(), AppError> {
-    let running = container_running(name, engine)?;
+pub fn ensure_container_session(name: &str, settings: &Settings) -> Result<(), AppError> {
+    let running = container_running(name, settings)?;
     if !running {
-        start_container(name, engine)?;
+        start_container(name, settings)?;
     }
-    exec_into_container(name, engine)
+    exec_into_container(name, settings)
 }
 
-pub fn discard_container(name: &str, engine: Engine) -> Result<(), AppError> {
+pub fn discard_container(name: &str, settings: &Settings) -> Result<(), AppError> {
     validate_container_name(name)?;
-    run_engine(engine, &["rm", "-f", name])
+    run_podman(settings, &["rm", "-f", name])
 }
 
 pub fn run_persisted_session(
     name: &str,
     spec: CommandSpec,
-    engine: Engine,
+    settings: &Settings,
 ) -> Result<(), AppError> {
-    if container_exists(name, engine)? {
+    if container_exists(name, settings)? {
         return Err(AppError::message(format!(
             "ERROR: container \"{}\" already exists, use --persisted to connect",
             name
@@ -172,7 +168,20 @@ pub fn run_persisted_session(
     crate::container::run_attached_command(&spec.program, &spec.args)
 }
 
-fn run_engine(engine: Engine, args: &[&str]) -> Result<(), AppError> {
-    let args: Vec<String> = args.iter().map(|arg| (*arg).to_string()).collect();
-    crate::container::run_attached_command(engine.binary(), &args)
+fn run_podman(settings: &Settings, args: &[&str]) -> Result<(), AppError> {
+    let spec = build_podman_command(
+        settings,
+        args.iter().map(|arg| (*arg).to_string()).collect(),
+    );
+    crate::container::run_attached_command(&spec.program, &spec.args)
+}
+
+fn podman_command(settings: &Settings, args: &[&str]) -> Command {
+    let spec = build_podman_command(
+        settings,
+        args.iter().map(|arg| (*arg).to_string()).collect(),
+    );
+    let mut cmd = Command::new(&spec.program);
+    cmd.args(&spec.args);
+    cmd
 }

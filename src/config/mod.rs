@@ -49,11 +49,10 @@ pub fn resolve(
 
     let container_name =
         crate::container::persist::resolve_container_name(parsed.persist_mode, &parsed.paths)?;
-    let engine = final_settings.engine.unwrap_or_default();
     crate::container::persist::ensure_container_exists(
         parsed.persist_mode,
         &container_name,
-        engine,
+        &final_settings,
     )?;
 
     Ok(ResolvedConfig {

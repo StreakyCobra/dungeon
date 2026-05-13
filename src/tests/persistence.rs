@@ -1,7 +1,7 @@
 use std::env;
 
 use crate::{
-    config::Engine,
+    config::{Engine, Settings},
     container::persist::{
         PersistMode, persisted_container_name, resolve_container_name, sanitize_container_base,
         validate_container_name,
@@ -110,6 +110,28 @@ fn validate_container_name_rejects_empty_and_too_long_names() {
 #[test]
 fn engine_binary_mapping_is_stable() {
     assert_eq!(Engine::Podman.binary(), "podman");
+}
+
+#[test]
+fn persist_lookup_uses_podman_args_before_subcommand() {
+    let settings = Settings {
+        podman_args: Some(vec!["-c".to_string(), "agent-vm".to_string()]),
+        ..Settings::default()
+    };
+
+    let spec = crate::container::engine::build_podman_command(
+        &settings,
+        vec![
+            "container".to_string(),
+            "exists".to_string(),
+            "demo".to_string(),
+        ],
+    );
+
+    assert_eq!(
+        format!("{} {}", spec.program, spec.args.join(" ")),
+        "podman -c agent-vm container exists demo"
+    );
 }
 
 fn cwd_lock() -> std::sync::MutexGuard<'static, ()> {

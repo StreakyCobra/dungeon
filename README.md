@@ -126,7 +126,7 @@ Run-session flags live under `dungeon run`:
 
 - `--debug` to print the generated command instead of running it.
 - `--persist`, `--persisted`, `--discard` to manage container persistence.
-- `--command`, `--image`, `--port`, `--cache`, `--mount`, `--env`, `--env-file`, `--run-arg` to customize container.
+- `--command`, `--image`, `--port`, `--cache`, `--mount`, `--env`, `--env-file`, `--podman-arg`, `--run-arg` to customize container.
 - `--skip-cwd` to skip mounting the current directory.
 - `--ipv6`, `--no-ipv6`, `--allow-dns`, `--deny-dns`, `--allow-domain`, `--allow-host` to customize the outbound network policy.
 - group flags (for example `--codex`)
@@ -150,6 +150,7 @@ caches = [".cache/pip:rw"]
 mounts = ["~/projects:/home/dungeon/projects:rw"]
 envs = ["OPENAI_API_KEY", "SECRET=abc123"]
 env_files = [".env", "secrets.env"]
+podman_args = ["-c", "agent-vm"]
 run_args = ["--cap-add=SYS_PTRACE"]
 always_on_groups = ["codex"]
 ipv6 = false
@@ -178,11 +179,12 @@ Group behavior:
 - An empty group table removes a default group of the same name.
 - `always_on_groups` lists groups that are always enabled, in order of precedence (later entries take precedence).
 - `mounts` entries are passed directly to Podman as `-v` arguments; dungeon only checks to prevent a home-directory mount.
+- `podman_args` entries are inserted before the Podman subcommand, for example `podman -c agent-vm run ...`.
 - `--skip-cwd` prevents the implicit current-directory mount when no paths are provided.
 - `caches` entries are passed directly as `dungeon-cache:<spec>` volume mounts.
 - `envs` entries are passed directly to Podman (`NAME` or `NAME=VALUE`).
 - `env_files` entries are passed to Podman via `--env-file`.
-- `mounts`, `caches`, `envs`, `env_files`, `ports`, `run_args`, and network allowlists extend the base settings when enabled.
+- `mounts`, `caches`, `envs`, `env_files`, `ports`, `podman_args`, `run_args`, and network allowlists extend the base settings when enabled.
 - `command` and `image` use the last enabled group when multiple are set.
 - `ipv6` and `allow_dns` use the highest-precedence value.
 
@@ -207,6 +209,7 @@ Environment overrides use:
 - `DUNGEON_MOUNTS` (comma-separated)
 - `DUNGEON_ENVS` (comma-separated)
 - `DUNGEON_ENV_FILES` (comma-separated)
+- `DUNGEON_PODMAN_ARGS` (comma-separated)
 - `DUNGEON_RUN_ARGS` (comma-separated)
 - `DUNGEON_IPV6`
 - `DUNGEON_ALLOW_DNS`

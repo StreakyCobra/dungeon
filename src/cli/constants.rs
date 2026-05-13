@@ -17,6 +17,7 @@ pub(crate) const FLAG_CACHE: &str = "cache";
 pub(crate) const FLAG_MOUNT: &str = "mount";
 pub(crate) const FLAG_ENV: &str = "env";
 pub(crate) const FLAG_ENV_FILE: &str = "env-file";
+pub(crate) const FLAG_PODMAN_ARG: &str = "podman-arg";
 pub(crate) const FLAG_RUN_ARG: &str = "run-arg";
 pub(crate) const FLAG_SKIP_CWD: &str = "skip-cwd";
 pub(crate) const FLAG_IPV6: &str = "ipv6";
@@ -45,6 +46,7 @@ pub(crate) const RESERVED_GROUP_NAMES: &[&str] = &[
     FLAG_MOUNT,
     FLAG_ENV,
     FLAG_ENV_FILE,
+    FLAG_PODMAN_ARG,
     FLAG_RUN_ARG,
     FLAG_SKIP_CWD,
     FLAG_IPV6,

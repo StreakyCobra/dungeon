@@ -8,8 +8,9 @@ use super::constants::{
     ARG_PATHS, FLAG_ALLOW_DNS, FLAG_ALLOW_DOMAIN, FLAG_ALLOW_HOST, FLAG_CACHE, FLAG_COMMAND,
     FLAG_CONTEXT, FLAG_DEBUG, FLAG_DENY_DNS, FLAG_DISCARD, FLAG_ENV, FLAG_ENV_FILE, FLAG_HELP,
     FLAG_IMAGE, FLAG_IPV6, FLAG_MOUNT, FLAG_NO_CACHE, FLAG_NO_IPV6, FLAG_PERSIST, FLAG_PERSISTED,
-    FLAG_PORT, FLAG_RUN_ARG, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE,
-    SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
+    FLAG_PODMAN_ARG, FLAG_PORT, FLAG_RUN_ARG, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION,
+    SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD,
+    SUBCOMMAND_RUN,
 };
 
 pub(crate) fn print_targeted_help(
@@ -189,6 +190,14 @@ fn run_subcommand(group_defs: &BTreeMap<String, config::GroupConfig>) -> Command
                 .action(ArgAction::Append),
         )
         .arg(
+            Arg::new(FLAG_PODMAN_ARG)
+                .long(FLAG_PODMAN_ARG)
+                .help("Append an extra podman argument before the subcommand (repeatable)")
+                .help_heading("Configurations")
+                .num_args(1)
+                .action(ArgAction::Append),
+        )
+        .arg(
             Arg::new(FLAG_RUN_ARG)
                 .long(FLAG_RUN_ARG)
                 .help("Append an extra podman run argument (repeatable)")
@@ -295,6 +304,13 @@ fn image_build_subcommand() -> Command {
                 .action(ArgAction::SetTrue),
         )
         .arg(
+            Arg::new(FLAG_PODMAN_ARG)
+                .long(FLAG_PODMAN_ARG)
+                .help("Append an extra podman argument before the subcommand (repeatable)")
+                .num_args(1)
+                .action(ArgAction::Append),
+        )
+        .arg(
             Arg::new(FLAG_TAG)
                 .long(FLAG_TAG)
                 .help("Image tag to produce")
@@ -342,5 +358,12 @@ fn cache_reset_subcommand() -> Command {
                 .help("Show help information")
                 .help_heading("Options")
                 .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new(FLAG_PODMAN_ARG)
+                .long(FLAG_PODMAN_ARG)
+                .help("Append an extra podman argument before the subcommand (repeatable)")
+                .num_args(1)
+                .action(ArgAction::Append),
         )
 }

@@ -15,23 +15,39 @@ pub struct CommandSpec {
     pub args: Vec<String>,
 }
 
-pub fn build_cache_reset_command(engine: Engine) -> CommandSpec {
+pub fn build_podman_command(settings: &Settings, args: Vec<String>) -> CommandSpec {
+    let engine = settings.engine.unwrap_or_default();
+    let mut full_args = settings.podman_args.clone().unwrap_or_default();
+    full_args.extend(args);
+
     CommandSpec {
         program: engine.binary().to_string(),
-        args: vec![
+        args: full_args,
+    }
+}
+
+pub fn build_cache_reset_command(settings: &Settings) -> CommandSpec {
+    build_podman_command(
+        settings,
+        vec![
             "volume".to_string(),
             "rm".to_string(),
             "-f".to_string(),
             "dungeon-cache".to_string(),
         ],
-    }
+    )
 }
 
-pub fn reset_cache_volume(engine: Engine) -> Result<(), AppError> {
-    run_container_command(build_cache_reset_command(engine))
+pub fn reset_cache_volume(settings: &Settings) -> Result<(), AppError> {
+    run_container_command(build_cache_reset_command(settings))
 }
 
-pub fn build_image_command(tag: &str, no_cache: bool, context: &str) -> CommandSpec {
+pub fn build_image_command(
+    settings: &Settings,
+    tag: &str,
+    no_cache: bool,
+    context: &str,
+) -> CommandSpec {
     let mut args = vec![
         "build".to_string(),
         "-f".to_string(),
@@ -44,10 +60,7 @@ pub fn build_image_command(tag: &str, no_cache: bool, context: &str) -> CommandS
     }
     args.push(context.to_string());
 
-    CommandSpec {
-        program: Engine::Podman.binary().to_string(),
-        args,
-    }
+    build_podman_command(settings, args)
 }
 
 pub fn build_container_command(
@@ -61,7 +74,6 @@ pub fn build_container_command(
     let home =
         dirs::home_dir().ok_or_else(|| AppError::message("unable to resolve home directory"))?;
     let engine = settings.engine.unwrap_or_default();
-
     let (workdir, mounts) = resolve_workdir_and_mounts(settings, paths, skip_cwd, &cwd, &home)?;
 
     let mut args = vec!["run".to_string(), "-it".to_string()];
@@ -104,10 +116,7 @@ pub fn build_container_command(
 
     append_command(&mut args, settings.command.as_deref());
 
-    Ok(CommandSpec {
-        program: engine.binary().to_string(),
-        args,
-    })
+    Ok(build_podman_command(settings, args))
 }
 
 fn append_engine_security_args(args: &mut Vec<String>) {
