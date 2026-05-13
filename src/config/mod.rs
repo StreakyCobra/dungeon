@@ -64,6 +64,31 @@ pub fn resolve(
     })
 }
 
+pub fn resolve_global_settings(
+    cli_settings: &Settings,
+    sources: &LoadedConfigSources,
+) -> Result<Settings, AppError> {
+    let group_defs = merge_group_definitions(&sources.defaults.groups, &sources.file.groups)?;
+    let group_order = normalize_group_order(&resolve_always_on_groups(
+        &sources.defaults,
+        &sources.file,
+        &sources.env,
+        &Config::default(),
+    ))?;
+    build_group_selection(&group_defs, &group_order)?;
+
+    resolve_settings(
+        Sources {
+            defaults: sources.defaults.settings.clone(),
+            file: sources.file.settings.clone(),
+            env: sources.env.settings.clone(),
+            cli: cli_settings.clone(),
+        },
+        &group_defs,
+        &group_order,
+    )
+}
+
 pub fn load_defaults() -> Result<Config, AppError> {
     parse::load_defaults()
 }

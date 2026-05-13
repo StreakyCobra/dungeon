@@ -18,12 +18,7 @@ pub fn run() -> Result<(), AppError> {
     match &parsed.action {
         cli::Action::None => Ok(()),
         cli::Action::ImageBuild(build) => {
-            let settings = resolve_global_settings(
-                &parsed.settings,
-                &sources.defaults,
-                &sources.file,
-                &sources.env,
-            )?;
+            let settings = crate::config::resolve_global_settings(&parsed.settings, &sources)?;
             let spec = container::engine::build_image_command(
                 &settings,
                 &build.tag,
@@ -33,34 +28,11 @@ pub fn run() -> Result<(), AppError> {
             container::engine::run_container_command(spec)
         }
         cli::Action::CacheReset(_) => {
-            let settings = resolve_global_settings(
-                &parsed.settings,
-                &sources.defaults,
-                &sources.file,
-                &sources.env,
-            )?;
+            let settings = crate::config::resolve_global_settings(&parsed.settings, &sources)?;
             container::engine::reset_cache_volume(&settings)
         }
         cli::Action::Run => run_container_session(parsed, &sources),
     }
-}
-
-fn resolve_global_settings(
-    cli_settings: &crate::config::Settings,
-    defaults: &crate::config::Config,
-    file: &crate::config::Config,
-    env: &crate::config::Config,
-) -> Result<crate::config::Settings, AppError> {
-    crate::config::resolve_settings(
-        crate::config::Sources {
-            defaults: defaults.settings.clone(),
-            file: file.settings.clone(),
-            env: env.settings.clone(),
-            cli: cli_settings.clone(),
-        },
-        &defaults.groups,
-        &[],
-    )
 }
 
 fn run_container_session(

@@ -171,3 +171,96 @@ fn cache_reset_accepts_podman_args_from_config_and_cli() {
         "podman -c agent-vm --log-level=debug volume rm -f dungeon-cache"
     );
 }
+
+#[test]
+fn image_build_uses_podman_args_from_always_on_groups() {
+    let defaults = config::Config::default();
+    let mut file_cfg = config::Config::default();
+    file_cfg.always_on_groups = Some(vec!["vm".to_string()]);
+    file_cfg.groups.insert(
+        "vm".to_string(),
+        config::GroupConfig {
+            settings: config::Settings {
+                podman_args: Some(vec!["-c".to_string(), "agent-vm".to_string()]),
+                ..config::Settings::default()
+            },
+            disabled: false,
+        },
+    );
+    let sources = config::LoadedConfigSources {
+        defaults,
+        file: file_cfg,
+        env: config::Config::default(),
+    };
+    let args = vec!["image".to_string(), "build".to_string()];
+
+    let parsed = cli::parse_args_with_sources(
+        args,
+        &sources.defaults,
+        &sources.file,
+        &sources.env,
+    )
+    .expect("parse args");
+
+    let build = match parsed.action {
+        cli::Action::ImageBuild(build) => build,
+        _ => panic!("expected image build action"),
+    };
+
+    let settings = config::resolve_global_settings(&parsed.settings, &sources).expect("resolve settings");
+    let spec = container::engine::build_image_command(
+        &settings,
+        &build.tag,
+        build.no_cache,
+        &build.context,
+    );
+
+    assert_eq!(
+        format!("{} {}", spec.program, spec.args.join(" ")),
+        "podman -c agent-vm build -f images/Containerfile -t localhost/dungeon ."
+    );
+}
+
+#[test]
+fn cache_reset_uses_podman_args_from_always_on_groups() {
+    let defaults = config::Config::default();
+    let mut file_cfg = config::Config::default();
+    file_cfg.always_on_groups = Some(vec!["vm".to_string()]);
+    file_cfg.groups.insert(
+        "vm".to_string(),
+        config::GroupConfig {
+            settings: config::Settings {
+                podman_args: Some(vec!["-c".to_string(), "agent-vm".to_string()]),
+                ..config::Settings::default()
+            },
+            disabled: false,
+        },
+    );
+    let sources = config::LoadedConfigSources {
+        defaults,
+        file: file_cfg,
+        env: config::Config::default(),
+    };
+    let args = vec!["cache".to_string(), "reset".to_string()];
+
+    let parsed = cli::parse_args_with_sources(
+        args,
+        &sources.defaults,
+        &sources.file,
+        &sources.env,
+    )
+    .expect("parse args");
+
+    let _cache = match parsed.action {
+        cli::Action::CacheReset(cache) => cache,
+        _ => panic!("expected cache reset action"),
+    };
+
+    let settings = config::resolve_global_settings(&parsed.settings, &sources).expect("resolve settings");
+    let spec = container::engine::build_cache_reset_command(&settings);
+
+    assert_eq!(
+        format!("{} {}", spec.program, spec.args.join(" ")),
+        "podman -c agent-vm volume rm -f dungeon-cache"
+    );
+}
