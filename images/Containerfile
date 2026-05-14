@@ -12,7 +12,6 @@ RUN pacman -Syu --noconfirm \
       ipset \
       iptables \
       ripgrep \
-      rustup \
       sudo \
       which \
       zsh \
