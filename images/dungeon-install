@@ -27,4 +27,6 @@ for package in "$@"; do
     packages+=("$package")
 done
 
-exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin HOME=/root pacman -S --needed --noconfirm "${packages[@]}"
+# Refresh package databases and upgrade in the same transaction to avoid
+# partial-upgrade issues when the base image was built with an old or empty sync DB.
+exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin HOME=/root pacman -Syu --needed --noconfirm "${packages[@]}"
