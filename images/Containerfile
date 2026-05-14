@@ -1,6 +1,6 @@
-FROM docker.io/archlinux:latest
+FROM docker.io/archlinux:latest AS base
 
-# Update and install packages
+# Update and install runtime packages.
 RUN pacman -Syu --noconfirm \
     && pacman -S --noconfirm \
       bubblewrap \
@@ -11,14 +11,9 @@ RUN pacman -Syu --noconfirm \
       nvim \
       ipset \
       iptables \
-      nodejs \
-      npm \
-      python \
-      python-uv \
       ripgrep \
       rustup \
       sudo \
-      terraform \
       which \
       zsh \
     && rm -rf /var/cache/pacman/pkg /var/lib/pacman/sync/*
@@ -28,6 +23,8 @@ RUN groupadd -g 1000 dungeon && \
     useradd -m -u 1000 -g 1000 -s /bin/zsh dungeon && \
     install -d -o dungeon -g dungeon \
       /home/dungeon/.cache \
+      /home/dungeon/.cache/npm \
+      /home/dungeon/.cache/uv \
       /home/dungeon/.config \
       /home/dungeon/.local \
       /home/dungeon/.local/share \
@@ -43,20 +40,46 @@ COPY images/dungeon-bootstrap /usr/local/bin/dungeon-bootstrap
 COPY images/dungeon-install /usr/local/bin/dungeon-install
 RUN chmod 0755 /usr/local/bin/dungeon-bootstrap /usr/local/bin/dungeon-install
 
-USER dungeon
-
 WORKDIR /workspace
 
 ENV NPM_CONFIG_PREFIX=/home/dungeon/.npm-global
+ENV NPM_CONFIG_CACHE=/home/dungeon/.cache/npm
+ENV UV_CACHE_DIR=/home/dungeon/.cache/uv
 ENV PATH=/home/dungeon/.npm-global/bin:$PATH
+
+FROM base AS agent-builder
+
+RUN pacman -Sy --noconfirm \
+      nodejs \
+      npm \
+    && rm -rf /var/cache/pacman/pkg /var/lib/pacman/sync/*
+
+USER dungeon
 
 # Setup git
 RUN git config --global user.name "dungeon" && \
     git config --global user.email "dungeon@example.com"
 
-# Install AI agents
+# Install AI agents in a builder stage and keep only the runtime binaries.
 RUN npm i -g @openai/codex@latest \
     && npm i -g opencode-ai@1.14.48 \
+    && rm -rf /home/dungeon/.npm-global/lib/node_modules/opencode-linux-* \
     && rm -rf /home/dungeon/.npm
+
+FROM base
+
+COPY images/codex /usr/local/bin/codex
+COPY images/opencode /usr/local/bin/opencode
+RUN chmod 0755 /usr/local/bin/codex /usr/local/bin/opencode
+
+COPY --from=agent-builder /home/dungeon/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor /opt/codex/vendor
+COPY --from=agent-builder /home/dungeon/.npm-global/lib/node_modules/opencode-ai/bin/.opencode /opt/opencode/opencode
+RUN chmod 0755 /opt/opencode/opencode
+
+USER dungeon
+
+# Setup git
+RUN git config --global user.name "dungeon" && \
+    git config --global user.email "dungeon@example.com"
 
 ENTRYPOINT ["/usr/local/bin/dungeon-bootstrap"]
