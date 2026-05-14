@@ -13,7 +13,9 @@ RUN pacman -Syu --noconfirm \
       iptables \
       python \
       ripgrep \
+      rustup \
       sudo \
+      terraform \
       which \
     && rm -rf /var/cache/pacman/pkg
 
