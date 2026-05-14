@@ -11,13 +11,15 @@ RUN pacman -Syu --noconfirm \
       nvim \
       ipset \
       iptables \
+      nodejs \
+      npm \
       python \
       ripgrep \
       rustup \
       sudo \
       terraform \
       which \
-    && rm -rf /var/cache/pacman/pkg
+    && rm -rf /var/cache/pacman/pkg /var/lib/pacman/sync/*
 
 # Setup user
 RUN groupadd -g 1000 dungeon && \
@@ -36,6 +38,9 @@ USER dungeon
 
 WORKDIR /workspace
 
+ENV NPM_CONFIG_PREFIX=/home/dungeon/.npm-global
+ENV PATH=/home/dungeon/.npm-global/bin:$PATH
+
 # Setup git
 RUN git config --global user.name "dungeon" && \
     git config --global user.email "dungeon@example.com"
@@ -44,21 +49,8 @@ RUN git config --global user.name "dungeon" && \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
     && rm -rf /home/dungeon/.cache
 
-# Setup node
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
-RUN export NVM_DIR="$HOME/.nvm" \
-    && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" \
-    && nvm install 22 \
-    && rm -rf /home/dungeon/.nvm/.cache
-
-# Ensure nvm is loaded in shells
-RUN echo 'export NVM_DIR="$HOME/.nvm"' >> /home/dungeon/.bashrc && \
-    echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' >> /home/dungeon/.bashrc
-
 # Install AI agents
-RUN export NVM_DIR="$HOME/.nvm" \
-    && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" \
-    && npm i -g @openai/codex@latest \
+RUN npm i -g @openai/codex@latest \
     && npm i -g opencode-ai@latest \
     && rm -rf /home/dungeon/.npm
 
