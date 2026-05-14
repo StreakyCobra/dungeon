@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env zsh
+setopt errexit nounset pipefail
 IFS=$'\n\t'
 
 runtime_user="${DUNGEON_RUNTIME_USER:-dungeon}"
@@ -8,13 +8,16 @@ allow_dns="${DUNGEON_ALLOW_DNS:-1}"
 allowed_domains_raw="${DUNGEON_ALLOWED_TCP_DOMAINS:-}"
 allowed_hosts_raw="${DUNGEON_ALLOWED_TCP_HOSTS:-}"
 
-if [ "$#" -eq 0 ]; then
+if (( $# == 0 )); then
     set -- zsh
 fi
 
 read_csv_values() {
-    local raw="$1"
-    printf '%s\n' "$raw" | tr ', ' '\n\n' | sed '/^$/d' | sort -u
+    local raw=$1
+    local -a values
+
+    values=(${=raw//,/ })
+    printf '%s\n' "${(@ou)${(@)values:#}}"
 }
 
 configure_open_ipv4() {
@@ -24,7 +27,7 @@ configure_open_ipv4() {
     iptables -P FORWARD ACCEPT
     iptables -P OUTPUT ACCEPT
 
-    if [ "$allow_dns" != "1" ]; then
+    if [[ $allow_dns != 1 ]]; then
         iptables -A OUTPUT -p udp --dport 53 -j REJECT --reject-with icmp-port-unreachable
         iptables -A OUTPUT -p tcp --dport 53 -j REJECT --reject-with icmp-port-unreachable
     fi
@@ -34,7 +37,7 @@ configure_open_ipv6() {
     ip6tables -F
     ip6tables -X
 
-    if [ "$ipv6_enabled" != "1" ]; then
+    if [[ $ipv6_enabled != 1 ]]; then
         ip6tables -P INPUT DROP
         ip6tables -P FORWARD DROP
         ip6tables -P OUTPUT DROP
@@ -45,7 +48,7 @@ configure_open_ipv6() {
     ip6tables -P FORWARD ACCEPT
     ip6tables -P OUTPUT ACCEPT
 
-    if [ "$allow_dns" != "1" ]; then
+    if [[ $allow_dns != 1 ]]; then
         ip6tables -A OUTPUT -p udp --dport 53 -j REJECT --reject-with icmp6-port-unreachable
         ip6tables -A OUTPUT -p tcp --dport 53 -j REJECT --reject-with icmp6-port-unreachable
     fi
@@ -65,7 +68,7 @@ configure_restricted_ipv4() {
     iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
     iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
-    if [ "$allow_dns" = "1" ]; then
+    if [[ $allow_dns == 1 ]]; then
         iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
         iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
     fi
@@ -81,7 +84,7 @@ configure_restricted_ipv6() {
     ipset destroy dungeon-allowed6 2>/dev/null || true
     ipset create dungeon-allowed6 hash:net family inet6
 
-    if [ "$ipv6_enabled" != "1" ]; then
+    if [[ $ipv6_enabled != 1 ]]; then
         ip6tables -P INPUT DROP
         ip6tables -P FORWARD DROP
         ip6tables -P OUTPUT DROP
@@ -96,7 +99,7 @@ configure_restricted_ipv6() {
     ip6tables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
     ip6tables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
-    if [ "$allow_dns" = "1" ]; then
+    if [[ $allow_dns == 1 ]]; then
         ip6tables -A OUTPUT -p udp --dport 53 -j ACCEPT
         ip6tables -A OUTPUT -p tcp --dport 53 -j ACCEPT
     fi
@@ -107,8 +110,9 @@ configure_restricted_ipv6() {
 }
 
 add_allowed_host() {
-    local host="$1"
-    if [[ "$host" == *:* ]]; then
+    local host=$1
+
+    if [[ $host == *:* ]]; then
         ipset add dungeon-allowed6 "$host" -exist
     else
         ipset add dungeon-allowed4 "$host" -exist
@@ -116,33 +120,35 @@ add_allowed_host() {
 }
 
 add_allowed_domain() {
-    local domain="$1"
-    while read -r line; do
-        local ip="${line%%[[:space:]]*}"
-        [ -z "$ip" ] && continue
-        if [[ "$ip" == *:* ]]; then
-            [ "$ipv6_enabled" = "1" ] && ipset add dungeon-allowed6 "$ip" -exist
+    local domain=$1
+    local line ip
+
+    while IFS= read -r line; do
+        ip=${line%%[[:space:]]*}
+        [[ -z $ip ]] && continue
+        if [[ $ip == *:* ]]; then
+            [[ $ipv6_enabled == 1 ]] && ipset add dungeon-allowed6 "$ip" -exist
         else
             ipset add dungeon-allowed4 "$ip" -exist
         fi
     done < <(getent ahosts "$domain" | sort -u)
 }
 
-mapfile -t allowed_domains < <(read_csv_values "$allowed_domains_raw")
-mapfile -t allowed_hosts < <(read_csv_values "$allowed_hosts_raw")
+allowed_domains=(${${(f)"$(read_csv_values "$allowed_domains_raw")"}:#})
+allowed_hosts=(${${(f)"$(read_csv_values "$allowed_hosts_raw")"}:#})
 
-if [ "${#allowed_domains[@]}" -eq 0 ] && [ "${#allowed_hosts[@]}" -eq 0 ]; then
+if (( ${#allowed_domains[@]} == 0 && ${#allowed_hosts[@]} == 0 )); then
     configure_open_ipv4
     configure_open_ipv6
 else
     configure_restricted_ipv4
     configure_restricted_ipv6
 
-    for host in "${allowed_hosts[@]}"; do
+    for host in $allowed_hosts; do
         add_allowed_host "$host"
     done
 
-    for domain in "${allowed_domains[@]}"; do
+    for domain in $allowed_domains; do
         add_allowed_domain "$domain"
     done
 fi
