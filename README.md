@@ -17,7 +17,7 @@ podman run -it --rm --user root --userns=keep-id \
   -v "$HOME:/home/dungeon/.codex" \
   -v "$PWD:/workspace/myrepo" \
   localhost/dungeon \
-  bash
+  zsh
 ```
 
 With dungeon it gets much simpler:
@@ -62,7 +62,7 @@ cargo install --path .
 This will install it in `~/.cargo/bin`. You can add this to your path with the following:
 
 ```shell
-echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
 ```
 
 ## Usage

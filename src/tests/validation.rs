@@ -37,7 +37,7 @@ fn errors_on_group_name_conflict() {
     let input = TestInput {
         toml: r#"
 [env]
-command = "bash"
+command = "zsh"
 "#,
         args: &["run"],
         env: &[],
