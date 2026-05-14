@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+
+arch_root="/opt/codex/vendor/x86_64-unknown-linux-musl"
+export PATH="$arch_root/path:$PATH"
+
+exec "$arch_root/codex/codex" "$@"
