@@ -9,7 +9,7 @@ allowed_domains_raw="${DUNGEON_ALLOWED_TCP_DOMAINS:-}"
 allowed_hosts_raw="${DUNGEON_ALLOWED_TCP_HOSTS:-}"
 
 if [ "$#" -eq 0 ]; then
-    set -- bash
+    set -- zsh
 fi
 
 read_csv_values() {

@@ -10,7 +10,7 @@ fn basic_run_uses_cwd_mount() {
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/alpha --rm -v <CWD>:/workspace/alpha localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /workspace/alpha --rm -v <CWD>:/workspace/alpha localhost/dungeon zsh";
 
     assert_command(input, expected);
 }
@@ -39,7 +39,7 @@ fn skip_cwd_allows_home_dir_run() {
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace --rm localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /workspace --rm localhost/dungeon zsh";
 
     assert_command(input, expected);
 }

@@ -19,7 +19,7 @@ image = "localhost/dungeon-obsidian"
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/group-project --rm -v <CWD>:/workspace/group-project localhost/dungeon-obsidian bash";
+    let expected = "podman run -it --userns=keep-id -w /workspace/group-project --rm -v <CWD>:/workspace/group-project localhost/dungeon-obsidian zsh";
 
     assert_command(input, expected);
 }
@@ -45,7 +45,7 @@ command = "echo beta"
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/group-order-project --rm -v <CWD>:/workspace/group-order-project localhost/dungeon-beta bash -ic echo beta";
+    let expected = "podman run -it --userns=keep-id -w /workspace/group-order-project --rm -v <CWD>:/workspace/group-order-project localhost/dungeon-beta zsh -ic echo beta";
 
     assert_command(input, expected);
 }

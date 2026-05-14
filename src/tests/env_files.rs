@@ -14,7 +14,7 @@ env_files = [".env", "config.env"]
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/env-project --rm --env FOO=bar --env-file .env --env-file config.env -v <CWD>:/workspace/env-project localhost/dungeon bash -ic echo ok";
+    let expected = "podman run -it --userns=keep-id -w /workspace/env-project --rm --env FOO=bar --env-file .env --env-file config.env -v <CWD>:/workspace/env-project localhost/dungeon zsh -ic echo ok";
 
     assert_command(input, expected);
 }
@@ -29,7 +29,7 @@ fn env_list_from_env_var_trims_and_drops_empty_entries() {
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/env-list-project --rm --env FOO=bar --env BAR=baz -v <CWD>:/workspace/env-list-project localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /workspace/env-list-project --rm --env FOO=bar --env BAR=baz -v <CWD>:/workspace/env-list-project localhost/dungeon zsh";
 
     assert_command(input, expected);
 }

@@ -238,9 +238,9 @@ The default config is embedded at build time from [`src/config/defaults.toml`](.
 
 ## Persistence
 
-Use `dungeon run --persist` to tell the selected engine to keep a container instead of deleting it after the bash session closes or the run command terminates.
+Use `dungeon run --persist` to tell the selected engine to keep a container instead of deleting it after the shell session closes or the run command terminates.
 
-Persisted containers are tied to the current folder: they are named `dungeon-<folder_name>-<path_hash>`. When you run `dungeon run --persisted` (no other run arguments are allowed), dungeon restarts the container and opens a bash session for the container matching the current directory, if it exists.
+Persisted containers are tied to the current folder: they are named `dungeon-<folder_name>-<path_hash>`. When you run `dungeon run --persisted` (no other run arguments are allowed), dungeon restarts the container and opens a shell session for the container matching the current directory, if it exists.
 
 This enables project-level persisted containers if you prefer them over temporary containers.
 

@@ -41,7 +41,7 @@ fn command_flag_runs_command_in_container() {
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/command-flag-project --rm -v <CWD>:/workspace/command-flag-project localhost/dungeon bash -ic echo ok";
+    let expected = "podman run -it --userns=keep-id -w /workspace/command-flag-project --rm -v <CWD>:/workspace/command-flag-project localhost/dungeon zsh -ic echo ok";
 
     assert_command(input, expected);
 }
@@ -56,7 +56,7 @@ fn command_from_env_runs_command_in_container() {
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/command-env-project --rm -v <CWD>:/workspace/command-env-project localhost/dungeon bash -ic echo env";
+    let expected = "podman run -it --userns=keep-id -w /workspace/command-env-project --rm -v <CWD>:/workspace/command-env-project localhost/dungeon zsh -ic echo env";
 
     assert_command(input, expected);
 }
@@ -71,7 +71,7 @@ fn engine_from_env_accepts_podman() {
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/engine-env-project --rm -v <CWD>:/workspace/engine-env-project localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /workspace/engine-env-project --rm -v <CWD>:/workspace/engine-env-project localhost/dungeon zsh";
 
     assert_command(input, expected);
 }
@@ -89,7 +89,7 @@ engine = "podman"
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/engine-config-project --rm -v <CWD>:/workspace/engine-config-project localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /workspace/engine-config-project --rm -v <CWD>:/workspace/engine-config-project localhost/dungeon zsh";
 
     assert_command(input, expected);
 }
@@ -107,7 +107,7 @@ run_args = ["--network=host"]
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/run-args-project --rm --network=host --security-opt=label=disable -v <CWD>:/workspace/run-args-project localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /workspace/run-args-project --rm --network=host --security-opt=label=disable -v <CWD>:/workspace/run-args-project localhost/dungeon zsh";
 
     assert_command(input, expected);
 }
@@ -125,7 +125,7 @@ podman_args = ["-c", "agent-vm"]
         cwd_entries: &[],
     };
 
-    let expected = "podman -c agent-vm --log-level=debug run -it --userns=keep-id -w /workspace/podman-args-project --rm -v <CWD>:/workspace/podman-args-project localhost/dungeon bash";
+    let expected = "podman -c agent-vm --log-level=debug run -it --userns=keep-id -w /workspace/podman-args-project --rm -v <CWD>:/workspace/podman-args-project localhost/dungeon zsh";
 
     assert_command(input, expected);
 }
@@ -160,7 +160,7 @@ command = "   "
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/blank-command-project --rm -v <CWD>:/workspace/blank-command-project localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /workspace/blank-command-project --rm -v <CWD>:/workspace/blank-command-project localhost/dungeon zsh";
 
     assert_command(input, expected);
 }
@@ -178,7 +178,7 @@ image = ""
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/blank-image-project --rm -v <CWD>:/workspace/blank-image-project localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /workspace/blank-image-project --rm -v <CWD>:/workspace/blank-image-project localhost/dungeon zsh";
 
     assert_command(input, expected);
 }
@@ -197,7 +197,7 @@ env_files = ["", "  ", "./.env"]
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/blank-env-values --rm --env FOO=bar --env-file ./.env -v <CWD>:/workspace/blank-env-values localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /workspace/blank-env-values --rm --env FOO=bar --env-file ./.env -v <CWD>:/workspace/blank-env-values localhost/dungeon zsh";
 
     assert_command(input, expected);
 }

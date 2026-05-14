@@ -138,7 +138,7 @@ pub fn start_container(name: &str, settings: &Settings) -> Result<(), AppError> 
 
 pub fn exec_into_container(name: &str, settings: &Settings) -> Result<(), AppError> {
     validate_container_name(name)?;
-    run_podman(settings, &["exec", "-it", name, "bash"])
+    run_podman(settings, &["exec", "-it", name, "zsh"])
 }
 
 pub fn ensure_container_session(name: &str, settings: &Settings) -> Result<(), AppError> {

@@ -255,7 +255,7 @@ fn append_repeated_flag_args(args: &mut Vec<String>, flag: &str, values: &[Strin
 }
 
 fn append_command(args: &mut Vec<String>, command: Option<&str>) {
-    args.push("bash".to_string());
+    args.push("zsh".to_string());
     if let Some(command) = command
         && !command.trim().is_empty()
     {

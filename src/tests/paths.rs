@@ -10,7 +10,7 @@ fn mounts_cli_paths_with_custom_names() {
         cwd_entries: &["file1", "folder1/"],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/project --rm -v <CWD>/file1:/workspace/project/file1 -v <CWD>/folder1:/workspace/project/folder1 localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /workspace/project --rm -v <CWD>/file1:/workspace/project/file1 -v <CWD>/folder1:/workspace/project/folder1 localhost/dungeon zsh";
 
     assert_command(input, expected);
 }
@@ -25,7 +25,7 @@ fn skips_cwd_mount_when_flagged() {
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace --rm localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /workspace --rm localhost/dungeon zsh";
 
     assert_command(input, expected);
 }
@@ -40,7 +40,7 @@ fn mounts_nonexistent_explicit_paths_without_validation() {
         cwd_entries: &[],
     };
 
-    let expected = "podman run -it --userns=keep-id -w /workspace/project --rm -v <CWD>/missing-file.txt:/workspace/project/missing-file.txt localhost/dungeon bash";
+    let expected = "podman run -it --userns=keep-id -w /workspace/project --rm -v <CWD>/missing-file.txt:/workspace/project/missing-file.txt localhost/dungeon zsh";
 
     assert_command(input, expected);
 }

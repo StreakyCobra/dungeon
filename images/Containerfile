@@ -20,11 +20,12 @@ RUN pacman -Syu --noconfirm \
       sudo \
       terraform \
       which \
+      zsh \
     && rm -rf /var/cache/pacman/pkg /var/lib/pacman/sync/*
 
 # Setup user
 RUN groupadd -g 1000 dungeon && \
-    useradd -m -u 1000 -g 1000 dungeon && \
+    useradd -m -u 1000 -g 1000 -s /bin/zsh dungeon && \
     install -d -o dungeon -g dungeon \
       /home/dungeon/.cache \
       /home/dungeon/.config \
