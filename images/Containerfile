@@ -14,6 +14,7 @@ RUN pacman -Syu --noconfirm \
       nodejs \
       npm \
       python \
+      python-uv \
       ripgrep \
       rustup \
       sudo \
@@ -44,10 +45,6 @@ ENV PATH=/home/dungeon/.npm-global/bin:$PATH
 # Setup git
 RUN git config --global user.name "dungeon" && \
     git config --global user.email "dungeon@example.com"
-
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && rm -rf /home/dungeon/.cache
 
 # Install AI agents
 RUN npm i -g @openai/codex@latest \
