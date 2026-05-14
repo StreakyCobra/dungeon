@@ -25,6 +25,13 @@ RUN pacman -Syu --noconfirm \
 # Setup user
 RUN groupadd -g 1000 dungeon && \
     useradd -m -u 1000 -g 1000 dungeon && \
+    install -d -o dungeon -g dungeon \
+      /home/dungeon/.cache \
+      /home/dungeon/.config \
+      /home/dungeon/.local \
+      /home/dungeon/.local/share \
+      /home/dungeon/.local/state \
+      /home/dungeon/.npm-global && \
     mkdir -p /workspace && \
     chmod 4755 /usr/bin/bwrap && \
     install -d /etc/sudoers.d && \
