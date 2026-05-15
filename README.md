@@ -220,6 +220,7 @@ Environment overrides use:
 ## Runtime behavior
 
 - `dungeon run` always starts the container as root, installs the firewall policy, drops capabilities, and then switches to the `dungeon` user.
+- The runtime intentionally preserves the image's narrow `sudo dungeon-install ...` path; broader root access still is not granted.
 - The Podman command keeps `--userns=keep-id`, so bind-mounted files still line up with the host user.
 - The image entrypoint is `dungeon-bootstrap`, which applies the runtime network policy.
 - Codex can rely on `bubblewrap`; there is no `CODEX_UNSAFE_ALLOW_NO_SANDBOX` fallback configured.
@@ -230,6 +231,7 @@ Use `sudo dungeon-install ...` inside the container when the agent needs extra A
 
 - It is a small wrapper around `pacman -S --needed --noconfirm`.
 - It rejects flags, local package files, URLs, and a denylist of security-sensitive packages.
+- It depends on the image's passwordless sudoers rule for `/usr/local/bin/dungeon-install`.
 - Broad root access is not available inside the container.
 
 ### Default configuration
