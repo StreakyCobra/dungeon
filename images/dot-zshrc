@@ -1,0 +1,16 @@
+setopt HIST_IGNORE_ALL_DUPS
+bindkey -e
+WORDCHARS=${WORDCHARS//[\/]}
+
+ZIM_HOME=${ZDOTDIR:-${HOME}}/.zim
+
+# Refresh the generated init script if the module list changes.
+if [[ ! ${ZIM_HOME}/init.zsh -nt ${ZDOTDIR:-${HOME}}/.zimrc ]]; then
+  source ${ZIM_HOME}/zimfw.zsh init
+fi
+
+source ${ZIM_HOME}/init.zsh
+
+if (( ${+commands[starship]} )); then
+  eval "$(starship init zsh)"
+fi

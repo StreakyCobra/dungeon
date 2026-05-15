@@ -1,0 +1,11 @@
+zmodule completion
+zmodule environment
+zmodule fzf
+zmodule git
+zmodule input
+zmodule run-help
+zmodule termtitle
+zmodule utility
+zmodule zsh-users/zsh-completions --fpath src
+zmodule zsh-users/zsh-syntax-highlighting
+zmodule zsh-users/zsh-autosuggestions
