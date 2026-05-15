@@ -165,15 +165,15 @@ else
     done
 fi
 
-# Drop privilege escalation paths and clear the container capability sets before
-# handing control to the unprivileged runtime user.
+# Drop inheritable and ambient capabilities before handing control to the
+# unprivileged runtime user. Keep the capability bounding set and
+# no_new_privs unset so the image's narrow `sudo dungeon-install ...` rule and
+# setuid bubblewrap path remain usable.
 exec env HOME="$runtime_home" USER="$runtime_user" LOGNAME="$runtime_user" \
     setpriv \
     --reuid "$runtime_user" \
     --regid "$runtime_user" \
     --init-groups \
-    --bounding-set=-all \
     --inh-caps=-all \
     --ambient-caps=-all \
-    --nnp \
     -- "$@"
