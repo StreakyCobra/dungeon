@@ -219,7 +219,7 @@ Environment overrides use:
 
 ## Runtime behavior
 
-- `dungeon run` always starts the container as root, installs the firewall policy, and then drops to the `dungeon` user.
+- `dungeon run` always starts the container as root, installs the firewall policy, drops capabilities, and then switches to the `dungeon` user.
 - The Podman command keeps `--userns=keep-id`, so bind-mounted files still line up with the host user.
 - The image entrypoint is `dungeon-bootstrap`, which applies the runtime network policy.
 - Codex can rely on `bubblewrap`; there is no `CODEX_UNSAFE_ALLOW_NO_SANDBOX` fallback configured.

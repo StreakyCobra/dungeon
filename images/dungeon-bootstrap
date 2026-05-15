@@ -8,6 +8,18 @@ allow_dns="${DUNGEON_ALLOW_DNS:-1}"
 allowed_domains_raw="${DUNGEON_ALLOWED_TCP_DOMAINS:-}"
 allowed_hosts_raw="${DUNGEON_ALLOWED_TCP_HOSTS:-}"
 
+runtime_passwd_entry=$(getent passwd "$runtime_user")
+if [[ -z $runtime_passwd_entry ]]; then
+    printf 'dungeon-bootstrap: runtime user not found: %s\n' "$runtime_user" >&2
+    exit 1
+fi
+
+runtime_home=$(printf '%s\n' "$runtime_passwd_entry" | cut -d: -f6)
+if [[ -z $runtime_home ]]; then
+    printf 'dungeon-bootstrap: runtime home not found for user: %s\n' "$runtime_user" >&2
+    exit 1
+fi
+
 if (( $# == 0 )); then
     set -- zsh
 fi
@@ -153,4 +165,15 @@ else
     done
 fi
 
-exec runuser -u "$runtime_user" -- "$@"
+# Drop privilege escalation paths and clear the container capability sets before
+# handing control to the unprivileged runtime user.
+exec env HOME="$runtime_home" USER="$runtime_user" LOGNAME="$runtime_user" \
+    setpriv \
+    --reuid "$runtime_user" \
+    --regid "$runtime_user" \
+    --init-groups \
+    --bounding-set=-all \
+    --inh-caps=-all \
+    --ambient-caps=-all \
+    --nnp \
+    -- "$@"
