@@ -81,7 +81,7 @@ COPY images/opencode /usr/local/bin/opencode
 RUN chmod 0755 /usr/local/bin/codex /usr/local/bin/opencode
 
 COPY --from=agent-builder /home/dungeon/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor /opt/codex/vendor
-COPY --from=agent-builder /home/dungeon/.npm-global/lib/node_modules/opencode-ai/bin/.opencode /opt/opencode/opencode
+COPY --from=agent-builder /home/dungeon/.npm-global/lib/node_modules/opencode-ai/bin/opencode.exe /opt/opencode/opencode
 RUN chmod 0755 /opt/opencode/opencode
 
 USER dungeon
