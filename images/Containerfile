@@ -12,6 +12,7 @@ RUN pacman -Syu --noconfirm \
       nvim \
       ipset \
       iptables \
+      pre-commit \
       ripgrep \
       starship \
       sudo \
