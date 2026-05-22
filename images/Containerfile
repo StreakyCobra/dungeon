@@ -9,6 +9,7 @@ RUN pacman -Syu --noconfirm \
       fzf \
       git \
       less \
+      npm \
       nvim \
       ipset \
       iptables \
@@ -60,7 +61,6 @@ FROM base AS agent-builder
 
 RUN pacman -Sy --noconfirm \
       nodejs \
-      npm \
     && rm -rf /var/cache/pacman/pkg /var/lib/pacman/sync/*
 
 USER dungeon
