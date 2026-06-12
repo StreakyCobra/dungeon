@@ -194,6 +194,7 @@ fn run_subcommand(group_defs: &BTreeMap<String, config::GroupConfig>) -> Command
                 .long(FLAG_PODMAN_ARG)
                 .help("Append an extra podman argument before the subcommand (repeatable)")
                 .help_heading("Configurations")
+                .allow_hyphen_values(true)
                 .num_args(1)
                 .action(ArgAction::Append),
         )
@@ -202,6 +203,7 @@ fn run_subcommand(group_defs: &BTreeMap<String, config::GroupConfig>) -> Command
                 .long(FLAG_RUN_ARG)
                 .help("Append an extra podman run argument (repeatable)")
                 .help_heading("Configurations")
+                .allow_hyphen_values(true)
                 .num_args(1)
                 .action(ArgAction::Append),
         )
@@ -307,6 +309,7 @@ fn image_build_subcommand() -> Command {
             Arg::new(FLAG_PODMAN_ARG)
                 .long(FLAG_PODMAN_ARG)
                 .help("Append an extra podman argument before the subcommand (repeatable)")
+                .allow_hyphen_values(true)
                 .num_args(1)
                 .action(ArgAction::Append),
         )
@@ -363,6 +366,7 @@ fn cache_reset_subcommand() -> Command {
             Arg::new(FLAG_PODMAN_ARG)
                 .long(FLAG_PODMAN_ARG)
                 .help("Append an extra podman argument before the subcommand (repeatable)")
+                .allow_hyphen_values(true)
                 .num_args(1)
                 .action(ArgAction::Append),
         )

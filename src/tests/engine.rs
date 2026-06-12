@@ -113,6 +113,21 @@ run_args = ["--network=host"]
 }
 
 #[test]
+fn passes_run_args_with_space_separated_hyphen_value() {
+    let input = TestInput {
+        toml: "",
+        args: &["run", "--run-arg", "--network=host"],
+        env: &[],
+        cwd_name: "run-args-space-project",
+        cwd_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /workspace/run-args-space-project --rm --network=host -v <CWD>:/workspace/run-args-space-project localhost/dungeon zsh";
+
+    assert_command(input, expected);
+}
+
+#[test]
 fn passes_podman_args_before_run_subcommand() {
     let input = TestInput {
         toml: r#"
@@ -126,6 +141,21 @@ podman_args = ["-c", "agent-vm"]
     };
 
     let expected = "podman -c agent-vm --log-level=debug run -it --userns=keep-id -w /workspace/podman-args-project --rm -v <CWD>:/workspace/podman-args-project localhost/dungeon zsh";
+
+    assert_command(input, expected);
+}
+
+#[test]
+fn passes_podman_args_with_space_separated_hyphen_value() {
+    let input = TestInput {
+        toml: "",
+        args: &["run", "--podman-arg", "--log-level=debug"],
+        env: &[],
+        cwd_name: "podman-args-space-project",
+        cwd_entries: &[],
+    };
+
+    let expected = "podman --log-level=debug run -it --userns=keep-id -w /workspace/podman-args-space-project --rm -v <CWD>:/workspace/podman-args-space-project localhost/dungeon zsh";
 
     assert_command(input, expected);
 }
