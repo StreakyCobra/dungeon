@@ -80,6 +80,9 @@ dungeon run
 # run a session with codex available
 dungeon run --codex --command codex
 
+# run a session with pi available
+dungeon run --pi --command pi
+
 # build image
 dungeon image build
 ```
@@ -118,7 +121,7 @@ For `dungeon run`, single settings like `command`, `image`, and the `network` bo
 
 Configuration file, env vars, and groups apply to `dungeon run` only.
 
-`dungeon` ships with two default groups: `codex` and `opencode`. Redefining these groups overrides the default ones. Groups are applied after the `[general]` configuration, with explicit CLI group flags taking precedence over `always_on_groups`.
+`dungeon` ships with three default groups: `codex`, `opencode`, and `pi`. Redefining these groups overrides the default ones. Groups are applied after the `[general]` configuration, with explicit CLI group flags taking precedence over `always_on_groups`.
 
 ### CLI flags
 
@@ -165,6 +168,9 @@ allowed_tcp_domains = ["api.openai.com"]
 
 [obsidian]
 mounts = ["~/my_vault:/home/dungeon/obsidian:ro"]
+
+[pi]
+mounts = ["~/.pi/agent:/home/dungeon/.pi/agent:rw"]
 
 [python]
 caches = ["/var/cache/pacman/pkg"]
@@ -224,6 +230,7 @@ Environment overrides use:
 - The Podman command keeps `--userns=keep-id`, so bind-mounted files still line up with the host user.
 - The image entrypoint is `dungeon-bootstrap`, which applies the runtime network policy.
 - Codex can rely on `bubblewrap`; there is no `CODEX_UNSAFE_ALLOW_NO_SANDBOX` fallback configured.
+- The built-in `pi` group mounts `~/.pi/agent`, which covers Pi auth, settings, sessions, and installed Pi packages.
 
 ## Installing packages
 
