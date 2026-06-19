@@ -27,3 +27,18 @@ mounts = ["~/data:/data:ro"]
 
     assert_command(input, expected);
 }
+
+#[test]
+fn pi_group_mounts_agent_dir() {
+    let input = TestInput {
+        toml: "",
+        args: &["run", "--pi", "--command", "pi"],
+        env: &[],
+        cwd_name: "pi-project",
+        cwd_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /workspace/pi-project --rm -v <HOME>/.pi/agent:/home/dungeon/.pi/agent:rw -v <CWD>:/workspace/pi-project localhost/dungeon zsh -ic pi";
+
+    assert_command(input, expected);
+}

@@ -72,6 +72,7 @@ RUN git config --global user.name "dungeon" && \
 # Install AI agents in a builder stage and keep only the runtime binaries.
 RUN npm i -g @openai/codex@latest \
     && npm i -g opencode-ai@latest \
+    && npm i -g --ignore-scripts @earendil-works/pi-coding-agent@latest \
     && rm -rf /home/dungeon/.npm-global/lib/node_modules/opencode-linux-* \
     && rm -rf /home/dungeon/.npm
 
@@ -79,10 +80,12 @@ FROM base
 
 COPY images/codex /usr/local/bin/codex
 COPY images/opencode /usr/local/bin/opencode
-RUN chmod 0755 /usr/local/bin/codex /usr/local/bin/opencode
+COPY images/pi /usr/local/bin/pi
+RUN chmod 0755 /usr/local/bin/codex /usr/local/bin/opencode /usr/local/bin/pi
 
 COPY --from=agent-builder /home/dungeon/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor /opt/codex/vendor
 COPY --from=agent-builder /home/dungeon/.npm-global/lib/node_modules/opencode-ai/bin/opencode.exe /opt/opencode/opencode
+COPY --from=agent-builder /home/dungeon/.npm-global/lib/node_modules/@earendil-works/pi-coding-agent /opt/pi
 RUN chmod 0755 /opt/opencode/opencode
 
 USER dungeon

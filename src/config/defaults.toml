@@ -12,3 +12,6 @@ mounts = [
   "~/.local/share/opencode:/home/dungeon/.local/share/opencode:rw",
   "~/.cache/opencode:/home/dungeon/.cache/opencode:rw",
 ]
+
+[pi]
+mounts = ["~/.pi/agent:/home/dungeon/.pi/agent:rw"]
