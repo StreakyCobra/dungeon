@@ -165,6 +165,19 @@ else
     done
 fi
 
+if [[ -d "$runtime_home/.emacs.d" ]]; then
+    if ! env HOME="$runtime_home" USER="$runtime_user" LOGNAME="$runtime_user" \
+        setpriv \
+        --reuid "$runtime_user" \
+        --regid "$runtime_user" \
+        --init-groups \
+        --inh-caps=-all \
+        --ambient-caps=-all \
+        -- emacs --daemon; then
+        printf 'dungeon-bootstrap: failed to start emacs daemon for %s\n' "$runtime_user" >&2
+    fi
+fi
+
 # Drop inheritable and ambient capabilities before handing control to the
 # unprivileged runtime user. Keep the capability bounding set and
 # no_new_privs unset so the image's narrow `sudo dungeon-install ...` rule and
