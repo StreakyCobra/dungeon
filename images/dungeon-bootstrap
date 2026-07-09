@@ -166,16 +166,15 @@ else
 fi
 
 if [[ -d "$runtime_home/.emacs.d" ]]; then
-    if ! env HOME="$runtime_home" USER="$runtime_user" LOGNAME="$runtime_user" \
+    printf 'dungeon-bootstrap: starting emacs in background\n' >&2
+    env HOME="$runtime_home" USER="$runtime_user" LOGNAME="$runtime_user" \
         setpriv \
         --reuid "$runtime_user" \
         --regid "$runtime_user" \
         --init-groups \
         --inh-caps=-all \
         --ambient-caps=-all \
-        -- emacs --daemon; then
-        printf 'dungeon-bootstrap: failed to start emacs daemon for %s\n' "$runtime_user" >&2
-    fi
+        -- emacs --daemon >/tmp/dungeon-emacs-daemon.log 2>&1 &
 fi
 
 # Drop inheritable and ambient capabilities before handing control to the
