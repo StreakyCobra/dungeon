@@ -10,8 +10,8 @@ use crate::{
 };
 
 use super::constants::{
-    FLAG_ALLOW_DNS, FLAG_DEBUG, FLAG_DENY_DNS, FLAG_DISCARD, FLAG_IPV6, FLAG_NO_IPV6,
-    FLAG_PERSISTED, FLAG_SKIP_CWD, RESERVED_GROUP_NAMES,
+    FLAG_ALLOW_DNS, FLAG_DEBUG, FLAG_DENY_DNS, FLAG_DISCARD, FLAG_IPV6, FLAG_MOUNT_GIT_METADATA,
+    FLAG_NO_IPV6, FLAG_NO_MOUNT_GIT_METADATA, FLAG_PERSISTED, FLAG_SKIP_CWD, RESERVED_GROUP_NAMES,
 };
 
 pub(crate) fn validate_persist_flags(
@@ -59,6 +59,11 @@ pub(crate) fn validate_cli_flag_conflicts(matches: &ArgMatches) -> Result<(), Ap
     if matches.get_flag(FLAG_IPV6) && matches.get_flag(FLAG_NO_IPV6) {
         return Err(AppError::message(
             "ERROR: --ipv6 and --no-ipv6 are mutually exclusive",
+        ));
+    }
+    if matches.get_flag(FLAG_MOUNT_GIT_METADATA) && matches.get_flag(FLAG_NO_MOUNT_GIT_METADATA) {
+        return Err(AppError::message(
+            "ERROR: --mount-git-metadata and --no-mount-git-metadata are mutually exclusive",
         ));
     }
     if matches.get_flag(FLAG_ALLOW_DNS) && matches.get_flag(FLAG_DENY_DNS) {

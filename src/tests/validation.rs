@@ -190,6 +190,24 @@ fn debug_rejects_persistence_flags() {
 }
 
 #[test]
+fn rejects_conflicting_git_metadata_flags() {
+    let defaults = config::Config::default();
+    let file_cfg = config::Config::default();
+    let env_cfg = config::Config::default();
+    let args = vec![
+        "run".to_string(),
+        "--mount-git-metadata".to_string(),
+        "--no-mount-git-metadata".to_string(),
+    ];
+
+    let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
+    let err = result.expect_err("expected conflicting git metadata flag error");
+    assert!(err.to_string().contains(
+        "ERROR: --mount-git-metadata and --no-mount-git-metadata are mutually exclusive"
+    ));
+}
+
+#[test]
 fn requires_subcommand() {
     let defaults = config::Config::default();
     let file_cfg = config::Config::default();

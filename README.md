@@ -129,7 +129,7 @@ Run-session flags live under `dungeon run`:
 
 - `--debug` to print the generated command instead of running it.
 - `--persist`, `--persisted`, `--discard` to manage container persistence.
-- `--command`, `--image`, `--port`, `--cache`, `--mount`, `--env`, `--env-file`, `--podman-arg`, `--run-arg` to customize container.
+- `--command`, `--image`, `--port`, `--cache`, `--mount`, `--env`, `--env-file`, `--podman-arg`, `--run-arg`, `--mount-git-metadata`, `--no-mount-git-metadata` to customize container.
 - `--skip-cwd` to skip mounting the current directory.
 - `--ipv6`, `--no-ipv6`, `--allow-dns`, `--deny-dns`, `--allow-domain`, `--allow-host` to customize the outbound network policy.
 - group flags (for example `--codex`)

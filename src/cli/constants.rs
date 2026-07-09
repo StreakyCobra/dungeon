@@ -20,6 +20,8 @@ pub(crate) const FLAG_ENV_FILE: &str = "env-file";
 pub(crate) const FLAG_PODMAN_ARG: &str = "podman-arg";
 pub(crate) const FLAG_RUN_ARG: &str = "run-arg";
 pub(crate) const FLAG_SKIP_CWD: &str = "skip-cwd";
+pub(crate) const FLAG_MOUNT_GIT_METADATA: &str = "mount-git-metadata";
+pub(crate) const FLAG_NO_MOUNT_GIT_METADATA: &str = "no-mount-git-metadata";
 pub(crate) const FLAG_IPV6: &str = "ipv6";
 pub(crate) const FLAG_NO_IPV6: &str = "no-ipv6";
 pub(crate) const FLAG_ALLOW_DNS: &str = "allow-dns";
@@ -49,6 +51,8 @@ pub(crate) const RESERVED_GROUP_NAMES: &[&str] = &[
     FLAG_PODMAN_ARG,
     FLAG_RUN_ARG,
     FLAG_SKIP_CWD,
+    FLAG_MOUNT_GIT_METADATA,
+    FLAG_NO_MOUNT_GIT_METADATA,
     FLAG_IPV6,
     FLAG_NO_IPV6,
     FLAG_ALLOW_DNS,

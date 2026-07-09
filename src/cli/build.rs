@@ -7,10 +7,10 @@ use crate::{config, error::AppError};
 use super::constants::{
     ARG_PATHS, FLAG_ALLOW_DNS, FLAG_ALLOW_DOMAIN, FLAG_ALLOW_HOST, FLAG_CACHE, FLAG_COMMAND,
     FLAG_CONTEXT, FLAG_DEBUG, FLAG_DENY_DNS, FLAG_DISCARD, FLAG_ENV, FLAG_ENV_FILE, FLAG_HELP,
-    FLAG_IMAGE, FLAG_IPV6, FLAG_MOUNT, FLAG_NO_CACHE, FLAG_NO_IPV6, FLAG_PERSIST, FLAG_PERSISTED,
-    FLAG_PODMAN_ARG, FLAG_PORT, FLAG_RUN_ARG, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION,
-    SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD,
-    SUBCOMMAND_RUN,
+    FLAG_IMAGE, FLAG_IPV6, FLAG_MOUNT, FLAG_MOUNT_GIT_METADATA, FLAG_NO_CACHE, FLAG_NO_IPV6,
+    FLAG_NO_MOUNT_GIT_METADATA, FLAG_PERSIST, FLAG_PERSISTED, FLAG_PODMAN_ARG, FLAG_PORT,
+    FLAG_RUN_ARG, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET,
+    SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
 };
 
 pub(crate) fn print_targeted_help(
@@ -211,6 +211,20 @@ fn run_subcommand(group_defs: &BTreeMap<String, config::GroupConfig>) -> Command
             Arg::new(FLAG_SKIP_CWD)
                 .long(FLAG_SKIP_CWD)
                 .help("Skip mounting the current directory by default")
+                .help_heading("Configurations")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new(FLAG_MOUNT_GIT_METADATA)
+                .long(FLAG_MOUNT_GIT_METADATA)
+                .help("Mount external Git metadata for worktrees")
+                .help_heading("Configurations")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new(FLAG_NO_MOUNT_GIT_METADATA)
+                .long(FLAG_NO_MOUNT_GIT_METADATA)
+                .help("Do not mount external Git metadata")
                 .help_heading("Configurations")
                 .action(ArgAction::SetTrue),
         )

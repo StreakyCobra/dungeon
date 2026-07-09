@@ -16,6 +16,21 @@ fn parses_mount_git_metadata_from_env() {
 }
 
 #[test]
+fn parses_mount_git_metadata_from_cli() {
+    let input = TestInput {
+        toml: "",
+        args: &["run", "--mount-git-metadata", "--skip-cwd"],
+        env: &[],
+        cwd_name: "git-cli-project",
+        cwd_entries: &[],
+        fs_entries: &[],
+    };
+
+    let output = resolve_input(input);
+    assert_eq!(output.resolved.settings.mount_git_metadata, Some(true));
+}
+
+#[test]
 fn disabled_flag_does_not_mount_external_git_metadata() {
     let input = TestInput {
         toml: r#"
@@ -23,6 +38,25 @@ fn disabled_flag_does_not_mount_external_git_metadata() {
 mount_git_metadata = false
 "#,
         args: &["run"],
+        env: &[],
+        cwd_name: "worktree-project",
+        cwd_entries: &[],
+        fs_entries: &worktree_fs_entries("worktree-project"),
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /workspace/worktree-project --rm -v <CWD>:/workspace/worktree-project localhost/dungeon zsh";
+
+    assert_command(input, expected);
+}
+
+#[test]
+fn no_mount_git_metadata_flag_overrides_enabled_config() {
+    let input = TestInput {
+        toml: r#"
+[general]
+mount_git_metadata = true
+"#,
+        args: &["run", "--no-mount-git-metadata"],
         env: &[],
         cwd_name: "worktree-project",
         cwd_entries: &[],
