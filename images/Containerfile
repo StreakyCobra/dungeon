@@ -6,6 +6,7 @@ RUN pacman -Syu --noconfirm \
       bubblewrap \
       ca-certificates \
       curl \
+      emacs \
       fzf \
       git \
       less \
