@@ -24,7 +24,7 @@ RUN pacman -Syu --noconfirm \
 
 # Setup user
 RUN groupadd -g 1000 dungeon && \
-    useradd -m -u 1000 -g 1000 -s /bin/zsh dungeon && \
+    useradd -m -u 1000 -g 1000 -G tty -s /bin/zsh dungeon && \
     install -d -o dungeon -g dungeon \
       /home/dungeon/.cache \
       /home/dungeon/.cache/npm \

@@ -146,6 +146,18 @@ add_allowed_domain() {
     done < <(getent ahosts "$domain" | sort -u)
 }
 
+grant_runtime_tty_access() {
+    local tty_path
+
+    if ! tty_path=$(tty 2>/dev/null); then
+        return
+    fi
+
+    [[ -c $tty_path ]] || return
+    chgrp tty "$tty_path" 2>/dev/null || true
+    chmod g+rw "$tty_path" 2>/dev/null || true
+}
+
 allowed_domains=(${${(f)"$(read_csv_values "$allowed_domains_raw")"}:#})
 allowed_hosts=(${${(f)"$(read_csv_values "$allowed_hosts_raw")"}:#})
 
@@ -164,6 +176,8 @@ else
         add_allowed_domain "$domain"
     done
 fi
+
+grant_runtime_tty_access
 
 if [[ -d "$runtime_home/.emacs.d" ]]; then
     printf 'dungeon-bootstrap: starting emacs in background\n' >&2
