@@ -188,7 +188,13 @@ if [[ -d "$runtime_home/.emacs.d" ]]; then
         --init-groups \
         --inh-caps=-all \
         --ambient-caps=-all \
-        -- emacs --daemon >/tmp/dungeon-emacs-daemon.log 2>&1 &
+        -- zsh -lc '
+            while true; do
+                emacs --fg-daemon >>/tmp/dungeon-emacs-daemon.log 2>&1
+                printf "dungeon-bootstrap: emacs daemon stopped, restarting\\n" >>/tmp/dungeon-emacs-daemon.log
+                sleep 1
+            done
+        ' </dev/null >/tmp/dungeon-emacs-monitor.log 2>&1 &
 fi
 
 # Drop inheritable and ambient capabilities before handing control to the
