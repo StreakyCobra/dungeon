@@ -17,6 +17,7 @@ image = "localhost/dungeon-obsidian"
         env: &[],
         cwd_name: "group-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/group-project --rm -v <CWD>:/workspace/group-project localhost/dungeon-obsidian zsh";
@@ -43,6 +44,7 @@ command = "echo beta"
         env: &[],
         cwd_name: "group-order-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/group-order-project --rm -v <CWD>:/workspace/group-order-project localhost/dungeon-beta zsh -ic echo beta";

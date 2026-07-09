@@ -8,6 +8,7 @@ fn includes_bootstrap_security_args() {
         env: &[],
         cwd_name: "security-args-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let output = run_input(input);
@@ -39,6 +40,7 @@ fn command_flag_runs_command_in_container() {
         env: &[],
         cwd_name: "command-flag-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/command-flag-project --rm -v <CWD>:/workspace/command-flag-project localhost/dungeon zsh -ic echo ok";
@@ -54,6 +56,7 @@ fn command_from_env_runs_command_in_container() {
         env: &[("DUNGEON_COMMAND", "echo env")],
         cwd_name: "command-env-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/command-env-project --rm -v <CWD>:/workspace/command-env-project localhost/dungeon zsh -ic echo env";
@@ -69,6 +72,7 @@ fn engine_from_env_accepts_podman() {
         env: &[("DUNGEON_ENGINE", "podman")],
         cwd_name: "engine-env-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/engine-env-project --rm -v <CWD>:/workspace/engine-env-project localhost/dungeon zsh";
@@ -87,6 +91,7 @@ engine = "podman"
         env: &[],
         cwd_name: "engine-config-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/engine-config-project --rm -v <CWD>:/workspace/engine-config-project localhost/dungeon zsh";
@@ -105,6 +110,7 @@ run_args = ["--network=host"]
         env: &[],
         cwd_name: "run-args-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/run-args-project --rm --network=host --security-opt=label=disable -v <CWD>:/workspace/run-args-project localhost/dungeon zsh";
@@ -120,6 +126,7 @@ fn passes_run_args_with_space_separated_hyphen_value() {
         env: &[],
         cwd_name: "run-args-space-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/run-args-space-project --rm --network=host -v <CWD>:/workspace/run-args-space-project localhost/dungeon zsh";
@@ -138,6 +145,7 @@ podman_args = ["-c", "agent-vm"]
         env: &[],
         cwd_name: "podman-args-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman -c agent-vm --log-level=debug run -it --userns=keep-id -w /workspace/podman-args-project --rm -v <CWD>:/workspace/podman-args-project localhost/dungeon zsh";
@@ -153,6 +161,7 @@ fn passes_podman_args_with_space_separated_hyphen_value() {
         env: &[],
         cwd_name: "podman-args-space-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman --log-level=debug run -it --userns=keep-id -w /workspace/podman-args-space-project --rm -v <CWD>:/workspace/podman-args-space-project localhost/dungeon zsh";
@@ -171,6 +180,7 @@ engine = "invalid"
         env: &[],
         cwd_name: "invalid-engine",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let result = std::panic::catch_unwind(|| run_input(input));
@@ -188,6 +198,7 @@ command = "   "
         env: &[],
         cwd_name: "blank-command-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/blank-command-project --rm -v <CWD>:/workspace/blank-command-project localhost/dungeon zsh";
@@ -206,6 +217,7 @@ image = ""
         env: &[],
         cwd_name: "blank-image-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/blank-image-project --rm -v <CWD>:/workspace/blank-image-project localhost/dungeon zsh";
@@ -225,6 +237,7 @@ env_files = ["", "  ", "./.env"]
         env: &[],
         cwd_name: "blank-env-values",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/blank-env-values --rm --env FOO=bar --env-file ./.env -v <CWD>:/workspace/blank-env-values localhost/dungeon zsh";
@@ -248,6 +261,7 @@ fn includes_network_env_for_non_default_settings() {
         env: &[],
         cwd_name: "network-env-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let output = run_input(input);

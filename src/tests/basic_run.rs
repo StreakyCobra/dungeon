@@ -8,6 +8,7 @@ fn basic_run_uses_cwd_mount() {
         env: &[],
         cwd_name: "alpha",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/alpha --rm -v <CWD>:/workspace/alpha localhost/dungeon zsh";
@@ -23,6 +24,7 @@ fn basic_run_errors_from_home_dir() {
         env: &[],
         cwd_name: "home",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let result = std::panic::catch_unwind(|| run_input(input));
@@ -37,6 +39,7 @@ fn skip_cwd_allows_home_dir_run() {
         env: &[],
         cwd_name: "home",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace --rm localhost/dungeon zsh";

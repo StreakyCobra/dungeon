@@ -17,6 +17,7 @@ fn persist_run_adds_container_name_and_omits_rm() {
         env: &[],
         cwd_name: "persist-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let output = run_input(input);

@@ -1,5 +1,6 @@
 [general]
 engine = "podman"
+mount_git_metadata = false
 ipv6 = false
 allow_dns = true
 

@@ -21,6 +21,7 @@ mounts = ["~/data:/data:ro"]
         env: &[],
         cwd_name: "mounts-root",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/mounts-root --rm -p 127.0.0.1:3000:3000 -p 127.0.0.1:8080:8080 -v <HOME>/data:/data:ro -v <HOME>/.codex:/home/dungeon/.codex:rw -v dungeon-cache:/var/cache/pacman/pkg:ro -v dungeon-cache:deps:rw -v <CWD>:/workspace/mounts-root localhost/dungeon zsh";
@@ -36,6 +37,7 @@ fn pi_group_mounts_agent_dir() {
         env: &[],
         cwd_name: "pi-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/pi-project --rm -v <HOME>/.pi/agent:/home/dungeon/.pi/agent:rw -v <CWD>:/workspace/pi-project localhost/dungeon zsh -ic pi";

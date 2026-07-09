@@ -63,6 +63,10 @@ pub fn load_from_env() -> Result<Config, AppError> {
     if let Ok(value) = env::var(format!("{}RUN_ARGS", ENV_PREFIX)) {
         cfg.settings.run_args = Some(split_env_list(&value));
     }
+    if let Ok(value) = env::var(format!("{}MOUNT_GIT_METADATA", ENV_PREFIX)) {
+        cfg.settings.mount_git_metadata =
+            Some(parse_bool_value("mount_git_metadata", value.trim())?);
+    }
     if let Ok(value) = env::var(format!("{}IPV6", ENV_PREFIX)) {
         cfg.settings.ipv6 = Some(parse_bool_value("ipv6", value.trim())?);
     }
@@ -200,6 +204,10 @@ fn parse_settings_key(
         }
         "run_args" => {
             settings.run_args = Some(parse_string_vec(scope, key, value)?);
+            Ok(true)
+        }
+        "mount_git_metadata" => {
+            settings.mount_git_metadata = Some(parse_bool(scope, key, value)?);
             Ok(true)
         }
         "ipv6" => {

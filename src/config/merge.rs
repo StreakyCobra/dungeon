@@ -74,6 +74,9 @@ fn merge_settings(base: Settings, override_settings: Settings) -> Settings {
     if let Some(values) = override_settings.run_args {
         merged.run_args = Some(append_strings(merged.run_args, values));
     }
+    if let Some(value) = override_settings.mount_git_metadata {
+        merged.mount_git_metadata = Some(value);
+    }
     if let Some(value) = override_settings.ipv6 {
         merged.ipv6 = Some(value);
     }

@@ -26,6 +26,7 @@ pub struct Settings {
     pub env_files: Option<Vec<String>>,
     pub podman_args: Option<Vec<String>>,
     pub run_args: Option<Vec<String>>,
+    pub mount_git_metadata: Option<bool>,
     pub ipv6: Option<bool>,
     pub allow_dns: Option<bool>,
     pub allowed_tcp_domains: Option<Vec<String>>,

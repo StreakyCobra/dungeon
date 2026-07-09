@@ -11,6 +11,7 @@ unknown = "value"
         env: &[],
         cwd_name: "unknown-general-key",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     assert_input_error_contains(input, "[general] has unknown key \"unknown\"");
@@ -27,6 +28,7 @@ engine = 1
         env: &[],
         cwd_name: "non-string-engine",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     assert_input_error_contains(input, "general.engine must be a string");
@@ -43,6 +45,7 @@ ports = "127.0.0.1:3000:3000"
         env: &[],
         cwd_name: "non-list-ports",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     assert_input_error_contains(input, "general.ports must be a list of strings");
@@ -59,6 +62,7 @@ ports = [1234]
         env: &[],
         cwd_name: "non-string-port-entry",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     assert_input_error_contains(input, "general.ports must be a list of strings");
@@ -75,6 +79,7 @@ unknown = "value"
         env: &[],
         cwd_name: "unknown-group-key",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     assert_input_error_contains(input, "group \"workspace\" has unknown key \"unknown\"");
@@ -88,6 +93,7 @@ fn errors_on_invalid_engine_from_env() {
         env: &[("DUNGEON_ENGINE", "invalid")],
         cwd_name: "invalid-env-engine",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     assert_input_error_contains(input, "engine must be one of: podman");

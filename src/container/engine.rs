@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashSet,
+    path::{Component, Path, PathBuf},
+};
 
 use crate::{
     config::{Engine, Settings},
@@ -152,6 +155,7 @@ fn resolve_workdir_and_mounts(
     home: &Path,
 ) -> Result<(String, Vec<String>), AppError> {
     let mut mounts = Vec::new();
+    let mut workspace_dirs = Vec::new();
 
     for spec in settings.mounts.as_deref().unwrap_or(&[]) {
         push_mount(&mut mounts, expand_mount_spec(spec, home));
@@ -176,6 +180,8 @@ fn resolve_workdir_and_mounts(
             .unwrap_or("project");
         let workdir = format!("{}/{}", WORKSPACE_ROOT, base);
         push_mount(&mut mounts, format!("{}:{}", cwd.display(), workdir));
+        workspace_dirs.push(cwd.to_path_buf());
+        append_git_metadata_mounts(&mut mounts, settings, &workspace_dirs)?;
         return Ok((workdir, mounts));
     }
 
@@ -190,8 +196,126 @@ fn resolve_workdir_and_mounts(
             &mut mounts,
             format!("{}:{}/{}", abs.display(), workdir, base),
         );
+        if abs.is_dir() {
+            workspace_dirs.push(abs);
+        }
     }
+    append_git_metadata_mounts(&mut mounts, settings, &workspace_dirs)?;
     Ok((workdir, mounts))
+}
+
+fn append_git_metadata_mounts(
+    mounts: &mut Vec<String>,
+    settings: &Settings,
+    workspace_dirs: &[PathBuf],
+) -> Result<(), AppError> {
+    if settings.mount_git_metadata != Some(true) {
+        return Ok(());
+    }
+
+    let mut generated = HashSet::new();
+    for workspace_dir in workspace_dirs {
+        let Some(source) = resolve_git_metadata_mount_source(workspace_dir)? else {
+            continue;
+        };
+        let spec = format!("{}:{}", source.display(), source.display());
+        if generated.insert(spec.clone()) {
+            push_mount(mounts, spec);
+        }
+    }
+
+    Ok(())
+}
+
+fn resolve_git_metadata_mount_source(workspace_dir: &Path) -> Result<Option<PathBuf>, AppError> {
+    let git_entry = workspace_dir.join(".git");
+    if !git_entry.exists() {
+        return Ok(None);
+    }
+    if git_entry.is_dir() {
+        return Ok(None);
+    }
+    if !git_entry.is_file() {
+        return Err(AppError::message(format!(
+            "ERROR: unsupported git metadata entry {}",
+            git_entry.display()
+        )));
+    }
+
+    let git_dir = parse_gitdir_file(&git_entry)?;
+    let mount_source = resolve_git_mount_source(&git_dir)?;
+    Ok(Some(mount_source))
+}
+
+fn parse_gitdir_file(git_file: &Path) -> Result<PathBuf, AppError> {
+    let raw = std::fs::read_to_string(git_file).map_err(|err| {
+        AppError::message(format!("read git metadata {}: {}", git_file.display(), err))
+    })?;
+    let value = raw.trim();
+    let Some(path) = value.strip_prefix("gitdir:") else {
+        return Err(AppError::message(format!(
+            "ERROR: malformed git metadata file {}",
+            git_file.display()
+        )));
+    };
+    let git_dir = PathBuf::from(path.trim());
+    if !git_dir.is_absolute() {
+        return Err(AppError::message(format!(
+            "ERROR: relative gitdir paths are unsupported in {}",
+            git_file.display()
+        )));
+    }
+
+    let git_dir = normalize_absolute_path(&git_dir);
+    if !git_dir.exists() {
+        return Err(AppError::message(format!(
+            "ERROR: gitdir path does not exist: {}",
+            git_dir.display()
+        )));
+    }
+    Ok(git_dir)
+}
+
+fn resolve_git_mount_source(git_dir: &Path) -> Result<PathBuf, AppError> {
+    let common_dir_file = git_dir.join("commondir");
+    if !common_dir_file.exists() {
+        return Ok(git_dir.to_path_buf());
+    }
+    if !common_dir_file.is_file() {
+        return Err(AppError::message(format!(
+            "ERROR: malformed git commondir file {}",
+            common_dir_file.display()
+        )));
+    }
+
+    let raw = std::fs::read_to_string(&common_dir_file).map_err(|err| {
+        AppError::message(format!(
+            "read git metadata {}: {}",
+            common_dir_file.display(),
+            err
+        ))
+    })?;
+    let value = raw.trim();
+    if value.is_empty() {
+        return Err(AppError::message(format!(
+            "ERROR: malformed git commondir file {}",
+            common_dir_file.display()
+        )));
+    }
+
+    let common_dir = if Path::new(value).is_absolute() {
+        normalize_absolute_path(Path::new(value))
+    } else {
+        normalize_absolute_path(&git_dir.join(value))
+    };
+    if !common_dir.exists() {
+        return Err(AppError::message(format!(
+            "ERROR: git commondir path does not exist: {}",
+            common_dir.display()
+        )));
+    }
+
+    Ok(common_dir)
 }
 
 fn append_engine_identity_args(args: &mut Vec<String>, engine: Engine) {
@@ -276,6 +400,22 @@ fn absolute_path(cwd: &Path, path: &str) -> PathBuf {
     } else {
         cwd.join(raw)
     }
+}
+
+fn normalize_absolute_path(path: &Path) -> PathBuf {
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::Prefix(prefix) => normalized.push(prefix.as_os_str()),
+            Component::RootDir => normalized.push(component.as_os_str()),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            Component::Normal(part) => normalized.push(part),
+        }
+    }
+    normalized
 }
 
 fn same_dir(a: &Path, b: &Path) -> bool {

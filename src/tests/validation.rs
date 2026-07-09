@@ -11,6 +11,7 @@ fn errors_on_unknown_config_keys() {
         env: &[],
         cwd_name: "unknown-config",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     assert_input_error_contains(input, "group \"unknown\" must be a table");
@@ -24,6 +25,7 @@ fn errors_when_skip_cwd_with_paths() {
         env: &[],
         cwd_name: "skip-cwd-paths",
         cwd_entries: &["folder1/"],
+        fs_entries: &[],
     };
 
     assert_input_error_contains(
@@ -43,6 +45,7 @@ command = "zsh"
         env: &[],
         cwd_name: "conflicting-group",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     assert_input_error_contains(

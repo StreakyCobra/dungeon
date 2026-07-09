@@ -13,12 +13,15 @@ pub struct TestInput<'a> {
     pub env: &'a [(&'a str, &'a str)],
     pub cwd_name: &'a str,
     pub cwd_entries: &'a [&'a str],
+    pub fs_entries: &'a [(&'a str, Option<&'a str>)],
 }
 
+#[derive(Debug)]
 pub struct TestOutput {
     pub command: String,
     pub cwd: PathBuf,
     pub home: PathBuf,
+    pub root: PathBuf,
 }
 
 #[derive(Debug)]
@@ -28,7 +31,7 @@ pub struct ResolvedTestOutput {
 
 pub fn assert_command(input: TestInput<'_>, expected: &str) {
     let output = run_input(input);
-    let normalized = normalize_command(&output.command, &output.cwd, &output.home);
+    let normalized = normalize_command(&output.command, &output.cwd, &output.home, &output.root);
     assert_eq!(normalized, expected);
 }
 
@@ -53,6 +56,7 @@ pub fn try_run_input(input: TestInput<'_>) -> Result<TestOutput, AppError> {
     std::fs::create_dir_all(config_path.parent().expect("config parent")).expect("config parent");
 
     create_cwd_entries(&cwd, input.cwd_entries).expect("create entries");
+    create_fs_entries(temp_dir.path(), input.fs_entries).expect("create fs entries");
 
     let _env_guard = EnvGuard::new(&home, &config_home, input.env);
 
@@ -62,7 +66,12 @@ pub fn try_run_input(input: TestInput<'_>) -> Result<TestOutput, AppError> {
 
     let command = with_cwd(&cwd, || build_command_string(input))?;
 
-    Ok(TestOutput { command, cwd, home })
+    Ok(TestOutput {
+        command,
+        cwd,
+        home,
+        root: temp_dir.keep(),
+    })
 }
 
 pub fn try_resolve_input(input: TestInput<'_>) -> Result<ResolvedTestOutput, AppError> {
@@ -78,6 +87,7 @@ pub fn try_resolve_input(input: TestInput<'_>) -> Result<ResolvedTestOutput, App
     std::fs::create_dir_all(config_path.parent().expect("config parent")).expect("config parent");
 
     create_cwd_entries(&cwd, input.cwd_entries).expect("create entries");
+    create_fs_entries(temp_dir.path(), input.fs_entries).expect("create fs entries");
 
     let _env_guard = EnvGuard::new(&home, &config_home, input.env);
 
@@ -124,10 +134,11 @@ pub fn acquire_test_lock() -> std::sync::MutexGuard<'static, ()> {
         .unwrap_or_else(|err| err.into_inner())
 }
 
-fn normalize_command(command: &str, cwd: &PathBuf, home: &PathBuf) -> String {
+fn normalize_command(command: &str, cwd: &PathBuf, home: &PathBuf, root: &PathBuf) -> String {
     let normalized = command
         .replace(cwd.to_string_lossy().as_ref(), "<CWD>")
         .replace(home.to_string_lossy().as_ref(), "<HOME>")
+        .replace(root.to_string_lossy().as_ref(), "<TMP>")
         .replace("--user root ", "")
         .replace("--cap-add NET_ADMIN ", "")
         .replace("--cap-add NET_RAW ", "")
@@ -178,6 +189,26 @@ fn create_cwd_entries(cwd: &PathBuf, entries: &[&str]) -> Result<(), std::io::Er
             } else {
                 std::fs::create_dir_all(file)?;
             }
+        }
+    }
+    Ok(())
+}
+
+fn create_fs_entries(
+    root: &std::path::Path,
+    entries: &[(&str, Option<&str>)],
+) -> Result<(), std::io::Error> {
+    for (path, contents) in entries {
+        let full_path = root.join(path);
+        match contents {
+            Some(contents) => {
+                if let Some(parent) = full_path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                let rendered = contents.replace("<TMP>", root.to_string_lossy().as_ref());
+                std::fs::write(full_path, rendered)?;
+            }
+            None => std::fs::create_dir_all(full_path)?,
         }
     }
     Ok(())
@@ -252,6 +283,7 @@ const DUNGEON_ENV_KEYS: &[&str] = &[
     "DUNGEON_ENV_FILES",
     "DUNGEON_PODMAN_ARGS",
     "DUNGEON_RUN_ARGS",
+    "DUNGEON_MOUNT_GIT_METADATA",
     "DUNGEON_IPV6",
     "DUNGEON_ALLOW_DNS",
     "DUNGEON_ALLOWED_TCP_DOMAINS",

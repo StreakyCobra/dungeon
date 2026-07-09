@@ -148,6 +148,7 @@ Example:
 [general]
 command = "codex"
 image = "localhost/dungeon"
+mount_git_metadata = false
 ports = ["127.0.0.1:8888:8888"]
 caches = [".cache/pip:rw"]
 mounts = ["~/projects:/home/dungeon/projects:rw"]
@@ -185,6 +186,7 @@ Group behavior:
 - An empty group table removes a default group of the same name.
 - `always_on_groups` lists groups that are always enabled, in order of precedence (later entries take precedence).
 - `mounts` entries are passed directly to Podman as `-v` arguments; dungeon only checks to prevent a home-directory mount.
+- `mount_git_metadata = true` makes dungeon inspect mounted directories for `.git` files that point outside the workspace and bind-mount the referenced Git metadata path so Git worktrees work inside the container.
 - `podman_args` entries are inserted before the Podman subcommand, for example `podman -c agent-vm run ...`.
 - `--skip-cwd` prevents the implicit current-directory mount when no paths are provided.
 - `caches` entries are passed directly as `dungeon-cache:<spec>` volume mounts.
@@ -192,7 +194,7 @@ Group behavior:
 - `env_files` entries are passed to Podman via `--env-file`.
 - `mounts`, `caches`, `envs`, `env_files`, `ports`, `podman_args`, `run_args`, and network allowlists extend the base settings when enabled.
 - `command` and `image` use the last enabled group when multiple are set.
-- `ipv6` and `allow_dns` use the highest-precedence value.
+- `mount_git_metadata`, `ipv6`, and `allow_dns` use the highest-precedence value.
 
 ### Network policy
 
@@ -217,6 +219,7 @@ Environment overrides use:
 - `DUNGEON_ENV_FILES` (comma-separated)
 - `DUNGEON_PODMAN_ARGS` (comma-separated)
 - `DUNGEON_RUN_ARGS` (comma-separated)
+- `DUNGEON_MOUNT_GIT_METADATA`
 - `DUNGEON_IPV6`
 - `DUNGEON_ALLOW_DNS`
 - `DUNGEON_ALLOWED_TCP_DOMAINS` (comma-separated)
@@ -229,6 +232,7 @@ Environment overrides use:
 - The runtime intentionally preserves the image's narrow `sudo dungeon-install ...` path; broader root access still is not granted.
 - The Podman command keeps `--userns=keep-id`, so bind-mounted files still line up with the host user.
 - The image entrypoint is `dungeon-bootstrap`, which applies the runtime network policy.
+- `mount_git_metadata = true` is intended for Git worktrees and other checkouts with `.git` files that point outside the mounted workspace. It currently supports absolute `gitdir:` paths only.
 - Codex can rely on `bubblewrap`; there is no `CODEX_UNSAFE_ALLOW_NO_SANDBOX` fallback configured.
 - The built-in `pi` group mounts `~/.pi/agent`, which covers Pi auth, settings, sessions, and installed Pi packages.
 

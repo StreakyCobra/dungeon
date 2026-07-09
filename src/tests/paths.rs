@@ -8,6 +8,7 @@ fn mounts_cli_paths_with_custom_names() {
         env: &[],
         cwd_name: "paths-project",
         cwd_entries: &["file1", "folder1/"],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/project --rm -v <CWD>/file1:/workspace/project/file1 -v <CWD>/folder1:/workspace/project/folder1 localhost/dungeon zsh";
@@ -23,6 +24,7 @@ fn skips_cwd_mount_when_flagged() {
         env: &[],
         cwd_name: "paths-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace --rm localhost/dungeon zsh";
@@ -38,6 +40,7 @@ fn mounts_nonexistent_explicit_paths_without_validation() {
         env: &[],
         cwd_name: "paths-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let expected = "podman run -it --userns=keep-id -w /workspace/project --rm -v <CWD>/missing-file.txt:/workspace/project/missing-file.txt localhost/dungeon zsh";

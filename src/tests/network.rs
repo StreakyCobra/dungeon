@@ -18,6 +18,7 @@ allowed_tcp_hosts = ["10.0.0.0/8"]
         env: &[("DUNGEON_ALLOWED_TCP_HOSTS", "192.168.1.10")],
         cwd_name: "network-merge-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let output = resolve_input(input);
@@ -53,6 +54,7 @@ fn parses_network_flags_from_cli() {
         env: &[],
         cwd_name: "network-cli-project",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let output = resolve_input(input);
@@ -79,6 +81,7 @@ allowed_tcp_domains = ["bad domain"]
         env: &[],
         cwd_name: "invalid-network-domain",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let err = try_resolve_input(input).expect_err("expected invalid domain");
@@ -96,6 +99,7 @@ fn rejects_invalid_network_host() {
         env: &[],
         cwd_name: "invalid-network-host",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let err = try_resolve_input(input).expect_err("expected invalid host");
@@ -113,6 +117,7 @@ fn rejects_conflicting_network_flags() {
         env: &[],
         cwd_name: "conflicting-network-flags",
         cwd_entries: &[],
+        fs_entries: &[],
     };
 
     let err = try_resolve_input(input).expect_err("expected conflicting flag error");
