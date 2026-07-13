@@ -117,11 +117,11 @@ There are several ways to configure dungeon, in order of precedence:
 - [Configuration file](#configuration-file)
 - [Default configuration](#default-configuration)
 
-For `dungeon run`, single settings like `command`, `image`, and the `network` booleans override lower-level configuration. List settings like ports, dynamic ports, mounts, groups, and network allowlists are merged with lower-level configuration.
+For `dungeon run`, single settings like `command`, `image`, and the `network` booleans override lower-level configuration. List settings like ports, dynamic ports, mounts, and network allowlists are merged with lower-level configuration.
 
-Configuration file, env vars, and groups apply to `dungeon run` only.
+Configuration file, environment variables, and included groups apply to `dungeon run`; image and cache commands also use applicable global settings such as `podman_args`.
 
-`dungeon` ships with three default groups: `codex`, `opencode`, and `pi`. Redefining these groups overrides the default ones. Groups are applied after the `[general]` configuration, with explicit CLI group flags taking precedence over `always_on_groups`.
+`dungeon` ships with three default groups: `codex`, `opencode`, and `pi`. Redefining these groups overrides the default ones. Groups are applied after the `[general]` configuration. Explicit CLI group flags are selected after `[general].include_groups`, subject to dependency ordering.
 
 ### CLI flags
 
@@ -157,14 +157,20 @@ envs = ["OPENAI_API_KEY", "SECRET=abc123"]
 env_files = [".env", "secrets.env"]
 podman_args = ["-c", "agent-vm"]
 run_args = ["--cap-add=SYS_PTRACE"]
-always_on_groups = ["codex"]
+include_groups = ["ai"]
 ipv6 = false
 allow_dns = true
 allowed_tcp_domains = ["crates.io", "index.crates.io"]
 allowed_tcp_hosts = ["10.0.0.0/8"]
 
+[ai]
+include_groups = ["codex", "difit"]
+
 [codex]
 mounts = ["~/.codex:/home/dungeon/.codex:rw"]
+
+[difit]
+dynamic_ports = ["difit"]
 
 allowed_tcp_domains = ["api.openai.com"]
 
@@ -185,7 +191,9 @@ Group behavior:
 - Each other top-level table (for example `[codex]`) defines a group.
 - Each group name becomes a CLI flag (example: `--codex`).
 - An empty group table removes a default group of the same name.
-- `always_on_groups` lists groups that are always enabled, in order of precedence (later entries take precedence).
+- `[general].include_groups` lists root groups to enable. `DUNGEON_INCLUDE_GROUPS` adds more root groups as a comma-separated list.
+- A group's `include_groups` lists its dependencies. Dependencies are applied before the including group, and sibling dependencies keep declaration order.
+- Each reachable group is applied once. Unknown included groups and inclusion cycles are configuration errors.
 - `mounts` entries are passed directly to Podman as `-v` arguments; dungeon only checks to prevent a home-directory mount.
 - `mount_git_metadata = true` makes dungeon inspect mounted directories for `.git` files that point outside the workspace and bind-mount the referenced Git metadata path so Git worktrees work inside the container.
 - `podman_args` entries are inserted before the Podman subcommand, for example `podman -c agent-vm run ...`.
@@ -229,7 +237,7 @@ Environment overrides use:
 - `DUNGEON_ALLOW_DNS`
 - `DUNGEON_ALLOWED_TCP_DOMAINS` (comma-separated)
 - `DUNGEON_ALLOWED_TCP_HOSTS` (comma-separated)
-- `DUNGEON_ALWAYS_ON_GROUPS` (comma-separated)
+- `DUNGEON_INCLUDE_GROUPS` (comma-separated)
 
 ## Runtime behavior
 
