@@ -108,3 +108,18 @@ pub fn load_sources() -> Result<LoadedConfigSources, AppError> {
         env: load_from_env()?,
     })
 }
+
+pub fn validate_dynamic_port_names(names: &[String], field: &str) -> Result<(), AppError> {
+    for name in names {
+        let mut chars = name.bytes();
+        if !matches!(chars.next(), Some(b'a'..=b'z'))
+            || !chars.all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
+        {
+            return Err(AppError::message(format!(
+                "{} entries must be lower-case ASCII identifiers ([a-z][a-z0-9_]*)",
+                field
+            )));
+        }
+    }
+    Ok(())
+}

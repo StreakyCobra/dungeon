@@ -1,5 +1,6 @@
 use std::{
     collections::HashSet,
+    net::TcpListener,
     path::{Component, Path, PathBuf},
 };
 
@@ -16,6 +17,43 @@ const DEFAULT_NETWORK_ALLOW_DNS: bool = true;
 pub struct CommandSpec {
     pub program: String,
     pub args: Vec<String>,
+}
+
+#[derive(Default)]
+pub struct DynamicPortReservations {
+    listeners: Vec<TcpListener>,
+}
+
+pub fn reserve_dynamic_ports(settings: &mut Settings) -> Result<DynamicPortReservations, AppError> {
+    let mut reservations = DynamicPortReservations::default();
+    let mut names = HashSet::new();
+
+    for name in settings.dynamic_ports.as_deref().unwrap_or(&[]) {
+        if !names.insert(name) {
+            continue;
+        }
+        let listener = TcpListener::bind("127.0.0.1:0")?;
+        let port = listener.local_addr()?.port();
+        let env_key = format!("DUNGEON_PORT_FOR_{}", name.to_ascii_uppercase());
+        settings
+            .ports
+            .get_or_insert_with(Vec::new)
+            .push(format!("127.0.0.1:{0}:{0}", port));
+        let env_vars = settings.env_vars.get_or_insert_with(Vec::new);
+        env_vars.retain(|spec| !env_spec_has_name(spec, &env_key));
+        env_vars.push(format!("{}={}", env_key, port));
+        reservations.listeners.push(listener);
+    }
+
+    Ok(reservations)
+}
+
+pub fn run_reserved_container_command(
+    spec: CommandSpec,
+    reservations: DynamicPortReservations,
+) -> Result<(), AppError> {
+    drop(reservations);
+    run_container_command(spec)
 }
 
 pub fn build_podman_command(settings: &Settings, args: Vec<String>) -> CommandSpec {
@@ -333,6 +371,15 @@ fn append_env_args(args: &mut Vec<String>, env_specs: &[String]) {
         args.push("--env".to_string());
         args.push(trimmed.to_string());
     }
+}
+
+fn env_spec_has_name(spec: &str, name: &str) -> bool {
+    let trimmed = spec.trim();
+    let key = trimmed
+        .split_once('=')
+        .map(|(key, _)| key)
+        .unwrap_or(trimmed);
+    key == name
 }
 
 fn append_network_env_args(args: &mut Vec<String>, settings: &Settings) {

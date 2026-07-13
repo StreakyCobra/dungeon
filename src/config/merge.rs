@@ -56,6 +56,9 @@ fn merge_settings(base: Settings, override_settings: Settings) -> Settings {
     if let Some(values) = override_settings.ports {
         merged.ports = Some(append_strings(merged.ports, values));
     }
+    if let Some(values) = override_settings.dynamic_ports {
+        merged.dynamic_ports = Some(append_strings(merged.dynamic_ports, values));
+    }
     if let Some(values) = override_settings.cache {
         merged.cache = Some(append_strings(merged.cache, values));
     }

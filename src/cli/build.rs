@@ -6,11 +6,12 @@ use crate::{config, error::AppError};
 
 use super::constants::{
     ARG_PATHS, FLAG_ALLOW_DNS, FLAG_ALLOW_DOMAIN, FLAG_ALLOW_HOST, FLAG_CACHE, FLAG_COMMAND,
-    FLAG_CONTEXT, FLAG_DEBUG, FLAG_DENY_DNS, FLAG_DISCARD, FLAG_ENV, FLAG_ENV_FILE, FLAG_HELP,
-    FLAG_IMAGE, FLAG_IPV6, FLAG_MOUNT, FLAG_MOUNT_GIT_METADATA, FLAG_NO_CACHE, FLAG_NO_IPV6,
-    FLAG_NO_MOUNT_GIT_METADATA, FLAG_PERSIST, FLAG_PERSISTED, FLAG_PODMAN_ARG, FLAG_PORT,
-    FLAG_RUN_ARG, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET,
-    SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
+    FLAG_CONTEXT, FLAG_DEBUG, FLAG_DENY_DNS, FLAG_DISCARD, FLAG_DYNAMIC_PORT, FLAG_ENV,
+    FLAG_ENV_FILE, FLAG_HELP, FLAG_IMAGE, FLAG_IPV6, FLAG_MOUNT, FLAG_MOUNT_GIT_METADATA,
+    FLAG_NO_CACHE, FLAG_NO_IPV6, FLAG_NO_MOUNT_GIT_METADATA, FLAG_PERSIST, FLAG_PERSISTED,
+    FLAG_PODMAN_ARG, FLAG_PORT, FLAG_RUN_ARG, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION,
+    SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD,
+    SUBCOMMAND_RUN,
 };
 
 pub(crate) fn print_targeted_help(
@@ -153,6 +154,16 @@ fn run_subcommand(group_defs: &BTreeMap<String, config::GroupConfig>) -> Command
             Arg::new(FLAG_PORT)
                 .long(FLAG_PORT)
                 .help("Publish a container port (repeatable)")
+                .help_heading("Configurations")
+                .num_args(1)
+                .action(ArgAction::Append),
+        )
+        .arg(
+            Arg::new(FLAG_DYNAMIC_PORT)
+                .long(FLAG_DYNAMIC_PORT)
+                .help(
+                    "Publish a dynamic loopback port and set its environment variable (repeatable)",
+                )
                 .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Append),

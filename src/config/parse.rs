@@ -45,6 +45,11 @@ pub fn load_from_env() -> Result<Config, AppError> {
     if let Ok(value) = env::var(format!("{}PORTS", ENV_PREFIX)) {
         cfg.settings.ports = Some(split_env_list(&value));
     }
+    if let Ok(value) = env::var(format!("{}DYNAMIC_PORTS", ENV_PREFIX)) {
+        let names = split_env_list(&value);
+        super::validate_dynamic_port_names(&names, "DUNGEON_DYNAMIC_PORTS")?;
+        cfg.settings.dynamic_ports = Some(names);
+    }
     if let Ok(value) = env::var(format!("{}CACHES", ENV_PREFIX)) {
         cfg.settings.cache = Some(split_env_list(&value));
     }
@@ -196,6 +201,12 @@ fn parse_settings_key(
         }
         "ports" => {
             settings.ports = Some(parse_string_vec(scope, key, value)?);
+            Ok(true)
+        }
+        "dynamic_ports" => {
+            let names = parse_string_vec(scope, key, value)?;
+            super::validate_dynamic_port_names(&names, &format!("{}.{}", scope, key))?;
+            settings.dynamic_ports = Some(names);
             Ok(true)
         }
         "podman_args" => {

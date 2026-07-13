@@ -117,7 +117,7 @@ There are several ways to configure dungeon, in order of precedence:
 - [Configuration file](#configuration-file)
 - [Default configuration](#default-configuration)
 
-For `dungeon run`, single settings like `command`, `image`, and the `network` booleans override lower-level configuration. List settings like ports, mounts, groups, and network allowlists are merged with lower-level configuration.
+For `dungeon run`, single settings like `command`, `image`, and the `network` booleans override lower-level configuration. List settings like ports, dynamic ports, mounts, groups, and network allowlists are merged with lower-level configuration.
 
 Configuration file, env vars, and groups apply to `dungeon run` only.
 
@@ -129,7 +129,7 @@ Run-session flags live under `dungeon run`:
 
 - `--debug` to print the generated command instead of running it.
 - `--persist`, `--persisted`, `--discard` to manage container persistence.
-- `--command`, `--image`, `--port`, `--cache`, `--mount`, `--env`, `--env-file`, `--podman-arg`, `--run-arg`, `--mount-git-metadata`, `--no-mount-git-metadata` to customize container.
+- `--command`, `--image`, `--port`, `--dynamic-port`, `--cache`, `--mount`, `--env`, `--env-file`, `--podman-arg`, `--run-arg`, `--mount-git-metadata`, `--no-mount-git-metadata` to customize container.
 - `--skip-cwd` to skip mounting the current directory.
 - `--ipv6`, `--no-ipv6`, `--allow-dns`, `--deny-dns`, `--allow-domain`, `--allow-host` to customize the outbound network policy.
 - group flags (for example `--codex`)
@@ -150,6 +150,7 @@ command = "codex"
 image = "localhost/dungeon"
 mount_git_metadata = false
 ports = ["127.0.0.1:8888:8888"]
+dynamic_ports = ["difit"]
 caches = [".cache/pip:rw"]
 mounts = ["~/projects:/home/dungeon/projects:rw"]
 envs = ["OPENAI_API_KEY", "SECRET=abc123"]
@@ -192,7 +193,10 @@ Group behavior:
 - `caches` entries are passed directly as `dungeon-cache:<spec>` volume mounts.
 - `envs` entries are passed directly to Podman (`NAME` or `NAME=VALUE`).
 - `env_files` entries are passed to Podman via `--env-file`.
-- `mounts`, `caches`, `envs`, `env_files`, `ports`, `podman_args`, `run_args`, and network allowlists extend the base settings when enabled.
+- `dynamic_ports`, `DUNGEON_DYNAMIC_PORTS`, and repeatable `--dynamic-port <name>` each add a dynamic port. Names must be lower-case ASCII identifiers (`[a-z][a-z0-9_]*`); `difit` adds `-p 127.0.0.1:X:X` and `DUNGEON_PORT_FOR_DIFIT=X`.
+- Dynamic-port listeners are reserved until Dungeon starts Podman. They are not retained by `--debug`; persisted containers keep their selected mapping and must be recreated if it later conflicts on restart.
+- The published host port is loopback-only. Services using a dynamic port must listen on `0.0.0.0` inside the container so Podman can forward traffic to them.
+- `mounts`, `caches`, `envs`, `env_files`, `ports`, `dynamic_ports`, `podman_args`, `run_args`, and network allowlists extend the base settings when enabled.
 - `command` and `image` use the last enabled group when multiple are set.
 - `mount_git_metadata`, `ipv6`, and `allow_dns` use the highest-precedence value.
 
@@ -213,6 +217,7 @@ Environment overrides use:
 - `DUNGEON_COMMAND`
 - `DUNGEON_IMAGE`
 - `DUNGEON_PORTS` (comma-separated)
+- `DUNGEON_DYNAMIC_PORTS` (comma-separated)
 - `DUNGEON_CACHES` (comma-separated)
 - `DUNGEON_MOUNTS` (comma-separated)
 - `DUNGEON_ENVS` (comma-separated)

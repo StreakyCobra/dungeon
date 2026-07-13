@@ -13,6 +13,7 @@ pub(crate) const FLAG_DISCARD: &str = "discard";
 pub(crate) const FLAG_COMMAND: &str = "command";
 pub(crate) const FLAG_IMAGE: &str = "image";
 pub(crate) const FLAG_PORT: &str = "port";
+pub(crate) const FLAG_DYNAMIC_PORT: &str = "dynamic-port";
 pub(crate) const FLAG_CACHE: &str = "cache";
 pub(crate) const FLAG_MOUNT: &str = "mount";
 pub(crate) const FLAG_ENV: &str = "env";
@@ -44,6 +45,7 @@ pub(crate) const RESERVED_GROUP_NAMES: &[&str] = &[
     FLAG_COMMAND,
     FLAG_IMAGE,
     FLAG_PORT,
+    FLAG_DYNAMIC_PORT,
     FLAG_CACHE,
     FLAG_MOUNT,
     FLAG_ENV,

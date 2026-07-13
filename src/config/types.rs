@@ -20,6 +20,7 @@ pub struct Settings {
     pub command: Option<String>,
     pub image: Option<String>,
     pub ports: Option<Vec<String>>,
+    pub dynamic_ports: Option<Vec<String>>,
     pub cache: Option<Vec<String>>,
     pub mounts: Option<Vec<String>>,
     pub env_vars: Option<Vec<String>>,

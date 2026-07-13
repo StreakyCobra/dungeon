@@ -42,13 +42,16 @@ fn run_container_session(
     let resolved = crate::config::resolve(&parsed, sources)?;
 
     if parsed.debug {
+        let mut settings = resolved.settings.clone();
+        let reservations = container::engine::reserve_dynamic_ports(&mut settings)?;
         let spec = container::engine::build_container_command(
-            &resolved.settings,
+            &settings,
             &resolved.paths,
             false,
             None,
             resolved.skip_cwd,
         )?;
+        drop(reservations);
         println!("{} {}", spec.program, spec.args.join(" "));
         return Ok(());
     }
@@ -64,8 +67,10 @@ fn run_container_session(
             )?;
         }
         container::persist::PersistMode::Create => {
+            let mut settings = resolved.settings.clone();
+            let reservations = container::engine::reserve_dynamic_ports(&mut settings)?;
             let spec = container::engine::build_container_command(
-                &resolved.settings,
+                &settings,
                 &resolved.paths,
                 true,
                 Some(&resolved.container_name),
@@ -74,18 +79,21 @@ fn run_container_session(
             container::persist::run_persisted_session(
                 &resolved.container_name,
                 spec,
-                &resolved.settings,
+                &settings,
+                reservations,
             )?;
         }
         container::persist::PersistMode::None => {
+            let mut settings = resolved.settings.clone();
+            let reservations = container::engine::reserve_dynamic_ports(&mut settings)?;
             let spec = container::engine::build_container_command(
-                &resolved.settings,
+                &settings,
                 &resolved.paths,
                 false,
                 None,
                 resolved.skip_cwd,
             )?;
-            container::engine::run_container_command(spec)?;
+            container::engine::run_reserved_container_command(spec, reservations)?;
         }
     }
 

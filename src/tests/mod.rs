@@ -2,6 +2,7 @@ mod support;
 
 mod basic_run;
 mod config_parsing;
+mod dynamic_ports;
 mod engine;
 mod env_files;
 mod git_metadata;

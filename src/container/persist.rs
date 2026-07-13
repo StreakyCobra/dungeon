@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     config::Settings,
-    container::engine::{CommandSpec, build_podman_command},
+    container::engine::{CommandSpec, DynamicPortReservations, build_podman_command},
     error::AppError,
 };
 
@@ -158,6 +158,7 @@ pub fn run_persisted_session(
     name: &str,
     spec: CommandSpec,
     settings: &Settings,
+    reservations: DynamicPortReservations,
 ) -> Result<(), AppError> {
     if container_exists(name, settings)? {
         return Err(AppError::message(format!(
@@ -165,6 +166,7 @@ pub fn run_persisted_session(
             name
         )));
     }
+    drop(reservations);
     crate::container::run_attached_command(&spec.program, &spec.args)
 }
 

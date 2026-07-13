@@ -194,20 +194,16 @@ fn image_build_uses_podman_args_from_always_on_groups() {
     };
     let args = vec!["image".to_string(), "build".to_string()];
 
-    let parsed = cli::parse_args_with_sources(
-        args,
-        &sources.defaults,
-        &sources.file,
-        &sources.env,
-    )
-    .expect("parse args");
+    let parsed = cli::parse_args_with_sources(args, &sources.defaults, &sources.file, &sources.env)
+        .expect("parse args");
 
     let build = match parsed.action {
         cli::Action::ImageBuild(build) => build,
         _ => panic!("expected image build action"),
     };
 
-    let settings = config::resolve_global_settings(&parsed.settings, &sources).expect("resolve settings");
+    let settings =
+        config::resolve_global_settings(&parsed.settings, &sources).expect("resolve settings");
     let spec = container::engine::build_image_command(
         &settings,
         &build.tag,
@@ -243,20 +239,16 @@ fn cache_reset_uses_podman_args_from_always_on_groups() {
     };
     let args = vec!["cache".to_string(), "reset".to_string()];
 
-    let parsed = cli::parse_args_with_sources(
-        args,
-        &sources.defaults,
-        &sources.file,
-        &sources.env,
-    )
-    .expect("parse args");
+    let parsed = cli::parse_args_with_sources(args, &sources.defaults, &sources.file, &sources.env)
+        .expect("parse args");
 
     let _cache = match parsed.action {
         cli::Action::CacheReset(cache) => cache,
         _ => panic!("expected cache reset action"),
     };
 
-    let settings = config::resolve_global_settings(&parsed.settings, &sources).expect("resolve settings");
+    let settings =
+        config::resolve_global_settings(&parsed.settings, &sources).expect("resolve settings");
     let spec = container::engine::build_cache_reset_command(&settings);
 
     assert_eq!(
