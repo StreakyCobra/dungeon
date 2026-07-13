@@ -37,13 +37,14 @@ pub struct Settings {
 #[derive(Debug, Clone, Default)]
 pub struct Config {
     pub settings: Settings,
-    pub always_on_groups: Option<Vec<String>>,
+    pub include_groups: Option<Vec<String>>,
     pub groups: BTreeMap<String, GroupConfig>,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct GroupConfig {
     pub settings: Settings,
+    pub include_groups: Vec<String>,
     pub disabled: bool,
 }
 

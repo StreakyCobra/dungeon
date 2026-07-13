@@ -173,18 +173,27 @@ fn cache_reset_accepts_podman_args_from_config_and_cli() {
 }
 
 #[test]
-fn image_build_uses_podman_args_from_always_on_groups() {
+fn image_build_uses_podman_args_from_included_groups() {
     let defaults = config::Config::default();
-    let mut file_cfg = config::Config::default();
-    file_cfg.always_on_groups = Some(vec!["vm".to_string()]);
+    let mut file_cfg = config::Config {
+        include_groups: Some(vec!["vm".to_string()]),
+        ..config::Config::default()
+    };
     file_cfg.groups.insert(
         "vm".to_string(),
+        config::GroupConfig {
+            include_groups: vec!["base".to_string()],
+            ..config::GroupConfig::default()
+        },
+    );
+    file_cfg.groups.insert(
+        "base".to_string(),
         config::GroupConfig {
             settings: config::Settings {
                 podman_args: Some(vec!["-c".to_string(), "agent-vm".to_string()]),
                 ..config::Settings::default()
             },
-            disabled: false,
+            ..config::GroupConfig::default()
         },
     );
     let sources = config::LoadedConfigSources {
@@ -218,10 +227,12 @@ fn image_build_uses_podman_args_from_always_on_groups() {
 }
 
 #[test]
-fn cache_reset_uses_podman_args_from_always_on_groups() {
+fn cache_reset_uses_podman_args_from_included_groups() {
     let defaults = config::Config::default();
-    let mut file_cfg = config::Config::default();
-    file_cfg.always_on_groups = Some(vec!["vm".to_string()]);
+    let mut file_cfg = config::Config {
+        include_groups: Some(vec!["vm".to_string()]),
+        ..config::Config::default()
+    };
     file_cfg.groups.insert(
         "vm".to_string(),
         config::GroupConfig {
@@ -229,7 +240,7 @@ fn cache_reset_uses_podman_args_from_always_on_groups() {
                 podman_args: Some(vec!["-c".to_string(), "agent-vm".to_string()]),
                 ..config::Settings::default()
             },
-            disabled: false,
+            ..config::GroupConfig::default()
         },
     );
     let sources = config::LoadedConfigSources {

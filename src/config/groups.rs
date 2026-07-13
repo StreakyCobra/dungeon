@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::error::AppError;
 
@@ -26,25 +26,19 @@ pub fn merge_group_definitions(
     Ok(merged)
 }
 
-pub fn build_group_selection(
+pub fn validate_group_selection(
     groups: &BTreeMap<String, GroupConfig>,
-    defaults: &[String],
-) -> Result<BTreeMap<String, bool>, AppError> {
-    let mut enabled = BTreeMap::new();
-    for name in groups.keys() {
-        enabled.insert(name.clone(), false);
-    }
-    for name in defaults {
-        let trimmed = normalize_group_name(name)?;
-        if !groups.contains_key(&trimmed) {
+    included_groups: &[String],
+) -> Result<(), AppError> {
+    for name in included_groups {
+        if !groups.contains_key(name) {
             return Err(AppError::message(format!(
-                "ERROR: always_on_groups includes unknown group \"{}\"",
-                trimmed
+                "ERROR: include_groups includes unknown group \"{}\"",
+                name
             )));
         }
-        enabled.insert(trimmed, true);
     }
-    Ok(enabled)
+    validate_group_inclusions(groups)
 }
 
 pub fn normalize_group_order(groups: &[String]) -> Result<Vec<String>, AppError> {
@@ -56,10 +50,11 @@ pub fn normalize_group_order(groups: &[String]) -> Result<Vec<String>, AppError>
 }
 
 pub fn resolve_group_order(
-    default_groups: &[String],
+    root_groups: &[String],
     flags: &BTreeMap<String, crate::cli::GroupFlag>,
-) -> Vec<String> {
-    let mut order = default_groups.to_vec();
+    groups: &BTreeMap<String, GroupConfig>,
+) -> Result<Vec<String>, AppError> {
+    let mut order = root_groups.to_vec();
     let selected: Vec<(String, usize)> = flags
         .iter()
         .filter(|(_, flag)| flag.set)
@@ -67,12 +62,12 @@ pub fn resolve_group_order(
         .collect();
 
     if selected.is_empty() {
-        return order;
+        return expand_group_order(groups, &order);
     }
 
     let mut selected_sorted = selected;
     selected_sorted.sort_by_key(|(_, order)| *order);
-    let selected_set: std::collections::BTreeSet<String> = selected_sorted
+    let selected_set: BTreeSet<String> = selected_sorted
         .iter()
         .map(|(name, _)| name.clone())
         .collect();
@@ -81,7 +76,86 @@ pub fn resolve_group_order(
     for (name, _) in selected_sorted {
         order.push(name);
     }
-    order
+    expand_group_order(groups, &order)
+}
+
+fn validate_group_inclusions(groups: &BTreeMap<String, GroupConfig>) -> Result<(), AppError> {
+    let mut visited = BTreeSet::new();
+    let mut active = Vec::new();
+    for name in groups.keys() {
+        validate_group_inclusions_from(name, groups, &mut visited, &mut active)?;
+    }
+    Ok(())
+}
+
+fn validate_group_inclusions_from(
+    name: &str,
+    groups: &BTreeMap<String, GroupConfig>,
+    visited: &mut BTreeSet<String>,
+    active: &mut Vec<String>,
+) -> Result<(), AppError> {
+    if visited.contains(name) {
+        return Ok(());
+    }
+    if let Some(start) = active.iter().position(|active_name| active_name == name) {
+        let mut cycle = active[start..].to_vec();
+        cycle.push(name.to_string());
+        return Err(AppError::message(format!(
+            "ERROR: group inclusion cycle: {}",
+            cycle.join(" -> ")
+        )));
+    }
+
+    let group = groups
+        .get(name)
+        .expect("all group inclusion roots must exist");
+    active.push(name.to_string());
+    for included in &group.include_groups {
+        let included = normalize_group_name(included)?;
+        if !groups.contains_key(&included) {
+            return Err(AppError::message(format!(
+                "ERROR: group \"{}\" includes unknown group \"{}\"",
+                name, included
+            )));
+        }
+        validate_group_inclusions_from(&included, groups, visited, active)?;
+    }
+    active.pop();
+    visited.insert(name.to_string());
+    Ok(())
+}
+
+fn expand_group_order(
+    groups: &BTreeMap<String, GroupConfig>,
+    roots: &[String],
+) -> Result<Vec<String>, AppError> {
+    let mut expanded = Vec::new();
+    let mut included = BTreeSet::new();
+    for name in roots {
+        expand_group(name, groups, &mut included, &mut expanded)?;
+    }
+    Ok(expanded)
+}
+
+fn expand_group(
+    name: &str,
+    groups: &BTreeMap<String, GroupConfig>,
+    included: &mut BTreeSet<String>,
+    expanded: &mut Vec<String>,
+) -> Result<(), AppError> {
+    if !included.insert(name.to_string()) {
+        return Ok(());
+    }
+
+    let group = groups
+        .get(name)
+        .ok_or_else(|| AppError::message(format!("ERROR: unknown group \"{}\"", name)))?;
+    for dependency in &group.include_groups {
+        let dependency = normalize_group_name(dependency)?;
+        expand_group(&dependency, groups, included, expanded)?;
+    }
+    expanded.push(name.to_string());
+    Ok(())
 }
 
 fn normalize_group_name(name: &str) -> Result<String, AppError> {

@@ -18,6 +18,23 @@ unknown = "value"
 }
 
 #[test]
+fn rejects_replaced_always_on_groups_key() {
+    let input = TestInput {
+        toml: r#"
+[general]
+always_on_groups = ["codex"]
+"#,
+        args: &["run"],
+        env: &[],
+        cwd_name: "replaced-general-key",
+        cwd_entries: &[],
+        fs_entries: &[],
+    };
+
+    assert_input_error_contains(input, "[general] has unknown key \"always_on_groups\"");
+}
+
+#[test]
 fn errors_on_non_string_general_engine() {
     let input = TestInput {
         toml: r#"

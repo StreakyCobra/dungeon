@@ -20,23 +20,23 @@ pub fn resolve_settings(
     Ok(settings)
 }
 
-pub fn resolve_always_on_groups(
+pub fn resolve_include_groups(
     defaults: &super::Config,
     file: &super::Config,
     env: &super::Config,
     cli: &super::Config,
 ) -> Vec<String> {
     let mut groups = Vec::new();
-    if let Some(list) = &defaults.always_on_groups {
+    if let Some(list) = &defaults.include_groups {
         groups.extend(list.clone());
     }
-    if let Some(list) = &file.always_on_groups {
+    if let Some(list) = &file.include_groups {
         groups.extend(list.clone());
     }
-    if let Some(list) = &env.always_on_groups {
+    if let Some(list) = &env.include_groups {
         groups.extend(list.clone());
     }
-    if let Some(list) = &cli.always_on_groups {
+    if let Some(list) = &cli.include_groups {
         groups.extend(list.clone());
     }
     groups

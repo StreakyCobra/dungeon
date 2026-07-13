@@ -84,8 +84,8 @@ pub fn load_from_env() -> Result<Config, AppError> {
     if let Ok(value) = env::var(format!("{}ALLOWED_TCP_HOSTS", ENV_PREFIX)) {
         cfg.settings.allowed_tcp_hosts = Some(split_env_list(&value));
     }
-    if let Ok(value) = env::var(format!("{}ALWAYS_ON_GROUPS", ENV_PREFIX)) {
-        cfg.always_on_groups = Some(split_env_list(&value));
+    if let Ok(value) = env::var(format!("{}INCLUDE_GROUPS", ENV_PREFIX)) {
+        cfg.include_groups = Some(split_env_list(&value));
     }
 
     Ok(cfg)
@@ -117,8 +117,8 @@ fn parse_general_config(value: &toml::Value, cfg: &mut Config) -> Result<(), App
         .ok_or_else(|| AppError::message("[general] must be a table"))?;
 
     for (key, value) in table {
-        if key == "always_on_groups" {
-            cfg.always_on_groups = Some(parse_string_vec("general", key, value)?);
+        if key == "include_groups" {
+            cfg.include_groups = Some(parse_string_vec("general", key, value)?);
             continue;
         }
 
@@ -144,9 +144,11 @@ fn parse_group_config(name: &str, value: &toml::Value) -> Result<GroupConfig, Ap
         });
     }
 
-    let mut settings = Settings::default();
+    let mut group = GroupConfig::default();
     for (key, value) in table {
-        if !parse_settings_key(&mut settings, name, key, value)? {
+        if key == "include_groups" {
+            group.include_groups = parse_string_vec(name, key, value)?;
+        } else if !parse_settings_key(&mut group.settings, name, key, value)? {
             return Err(AppError::message(format!(
                 "group \"{}\" has unknown key \"{}\"",
                 name, key
@@ -154,10 +156,7 @@ fn parse_group_config(name: &str, value: &toml::Value) -> Result<GroupConfig, Ap
         }
     }
 
-    Ok(GroupConfig {
-        settings,
-        disabled: false,
-    })
+    Ok(group)
 }
 
 fn parse_settings_key(

@@ -4,9 +4,9 @@ mod parse;
 mod types;
 
 pub use groups::{
-    build_group_selection, merge_group_definitions, normalize_group_order, resolve_group_order,
+    merge_group_definitions, normalize_group_order, resolve_group_order, validate_group_selection,
 };
-pub use merge::{resolve_always_on_groups, resolve_settings};
+pub use merge::{resolve_include_groups, resolve_settings};
 pub use types::{Config, Engine, GroupConfig, ResolvedConfig, Settings, Sources};
 
 use crate::cli;
@@ -24,16 +24,16 @@ pub fn resolve(
     sources: &LoadedConfigSources,
 ) -> Result<ResolvedConfig, AppError> {
     let group_defs = merge_group_definitions(&sources.defaults.groups, &sources.file.groups)?;
-    let base_order = normalize_group_order(&resolve_always_on_groups(
+    let base_order = normalize_group_order(&resolve_include_groups(
         &sources.defaults,
         &sources.file,
         &sources.env,
         &Config::default(),
     ))?;
-    build_group_selection(&group_defs, &base_order)?;
+    validate_group_selection(&group_defs, &base_order)?;
 
     let group_flags = cli::collect_group_flags_from_names(parsed, &group_defs);
-    let group_order = resolve_group_order(&base_order, &group_flags);
+    let group_order = resolve_group_order(&base_order, &group_flags, &group_defs)?;
 
     let final_settings = resolve_settings(
         Sources {
@@ -69,13 +69,18 @@ pub fn resolve_global_settings(
     sources: &LoadedConfigSources,
 ) -> Result<Settings, AppError> {
     let group_defs = merge_group_definitions(&sources.defaults.groups, &sources.file.groups)?;
-    let group_order = normalize_group_order(&resolve_always_on_groups(
+    let group_order = normalize_group_order(&resolve_include_groups(
         &sources.defaults,
         &sources.file,
         &sources.env,
         &Config::default(),
     ))?;
-    build_group_selection(&group_defs, &group_order)?;
+    validate_group_selection(&group_defs, &group_order)?;
+    let group_order = resolve_group_order(
+        &group_order,
+        &std::collections::BTreeMap::new(),
+        &group_defs,
+    )?;
 
     resolve_settings(
         Sources {

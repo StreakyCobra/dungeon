@@ -40,9 +40,9 @@ pub fn parse_args_with_sources(
     validate_group_names(&group_defs)?;
 
     let base_groups =
-        config::resolve_always_on_groups(defaults, file_cfg, env_cfg, &config::Config::default());
+        config::resolve_include_groups(defaults, file_cfg, env_cfg, &config::Config::default());
     let base_order = config::normalize_group_order(&base_groups)?;
-    let _group_enabled = config::build_group_selection(&group_defs, &base_order)?;
+    config::validate_group_selection(&group_defs, &base_order)?;
 
     let mut cmd = base_command(&group_defs);
     let matches = parse_matches(&mut cmd, args)?;

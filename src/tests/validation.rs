@@ -323,10 +323,12 @@ fn cache_requires_subcommand() {
 }
 
 #[test]
-fn unknown_always_on_group_errors() {
+fn unknown_included_group_errors() {
     let defaults = config::Config::default();
-    let mut file_cfg = config::Config::default();
-    file_cfg.always_on_groups = Some(vec!["missing-group".to_string()]);
+    let file_cfg = config::Config {
+        include_groups: Some(vec!["missing-group".to_string()]),
+        ..config::Config::default()
+    };
     let env_cfg = config::Config::default();
     let args = vec!["run".to_string()];
 
@@ -334,8 +336,65 @@ fn unknown_always_on_group_errors() {
     let err = result.expect_err("expected unknown group error");
     assert!(
         err.to_string()
-            .contains("ERROR: always_on_groups includes unknown group \"missing-group\"")
+            .contains("ERROR: include_groups includes unknown group \"missing-group\"")
     );
+}
+
+#[test]
+fn unknown_group_dependency_errors() {
+    let input = TestInput {
+        toml: r#"
+[ai]
+include_groups = ["missing"]
+"#,
+        args: &["run"],
+        env: &[],
+        cwd_name: "unknown-group-dependency",
+        cwd_entries: &[],
+        fs_entries: &[],
+    };
+
+    assert_input_error_contains(input, "group \"ai\" includes unknown group \"missing\"");
+}
+
+#[test]
+fn group_inclusion_cycle_errors() {
+    let input = TestInput {
+        toml: r#"
+[ai]
+include_groups = ["skills"]
+
+[skills]
+include_groups = ["difit"]
+
+[difit]
+include_groups = ["ai"]
+"#,
+        args: &["run"],
+        env: &[],
+        cwd_name: "group-inclusion-cycle",
+        cwd_entries: &[],
+        fs_entries: &[],
+    };
+
+    assert_input_error_contains(input, "group inclusion cycle: ai -> skills -> difit -> ai");
+}
+
+#[test]
+fn group_self_inclusion_errors() {
+    let input = TestInput {
+        toml: r#"
+[ai]
+include_groups = ["ai"]
+"#,
+        args: &["run"],
+        env: &[],
+        cwd_name: "group-self-inclusion",
+        cwd_entries: &[],
+        fs_entries: &[],
+    };
+
+    assert_input_error_contains(input, "group inclusion cycle: ai -> ai");
 }
 
 fn assert_input_error_contains(input: TestInput<'_>, expected_substring: &str) {
