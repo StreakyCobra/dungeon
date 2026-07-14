@@ -72,7 +72,7 @@ RUN git config --global user.name "dungeon" && \
 
 # Install AI agents in a builder stage and keep only the runtime binaries.
 RUN npm i -g @openai/codex@latest \
-    && npm i -g opencode-ai@latest \
+    && npm i -g --allow-scripts=opencode-ai opencode-ai@latest \
     && npm i -g --ignore-scripts @earendil-works/pi-coding-agent@latest \
     && rm -rf /home/dungeon/.npm-global/lib/node_modules/opencode-linux-* \
     && rm -rf /home/dungeon/.npm
