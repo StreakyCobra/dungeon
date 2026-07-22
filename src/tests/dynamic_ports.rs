@@ -33,8 +33,10 @@ fn reserves_deduped_dynamic_ports_and_generated_envs_override_configured_values(
             .and_then(|value| value.split_once(':'))
             .expect("dynamic port spec");
         assert_eq!(port.0, port.1);
-        assert!(port.0.parse::<u16>().is_ok());
-        assert!(env.ends_with(port.0));
+        let port_text = port.0;
+        let port = port_text.parse::<u16>().expect("port number");
+        assert!((20_000..=32_767).contains(&port));
+        assert!(env.ends_with(port_text));
     }
     let first_dynamic_port = ports[1]["127.0.0.1:".len()..]
         .split_once(':')

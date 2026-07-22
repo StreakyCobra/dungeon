@@ -1,5 +1,6 @@
 use std::{
     collections::HashSet,
+    io::Read,
     net::TcpListener,
     path::{Component, Path, PathBuf},
 };
@@ -12,6 +13,9 @@ use crate::{
 const WORKSPACE_ROOT: &str = "/workspace";
 const DEFAULT_NETWORK_IPV6: bool = false;
 const DEFAULT_NETWORK_ALLOW_DNS: bool = true;
+// passt forwards all ports below its ephemeral range when krun is enabled.
+const DYNAMIC_PORT_START: u16 = 20_000;
+const DYNAMIC_PORT_END: u16 = 32_767;
 
 #[derive(Debug, Clone)]
 pub struct CommandSpec {
@@ -32,7 +36,7 @@ pub fn reserve_dynamic_ports(settings: &mut Settings) -> Result<DynamicPortReser
         if !names.insert(name) {
             continue;
         }
-        let listener = TcpListener::bind("127.0.0.1:0")?;
+        let listener = reserve_dynamic_port()?;
         let port = listener.local_addr()?.port();
         let env_key = format!("DUNGEON_PORT_FOR_{}", name.to_ascii_uppercase());
         settings
@@ -46,6 +50,26 @@ pub fn reserve_dynamic_ports(settings: &mut Settings) -> Result<DynamicPortReser
     }
 
     Ok(reservations)
+}
+
+fn reserve_dynamic_port() -> Result<TcpListener, AppError> {
+    let mut random = [0; 2];
+    std::fs::File::open("/dev/urandom")?.read_exact(&mut random)?;
+    let port_count = DYNAMIC_PORT_END - DYNAMIC_PORT_START + 1;
+    let start = u16::from_ne_bytes(random) % port_count;
+
+    for offset in 0..port_count {
+        let port = DYNAMIC_PORT_START + (start + offset) % port_count;
+        match TcpListener::bind(("127.0.0.1", port)) {
+            Ok(listener) => return Ok(listener),
+            Err(err) if err.kind() == std::io::ErrorKind::AddrInUse => continue,
+            Err(err) => return Err(err.into()),
+        }
+    }
+
+    Err(AppError::message(
+        "unable to reserve a dynamic port outside passt's ephemeral range",
+    ))
 }
 
 pub fn run_reserved_container_command(
