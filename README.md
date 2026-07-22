@@ -216,12 +216,18 @@ Group behavior:
 
 ### libkrun
 
-The provided image can run as a libkrun microVM. Enable it through the existing run arguments:
+The provided image can run as a libkrun microVM. Configure an opt-in group with resource limits appropriate for the host:
 
 ```toml
-[general]
-run_args = ["--runtime=krun"]
+[krun]
+run_args = [
+  "--runtime=krun",
+  "--annotation=krun.ram_mib=4096",
+  "--memory=5g",
+]
 ```
+
+Start it with `dungeon run --krun`. `krun.ram_mib` sets guest RAM; `--memory` also leaves room for the runtime outside the guest.
 
 The image configures libkrun to use `passt`, which gives the guest a virtual network interface. Dungeon applies its nftables policy inside that guest, so the domain, host, DNS, and IPv6 restrictions continue to apply under krun.
 
