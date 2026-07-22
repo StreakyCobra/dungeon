@@ -56,6 +56,7 @@ WORKDIR /workspace
 ENV NPM_CONFIG_PREFIX=/home/dungeon/.npm-global
 ENV NPM_CONFIG_CACHE=/home/dungeon/.cache/npm
 ENV UV_CACHE_DIR=/home/dungeon/.cache/uv
+ENV EDITOR=nvim
 ENV PATH=/home/dungeon/.npm-global/bin:$PATH
 
 FROM base AS agent-builder
