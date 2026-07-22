@@ -12,8 +12,7 @@ RUN pacman -Syu --noconfirm \
       less \
       npm \
       nvim \
-      ipset \
-      iptables \
+      nftables \
       pre-commit \
       ripgrep \
       starship \
@@ -44,6 +43,7 @@ COPY images/dungeon-bootstrap /usr/local/bin/dungeon-bootstrap
 COPY images/dungeon-install /usr/local/bin/dungeon-install
 COPY images/dot-zimrc /home/dungeon/.zimrc
 COPY images/dot-zshrc /home/dungeon/.zshrc
+COPY images/krun_vm.json /.krun_vm.json
 RUN chmod 0755 /usr/local/bin/dungeon-bootstrap /usr/local/bin/dungeon-install
 
 # Setup ZSH

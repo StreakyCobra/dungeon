@@ -216,6 +216,19 @@ Group behavior:
 - `allow_dns = true` allows container DNS queries by default.
 - `allow_dns = false` blocks container DNS queries after bootstrap has finished resolving any configured domains.
 
+### libkrun
+
+The provided image can run as a libkrun microVM. Enable it through the existing run arguments:
+
+```toml
+[general]
+run_args = ["--runtime=krun"]
+```
+
+The image configures libkrun to use `passt`, which gives the guest a virtual network interface. Dungeon applies its nftables policy inside that guest, so the domain, host, DNS, and IPv6 restrictions continue to apply under krun.
+
+The Linux system running Podman locally must provide KVM access, `passt`, a krun-enabled crun runtime, and libkrunfw 5.5.0 or newer. Earlier libkrunfw kernels do not include the required nftables netfilter support. Use a current crun build with passt DHCP and DNS support. Podman's remote client, including Podman machines selected with `-c` or `--connection`, does not support `--runtime`; run this configuration against a local Podman service instead.
+
 ### Environment variables
 
 Environment overrides use:
@@ -239,6 +252,7 @@ Environment overrides use:
 ## Runtime behavior
 
 - `dungeon run` always starts the container as root, installs the firewall policy, drops capabilities, and then switches to the `dungeon` user.
+- The firewall uses nftables. With `--runtime=krun`, it filters traffic inside the microVM and requires the libkrun prerequisites above.
 - The runtime intentionally preserves the image's narrow `sudo dungeon-install ...` path; broader root access still is not granted.
 - The Podman command keeps `--userns=keep-id`, so bind-mounted files still line up with the host user.
 - The image entrypoint is `dungeon-bootstrap`, which applies the runtime network policy.

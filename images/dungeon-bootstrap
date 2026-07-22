@@ -32,102 +32,24 @@ read_csv_values() {
     printf '%s\n' "${(@ou)${(@)values:#}}"
 }
 
-configure_open_ipv4() {
-    iptables -F
-    iptables -X
-    iptables -P INPUT ACCEPT
-    iptables -P FORWARD ACCEPT
-    iptables -P OUTPUT ACCEPT
+is_safe_nft_address() {
+    local address=$1
 
-    if [[ $allow_dns != 1 ]]; then
-        iptables -A OUTPUT -p udp --dport 53 -j REJECT --reject-with icmp-port-unreachable
-        iptables -A OUTPUT -p tcp --dport 53 -j REJECT --reject-with icmp-port-unreachable
-    fi
+    [[ $address =~ '^[0-9A-Fa-f:.]+(/[0-9]{1,3})?$' ]]
 }
 
-configure_open_ipv6() {
-    ip6tables -F
-    ip6tables -X
+add_allowed_address() {
+    local address=$1
 
-    if [[ $ipv6_enabled != 1 ]]; then
-        ip6tables -P INPUT DROP
-        ip6tables -P FORWARD DROP
-        ip6tables -P OUTPUT DROP
-        return
+    if ! is_safe_nft_address "$address"; then
+        printf 'dungeon-bootstrap: invalid allowed address: %s\n' "$address" >&2
+        exit 1
     fi
 
-    ip6tables -P INPUT ACCEPT
-    ip6tables -P FORWARD ACCEPT
-    ip6tables -P OUTPUT ACCEPT
-
-    if [[ $allow_dns != 1 ]]; then
-        ip6tables -A OUTPUT -p udp --dport 53 -j REJECT --reject-with icmp6-port-unreachable
-        ip6tables -A OUTPUT -p tcp --dport 53 -j REJECT --reject-with icmp6-port-unreachable
-    fi
-}
-
-configure_restricted_ipv4() {
-    iptables -F
-    iptables -X
-    ipset destroy dungeon-allowed4 2>/dev/null || true
-    ipset create dungeon-allowed4 hash:net family inet
-
-    iptables -P INPUT DROP
-    iptables -P FORWARD DROP
-    iptables -P OUTPUT DROP
-    iptables -A INPUT -i lo -j ACCEPT
-    iptables -A OUTPUT -o lo -j ACCEPT
-    iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-    iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-
-    if [[ $allow_dns == 1 ]]; then
-        iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
-        iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
-    fi
-
-    iptables -A OUTPUT -p tcp -m set --match-set dungeon-allowed4 dst -j ACCEPT
-    iptables -A INPUT -j REJECT --reject-with icmp-port-unreachable
-    iptables -A OUTPUT -j REJECT --reject-with icmp-port-unreachable
-}
-
-configure_restricted_ipv6() {
-    ip6tables -F
-    ip6tables -X
-    ipset destroy dungeon-allowed6 2>/dev/null || true
-    ipset create dungeon-allowed6 hash:net family inet6
-
-    if [[ $ipv6_enabled != 1 ]]; then
-        ip6tables -P INPUT DROP
-        ip6tables -P FORWARD DROP
-        ip6tables -P OUTPUT DROP
-        return
-    fi
-
-    ip6tables -P INPUT DROP
-    ip6tables -P FORWARD DROP
-    ip6tables -P OUTPUT DROP
-    ip6tables -A INPUT -i lo -j ACCEPT
-    ip6tables -A OUTPUT -o lo -j ACCEPT
-    ip6tables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-    ip6tables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-
-    if [[ $allow_dns == 1 ]]; then
-        ip6tables -A OUTPUT -p udp --dport 53 -j ACCEPT
-        ip6tables -A OUTPUT -p tcp --dport 53 -j ACCEPT
-    fi
-
-    ip6tables -A OUTPUT -p tcp -m set --match-set dungeon-allowed6 dst -j ACCEPT
-    ip6tables -A INPUT -j REJECT --reject-with icmp6-port-unreachable
-    ip6tables -A OUTPUT -j REJECT --reject-with icmp6-port-unreachable
-}
-
-add_allowed_host() {
-    local host=$1
-
-    if [[ $host == *:* ]]; then
-        ipset add dungeon-allowed6 "$host" -exist
+    if [[ $address == *:* ]]; then
+        [[ $ipv6_enabled == 1 ]] && allowed_ipv6+=("$address")
     else
-        ipset add dungeon-allowed4 "$host" -exist
+        allowed_ipv4+=("$address")
     fi
 }
 
@@ -138,12 +60,87 @@ add_allowed_domain() {
     while IFS= read -r line; do
         ip=${line%%[[:space:]]*}
         [[ -z $ip ]] && continue
-        if [[ $ip == *:* ]]; then
-            [[ $ipv6_enabled == 1 ]] && ipset add dungeon-allowed6 "$ip" -exist
-        else
-            ipset add dungeon-allowed4 "$ip" -exist
-        fi
+        add_allowed_address "$ip"
     done < <(getent ahosts "$domain" | sort -u)
+}
+
+write_firewall_rules() {
+    local ruleset=$1
+    local restricted=$2
+    local address
+
+    {
+        printf '%s\n' 'destroy table inet dungeon'
+        printf '%s\n' 'table inet dungeon {'
+        printf '%s\n' '  chain input { type filter hook input priority filter; policy accept;'
+        printf '%s\n' '    iif lo accept'
+        printf '%s\n' '    ct state established,related accept'
+        if [[ $ipv6_enabled != 1 ]]; then
+            printf '%s\n' '    meta nfproto ipv6 reject with icmpx type port-unreachable'
+        fi
+        if [[ $restricted == 1 ]]; then
+            printf '%s\n' '    reject with icmpx type port-unreachable'
+        fi
+        printf '%s\n' '  }'
+
+        printf '%s\n' '  chain forward { type filter hook forward priority filter; policy accept;'
+        printf '%s\n' '    ct state established,related accept'
+        if [[ $ipv6_enabled != 1 ]]; then
+            printf '%s\n' '    meta nfproto ipv6 reject with icmpx type port-unreachable'
+        fi
+        if [[ $restricted == 1 ]]; then
+            printf '%s\n' '    reject with icmpx type port-unreachable'
+        fi
+        printf '%s\n' '  }'
+
+        printf '%s\n' '  chain output { type filter hook output priority filter; policy accept;'
+        printf '%s\n' '    oif lo accept'
+        printf '%s\n' '    ct state established,related accept'
+        if [[ $ipv6_enabled != 1 ]]; then
+            printf '%s\n' '    meta nfproto ipv6 reject with icmpx type port-unreachable'
+        fi
+        if [[ $restricted == 1 ]]; then
+            if [[ $allow_dns == 1 ]]; then
+                printf '%s\n' '    udp dport 53 accept'
+                printf '%s\n' '    tcp dport 53 accept'
+            fi
+            for address in $allowed_ipv4; do
+                printf '    ip daddr %s tcp dport 0-65535 accept\n' "$address"
+            done
+            for address in $allowed_ipv6; do
+                printf '    ip6 daddr %s tcp dport 0-65535 accept\n' "$address"
+            done
+            printf '%s\n' '    reject with icmpx type port-unreachable'
+        elif [[ $allow_dns != 1 ]]; then
+            printf '%s\n' '    udp dport 53 reject with icmpx type port-unreachable'
+            printf '%s\n' '    tcp dport 53 reject with icmpx type port-unreachable'
+        fi
+        printf '%s\n' '  }'
+        printf '%s\n' '}'
+    } > "$ruleset"
+}
+
+configure_firewall() {
+    local ruleset restricted=0
+
+    if ! command -v nft >/dev/null; then
+        printf '%s\n' 'dungeon-bootstrap: nft is required for the network policy' >&2
+        exit 1
+    fi
+
+    allowed_ipv4=(${(@ou)allowed_ipv4})
+    allowed_ipv6=(${(@ou)allowed_ipv6})
+    (( ${#allowed_ipv4[@]} != 0 || ${#allowed_ipv6[@]} != 0 )) && restricted=1
+
+    ruleset=$(mktemp)
+    trap 'rm -f "$ruleset"' EXIT
+    write_firewall_rules "$ruleset" "$restricted"
+    if ! nft -f "$ruleset"; then
+        printf '%s\n' 'dungeon-bootstrap: nftables is unavailable; krun requires libkrunfw 5.5.0 or newer' >&2
+        exit 1
+    fi
+    rm -f "$ruleset"
+    trap - EXIT
 }
 
 grant_runtime_tty_access() {
@@ -160,23 +157,17 @@ grant_runtime_tty_access() {
 
 allowed_domains=(${${(f)"$(read_csv_values "$allowed_domains_raw")"}:#})
 allowed_hosts=(${${(f)"$(read_csv_values "$allowed_hosts_raw")"}:#})
+allowed_ipv4=()
+allowed_ipv6=()
 
-if (( ${#allowed_domains[@]} == 0 && ${#allowed_hosts[@]} == 0 )); then
-    configure_open_ipv4
-    configure_open_ipv6
-else
-    configure_restricted_ipv4
-    configure_restricted_ipv6
+for host in $allowed_hosts; do
+    add_allowed_address "$host"
+done
+for domain in $allowed_domains; do
+    add_allowed_domain "$domain"
+done
 
-    for host in $allowed_hosts; do
-        add_allowed_host "$host"
-    done
-
-    for domain in $allowed_domains; do
-        add_allowed_domain "$domain"
-    done
-fi
-
+configure_firewall
 grant_runtime_tty_access
 
 if [[ -d "$runtime_home/.emacs.d" ]]; then

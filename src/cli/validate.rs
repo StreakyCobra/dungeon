@@ -26,7 +26,8 @@ pub(crate) fn validate_skip_cwd_with_paths(
 }
 
 pub fn validate_settings(settings: &Settings) -> Result<(), AppError> {
-    validate_network_settings(settings)
+    validate_network_settings(settings)?;
+    validate_remote_runtime(settings)
 }
 
 pub(crate) fn validate_cli_settings(settings: &Settings) -> Result<(), AppError> {
@@ -95,6 +96,29 @@ fn validate_network_settings(settings: &Settings) -> Result<(), AppError> {
                 )));
             }
         }
+    }
+
+    Ok(())
+}
+
+fn validate_remote_runtime(settings: &Settings) -> Result<(), AppError> {
+    let uses_connection = settings
+        .podman_args
+        .as_deref()
+        .unwrap_or(&[])
+        .iter()
+        .any(|arg| arg == "-c" || arg == "--connection" || arg.starts_with("--connection="));
+    let uses_runtime = settings
+        .run_args
+        .as_deref()
+        .unwrap_or(&[])
+        .iter()
+        .any(|arg| arg == "--runtime" || arg.starts_with("--runtime="));
+
+    if uses_connection && uses_runtime {
+        return Err(AppError::message(
+            "ERROR: --runtime cannot be used with a Podman connection (-c/--connection); it is unsupported by Podman's remote client, including Podman machines",
+        ));
     }
 
     Ok(())

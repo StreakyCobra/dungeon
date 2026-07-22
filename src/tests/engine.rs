@@ -119,6 +119,25 @@ run_args = ["--network=host"]
 }
 
 #[test]
+fn passes_krun_runtime_as_a_run_arg() {
+    let input = TestInput {
+        toml: r#"
+[general]
+run_args = ["--runtime=krun"]
+"#,
+        args: &["run"],
+        env: &[],
+        cwd_name: "krun-project",
+        cwd_entries: &[],
+        fs_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /workspace/krun-project --rm --runtime=krun -v <CWD>:/workspace/krun-project localhost/dungeon zsh";
+
+    assert_command(input, expected);
+}
+
+#[test]
 fn passes_run_args_with_space_separated_hyphen_value() {
     let input = TestInput {
         toml: "",

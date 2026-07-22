@@ -32,6 +32,28 @@ fn errors_when_skip_cwd_with_paths() {
     );
 }
 
+#[test]
+fn rejects_runtime_with_a_podman_connection() {
+    let input = TestInput {
+        toml: r#"
+[general]
+podman_args = ["-c", "agents-vm"]
+run_args = ["--runtime=krun"]
+"#,
+        args: &["run"],
+        env: &[],
+        cwd_name: "remote-runtime",
+        cwd_entries: &[],
+        fs_entries: &[],
+    };
+
+    assert_input_error_contains(
+        input,
+        "ERROR: --runtime cannot be used with a Podman connection (-c/--connection)",
+    );
+}
+
+#[test]
 fn rejects_removed_persistence_flags() {
     let defaults = config::Config::default();
     let file_cfg = config::Config::default();
