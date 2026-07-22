@@ -13,9 +13,14 @@ fn includes_bootstrap_security_args() {
 
     let output = run_input(input);
 
+    for fragment in ["--user root", "--cap-add NET_ADMIN"] {
+        assert!(
+            output.command.contains(fragment),
+            "expected command to contain {fragment}: {}",
+            output.command
+        );
+    }
     for fragment in [
-        "--user root",
-        "--cap-add NET_ADMIN",
         "--cap-add NET_RAW",
         "--cap-add SYS_ADMIN",
         "--cap-add SYS_CHROOT",
@@ -25,8 +30,8 @@ fn includes_bootstrap_security_args() {
         "--security-opt seccomp=unconfined",
     ] {
         assert!(
-            output.command.contains(fragment),
-            "expected command to contain {fragment}: {}",
+            !output.command.contains(fragment),
+            "expected command to omit {fragment}: {}",
             output.command
         );
     }

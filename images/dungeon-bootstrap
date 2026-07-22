@@ -179,6 +179,7 @@ if [[ -d "$runtime_home/.emacs.d" ]]; then
         --init-groups \
         --inh-caps=-all \
         --ambient-caps=-all \
+        --bounding-set=-net_admin \
         -- zsh -lc '
             while true; do
                 emacs --fg-daemon >>/tmp/dungeon-emacs-daemon.log 2>&1
@@ -188,10 +189,10 @@ if [[ -d "$runtime_home/.emacs.d" ]]; then
         ' </dev/null >/tmp/dungeon-emacs-monitor.log 2>&1 &
 fi
 
-# Drop inheritable and ambient capabilities before handing control to the
-# unprivileged runtime user. Keep the capability bounding set and
-# no_new_privs unset so the image's narrow `sudo dungeon-install ...` rule and
-# setuid bubblewrap path remain usable.
+# Drop bootstrap-only firewall administration before handing control to the
+# unprivileged runtime user. Keep the remaining bounding set and no_new_privs
+# unset so the image's narrow `sudo dungeon-install ...` rule and setuid
+# bubblewrap path remain usable.
 exec env HOME="$runtime_home" USER="$runtime_user" LOGNAME="$runtime_user" \
     setpriv \
     --reuid "$runtime_user" \
@@ -199,4 +200,5 @@ exec env HOME="$runtime_home" USER="$runtime_user" LOGNAME="$runtime_user" \
     --init-groups \
     --inh-caps=-all \
     --ambient-caps=-all \
+    --bounding-set=-net_admin \
     -- "$@"

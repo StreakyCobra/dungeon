@@ -153,22 +153,8 @@ pub fn build_container_command(
 fn append_engine_security_args(args: &mut Vec<String>) {
     args.push("--user".to_string());
     args.push("root".to_string());
-
-    for capability in [
-        "NET_ADMIN",
-        "NET_RAW",
-        "SYS_ADMIN",
-        "SYS_CHROOT",
-        "SETUID",
-        "SETGID",
-        "SYS_PTRACE",
-    ] {
-        args.push("--cap-add".to_string());
-        args.push(capability.to_string());
-    }
-
-    args.push("--security-opt".to_string());
-    args.push("seccomp=unconfined".to_string());
+    args.push("--cap-add".to_string());
+    args.push("NET_ADMIN".to_string());
 }
 
 pub fn run_container_command(spec: CommandSpec) -> Result<(), AppError> {

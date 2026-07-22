@@ -134,14 +134,7 @@ fn normalize_command(command: &str, cwd: &PathBuf, home: &PathBuf, root: &PathBu
         .replace(home.to_string_lossy().as_ref(), "<HOME>")
         .replace(root.to_string_lossy().as_ref(), "<TMP>")
         .replace("--user root ", "")
-        .replace("--cap-add NET_ADMIN ", "")
-        .replace("--cap-add NET_RAW ", "")
-        .replace("--cap-add SYS_ADMIN ", "")
-        .replace("--cap-add SYS_CHROOT ", "")
-        .replace("--cap-add SETUID ", "")
-        .replace("--cap-add SETGID ", "")
-        .replace("--cap-add SYS_PTRACE ", "")
-        .replace("--security-opt seccomp=unconfined ", "");
+        .replace("--cap-add NET_ADMIN ", "");
 
     let (uid, gid) = host_uid_gid();
     normalized.replace(&format!("--user {}:{}", uid, gid), "--user <UID>:<GID>")

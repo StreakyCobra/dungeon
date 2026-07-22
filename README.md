@@ -10,9 +10,7 @@ This is the Podman command to create a temporary container, mount the current di
 
 ```shell
 podman run -it --rm --user root --userns=keep-id \
-  --cap-add NET_ADMIN --cap-add NET_RAW --cap-add SYS_ADMIN \
-  --cap-add SYS_CHROOT --cap-add SETUID --cap-add SETGID --cap-add SYS_PTRACE \
-  --security-opt seccomp=unconfined \
+  --cap-add NET_ADMIN \
   -w /workspace/myrepo \
   -v "$HOME:/home/dungeon/.codex" \
   -v "$PWD:/workspace/myrepo" \

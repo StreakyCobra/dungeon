@@ -13,19 +13,15 @@
 
 ## Potential Improvements
 
-1. Harden runtime security defaults
-   - Refs: `src/container/engine.rs:79-141`, `README.md:191-225`
-   - The default sandbox configuration appears broad for a security-sensitive tool: root user, elevated capabilities, and `seccomp=unconfined`.
-
-2. Add stricter mount and path validation
+1. Add stricter mount and path validation
    - Refs: `src/container/engine.rs:156-194`, `src/tests/paths.rs:34-45`, `README.md:181`
    - Raw host mount specs and permissive explicit paths can cause confusing failures or accidental exposure of host directories.
 
-3. Add real Podman integration tests
+2. Add real Podman integration tests
    - Refs: `src/tests/basic_run.rs`, `src/tests/network.rs`, `src/tests/image_cache.rs`
    - Current coverage is mostly command-shape and unit-level verification, not real container startup or bootstrap policy behavior.
 
-4. Add CI for formatting, linting, tests, and smoke tests
+3. Add CI for formatting, linting, tests, and smoke tests
    - Refs: repository root, no `.github/` workflows present
    - Automated validation would catch regressions in CLI, config, and runtime behavior earlier.
 
