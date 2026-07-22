@@ -106,12 +106,6 @@ fn build_command_string(input: TestInput<'_>) -> Result<String, AppError> {
     let spec = container::engine::build_container_command(
         &resolved.settings,
         &resolved.paths,
-        resolved.persist_mode == container::persist::PersistMode::Create,
-        if resolved.persist_mode == container::persist::PersistMode::Create {
-            Some(resolved.container_name.as_str())
-        } else {
-            None
-        },
         resolved.skip_cwd,
     )?;
 

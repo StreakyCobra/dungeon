@@ -4,7 +4,6 @@ use clap::{ArgMatches, Command};
 
 use crate::{
     config::{self, Settings},
-    container::persist::PersistMode,
     error::AppError,
 };
 
@@ -12,16 +11,16 @@ use super::{
     build::{base_command, print_targeted_help},
     constants::{
         ARG_PATHS, FLAG_ALLOW_DNS, FLAG_ALLOW_DOMAIN, FLAG_ALLOW_HOST, FLAG_CACHE, FLAG_COMMAND,
-        FLAG_CONTEXT, FLAG_DEBUG, FLAG_DENY_DNS, FLAG_DISCARD, FLAG_DYNAMIC_PORT, FLAG_ENV,
-        FLAG_ENV_FILE, FLAG_IMAGE, FLAG_IPV6, FLAG_MOUNT, FLAG_MOUNT_GIT_METADATA, FLAG_NO_CACHE,
-        FLAG_NO_IPV6, FLAG_NO_MOUNT_GIT_METADATA, FLAG_PERSIST, FLAG_PERSISTED, FLAG_PODMAN_ARG,
-        FLAG_PORT, FLAG_RUN_ARG, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE,
-        SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
+        FLAG_CONTEXT, FLAG_DEBUG, FLAG_DENY_DNS, FLAG_DYNAMIC_PORT, FLAG_ENV, FLAG_ENV_FILE,
+        FLAG_IMAGE, FLAG_IPV6, FLAG_MOUNT, FLAG_MOUNT_GIT_METADATA, FLAG_NO_CACHE, FLAG_NO_IPV6,
+        FLAG_NO_MOUNT_GIT_METADATA, FLAG_PODMAN_ARG, FLAG_PORT, FLAG_RUN_ARG, FLAG_SKIP_CWD,
+        FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE,
+        SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
     },
     types::{Action, CacheResetAction, GroupFlag, ImageBuildAction, ParsedCLI},
     validate::{
-        resolve_persist_mode_from_flags, validate_cli_flag_conflicts, validate_cli_settings,
-        validate_debug_flags, validate_group_names, validate_persist_flags,
+        validate_cli_flag_conflicts, validate_cli_settings, validate_group_names,
+        validate_skip_cwd_with_paths,
     },
 };
 
@@ -91,7 +90,6 @@ fn empty_parsed(show_help: bool, show_version: bool) -> ParsedCLI {
         show_help,
         show_version,
         debug: false,
-        persist_mode: PersistMode::None,
         group_flags: BTreeMap::new(),
         skip_cwd: false,
     }
@@ -101,20 +99,11 @@ fn parse_run_action(
     matches: &ArgMatches,
     group_defs: &BTreeMap<String, config::GroupConfig>,
 ) -> Result<ParsedCLI, AppError> {
-    let persist_mode = resolve_persist_mode_from_flags(
-        matches.get_flag(FLAG_PERSIST),
-        matches.get_flag(FLAG_PERSISTED),
-        matches.get_flag(FLAG_DISCARD),
-    )?;
-    validate_debug_flags(matches, persist_mode)?;
-
     let group_flags = collect_group_flags(matches, group_defs);
-    let has_group_overrides = group_flags.values().any(|flag| flag.set);
-    let has_config_overrides = has_config_override(matches);
     let paths = collect_paths(matches);
 
     validate_cli_flag_conflicts(matches)?;
-    validate_persist_flags(matches, has_config_overrides, has_group_overrides, &paths)?;
+    validate_skip_cwd_with_paths(matches, &paths)?;
 
     let settings = settings_from_matches(matches)?;
     validate_cli_settings(&settings)?;
@@ -126,7 +115,6 @@ fn parse_run_action(
         show_help: false,
         show_version: false,
         debug: matches.get_flag(FLAG_DEBUG),
-        persist_mode,
         group_flags,
         skip_cwd: matches.get_flag(FLAG_SKIP_CWD),
     })
@@ -165,7 +153,6 @@ fn parse_image_action(matches: &ArgMatches) -> Result<ParsedCLI, AppError> {
         show_help: false,
         show_version: false,
         debug: false,
-        persist_mode: PersistMode::None,
         group_flags: BTreeMap::new(),
         skip_cwd: false,
     })
@@ -190,7 +177,6 @@ fn parse_cache_action(matches: &ArgMatches) -> Result<ParsedCLI, AppError> {
         show_help: false,
         show_version: false,
         debug: false,
-        persist_mode: PersistMode::None,
         group_flags: BTreeMap::new(),
         skip_cwd: false,
     })
@@ -229,28 +215,6 @@ fn collect_paths(matches: &ArgMatches) -> Vec<String> {
         .get_many::<String>(ARG_PATHS)
         .map(|vals| vals.map(|value| value.to_string()).collect())
         .unwrap_or_default()
-}
-
-fn has_config_override(matches: &ArgMatches) -> bool {
-    matches.get_one::<String>(FLAG_COMMAND).is_some()
-        || matches.get_one::<String>(FLAG_IMAGE).is_some()
-        || matches.get_many::<String>(FLAG_PORT).is_some()
-        || matches.get_many::<String>(FLAG_DYNAMIC_PORT).is_some()
-        || matches.get_many::<String>(FLAG_CACHE).is_some()
-        || matches.get_many::<String>(FLAG_MOUNT).is_some()
-        || matches.get_many::<String>(FLAG_ENV).is_some()
-        || matches.get_many::<String>(FLAG_ENV_FILE).is_some()
-        || matches.get_many::<String>(FLAG_PODMAN_ARG).is_some()
-        || matches.get_many::<String>(FLAG_RUN_ARG).is_some()
-        || matches.get_flag(FLAG_IPV6)
-        || matches.get_flag(FLAG_NO_IPV6)
-        || matches.get_flag(FLAG_MOUNT_GIT_METADATA)
-        || matches.get_flag(FLAG_NO_MOUNT_GIT_METADATA)
-        || matches.get_flag(FLAG_ALLOW_DNS)
-        || matches.get_flag(FLAG_DENY_DNS)
-        || matches.get_many::<String>(FLAG_ALLOW_DOMAIN).is_some()
-        || matches.get_many::<String>(FLAG_ALLOW_HOST).is_some()
-        || matches.get_flag(FLAG_SKIP_CWD)
 }
 
 fn settings_from_matches(matches: &ArgMatches) -> Result<Settings, AppError> {

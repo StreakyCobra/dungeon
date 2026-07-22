@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::tests::support::{TestInput, try_run_input};
 use crate::{cli, config};
 
@@ -34,6 +32,23 @@ fn errors_when_skip_cwd_with_paths() {
     );
 }
 
+fn rejects_removed_persistence_flags() {
+    let defaults = config::Config::default();
+    let file_cfg = config::Config::default();
+    let env_cfg = config::Config::default();
+
+    for flag in ["--persist", "--persisted", "--discard"] {
+        let result = cli::parse_args_with_sources(
+            vec!["run".to_string(), flag.to_string()],
+            &defaults,
+            &file_cfg,
+            &env_cfg,
+        );
+        let err = result.expect_err("expected removed persistence flag to fail");
+        assert!(err.to_string().contains(flag));
+    }
+}
+
 #[test]
 fn errors_on_group_name_conflict() {
     let input = TestInput {
@@ -52,141 +67,6 @@ command = "zsh"
         input,
         "ERROR: group name 'env' conflicts with a reserved CLI flag",
     );
-}
-
-#[test]
-fn persisted_allows_group_flags_without_overrides() {
-    let defaults = config::Config::default();
-    let mut file_cfg = config::Config::default();
-    file_cfg.groups = BTreeMap::from([("x11".to_string(), config::GroupConfig::default())]);
-    let env_cfg = config::Config::default();
-    let args = vec!["run".to_string(), "--persisted".to_string()];
-
-    let parsed =
-        cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg).expect("parse args");
-
-    assert_eq!(
-        parsed.persist_mode,
-        crate::container::persist::PersistMode::Reuse
-    );
-}
-
-#[test]
-fn persistence_flags_are_mutually_exclusive() {
-    let defaults = config::Config::default();
-    let file_cfg = config::Config::default();
-    let env_cfg = config::Config::default();
-
-    for args in [
-        vec![
-            "run".to_string(),
-            "--persist".to_string(),
-            "--persisted".to_string(),
-        ],
-        vec![
-            "run".to_string(),
-            "--persist".to_string(),
-            "--discard".to_string(),
-        ],
-        vec![
-            "run".to_string(),
-            "--persisted".to_string(),
-            "--discard".to_string(),
-        ],
-    ] {
-        let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
-        let err = result.expect_err("expected mutually exclusive flag error");
-        assert!(
-            err.to_string()
-                .contains("ERROR: --persist, --persisted, and --discard are mutually exclusive")
-        );
-    }
-}
-
-#[test]
-fn persisted_rejects_config_group_and_path_overrides() {
-    let defaults = config::Config::default();
-    let mut file_cfg = config::Config::default();
-    file_cfg
-        .groups
-        .insert("codex".to_string(), config::GroupConfig::default());
-    let env_cfg = config::Config::default();
-
-    for args in [
-        vec![
-            "run".to_string(),
-            "--persisted".to_string(),
-            "--command".to_string(),
-            "echo ok".to_string(),
-        ],
-        vec![
-            "run".to_string(),
-            "--persisted".to_string(),
-            "--codex".to_string(),
-        ],
-        vec![
-            "run".to_string(),
-            "--persisted".to_string(),
-            "folder1".to_string(),
-        ],
-    ] {
-        let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
-        let err = result.expect_err("expected persisted override rejection");
-        assert!(err.to_string().contains(
-            "ERROR: --persisted and --discard do not accept config, group, or path arguments"
-        ));
-    }
-}
-
-#[test]
-fn discard_rejects_config_group_and_path_overrides() {
-    let defaults = config::Config::default();
-    let mut file_cfg = config::Config::default();
-    file_cfg
-        .groups
-        .insert("obsidian".to_string(), config::GroupConfig::default());
-    let env_cfg = config::Config::default();
-
-    for args in [
-        vec![
-            "run".to_string(),
-            "--discard".to_string(),
-            "--image".to_string(),
-            "localhost/custom".to_string(),
-        ],
-        vec![
-            "run".to_string(),
-            "--discard".to_string(),
-            "--obsidian".to_string(),
-        ],
-        vec![
-            "run".to_string(),
-            "--discard".to_string(),
-            "./any-path".to_string(),
-        ],
-    ] {
-        let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
-        let err = result.expect_err("expected discard override rejection");
-        assert!(err.to_string().contains(
-            "ERROR: --persisted and --discard do not accept config, group, or path arguments"
-        ));
-    }
-}
-
-#[test]
-fn debug_rejects_persistence_flags() {
-    let defaults = config::Config::default();
-    let file_cfg = config::Config::default();
-    let env_cfg = config::Config::default();
-    let args = vec![
-        "run".to_string(),
-        "--debug".to_string(),
-        "--persist".to_string(),
-    ];
-
-    let result = cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg);
-
-    assert!(result.is_err());
 }
 
 #[test]

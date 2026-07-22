@@ -47,19 +47,9 @@ pub fn resolve(
     )?;
     crate::cli::validate_settings(&final_settings)?;
 
-    let container_name =
-        crate::container::persist::resolve_container_name(parsed.persist_mode, &parsed.paths)?;
-    crate::container::persist::ensure_container_exists(
-        parsed.persist_mode,
-        &container_name,
-        &final_settings,
-    )?;
-
     Ok(ResolvedConfig {
         settings: final_settings,
         paths: parsed.paths.clone(),
-        persist_mode: parsed.persist_mode,
-        container_name,
         skip_cwd: parsed.skip_cwd,
     })
 }

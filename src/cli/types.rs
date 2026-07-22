@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{config::Settings, container::persist::PersistMode};
+use crate::config::Settings;
 
 #[derive(Debug, Clone)]
 pub struct ParsedCLI {
@@ -10,7 +10,6 @@ pub struct ParsedCLI {
     pub show_help: bool,
     pub show_version: bool,
     pub debug: bool,
-    pub persist_mode: PersistMode,
     pub group_flags: BTreeMap<String, GroupFlag>,
     pub skip_cwd: bool,
 }

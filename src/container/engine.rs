@@ -107,8 +107,6 @@ pub fn build_image_command(
 pub fn build_container_command(
     settings: &Settings,
     paths: &[String],
-    keep_container: bool,
-    container_name: Option<&str>,
     skip_cwd: bool,
 ) -> Result<CommandSpec, AppError> {
     let cwd = std::env::current_dir()?;
@@ -123,15 +121,7 @@ pub fn build_container_command(
     args.push("-w".to_string());
     args.push(workdir);
 
-    if !keep_container {
-        args.push("--rm".to_string());
-    }
-    if let Some(name) = container_name {
-        if !name.trim().is_empty() {
-            args.push("--name".to_string());
-            args.push(name.to_string());
-        }
-    }
+    args.push("--rm".to_string());
 
     append_env_args(&mut args, settings.env_vars.as_deref().unwrap_or(&[]));
     append_network_env_args(&mut args, settings);

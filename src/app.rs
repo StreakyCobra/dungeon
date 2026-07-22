@@ -47,8 +47,6 @@ fn run_container_session(
         let spec = container::engine::build_container_command(
             &settings,
             &resolved.paths,
-            false,
-            None,
             resolved.skip_cwd,
         )?;
         drop(reservations);
@@ -56,46 +54,11 @@ fn run_container_session(
         return Ok(());
     }
 
-    match resolved.persist_mode {
-        container::persist::PersistMode::Discard => {
-            container::persist::discard_container(&resolved.container_name, &resolved.settings)?;
-        }
-        container::persist::PersistMode::Reuse => {
-            container::persist::ensure_container_session(
-                &resolved.container_name,
-                &resolved.settings,
-            )?;
-        }
-        container::persist::PersistMode::Create => {
-            let mut settings = resolved.settings.clone();
-            let reservations = container::engine::reserve_dynamic_ports(&mut settings)?;
-            let spec = container::engine::build_container_command(
-                &settings,
-                &resolved.paths,
-                true,
-                Some(&resolved.container_name),
-                resolved.skip_cwd,
-            )?;
-            container::persist::run_persisted_session(
-                &resolved.container_name,
-                spec,
-                &settings,
-                reservations,
-            )?;
-        }
-        container::persist::PersistMode::None => {
-            let mut settings = resolved.settings.clone();
-            let reservations = container::engine::reserve_dynamic_ports(&mut settings)?;
-            let spec = container::engine::build_container_command(
-                &settings,
-                &resolved.paths,
-                false,
-                None,
-                resolved.skip_cwd,
-            )?;
-            container::engine::run_reserved_container_command(spec, reservations)?;
-        }
-    }
+    let mut settings = resolved.settings.clone();
+    let reservations = container::engine::reserve_dynamic_ports(&mut settings)?;
+    let spec =
+        container::engine::build_container_command(&settings, &resolved.paths, resolved.skip_cwd)?;
+    container::engine::run_reserved_container_command(spec, reservations)?;
 
     Ok(())
 }

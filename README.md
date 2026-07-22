@@ -106,8 +106,6 @@ dungeon image build
 ```
 You can build several images with different tags using `--tag`, and use the [Configuration](#configuration) below to switch images.
 
-There is also the option to [persist](#persistence) containers if you don't want to extend the base image but keep a container around for some time.
-
 ## Configuration
 
 There are several ways to configure dungeon, in order of precedence:
@@ -128,7 +126,6 @@ Configuration file, environment variables, and included groups apply to `dungeon
 Run-session flags live under `dungeon run`:
 
 - `--debug` to print the generated command instead of running it.
-- `--persist`, `--persisted`, `--discard` to manage container persistence.
 - `--command`, `--image`, `--port`, `--dynamic-port`, `--cache`, `--mount`, `--env`, `--env-file`, `--podman-arg`, `--run-arg`, `--mount-git-metadata`, `--no-mount-git-metadata` to customize container.
 - `--skip-cwd` to skip mounting the current directory.
 - `--ipv6`, `--no-ipv6`, `--allow-dns`, `--deny-dns`, `--allow-domain`, `--allow-host` to customize the outbound network policy.
@@ -202,7 +199,7 @@ Group behavior:
 - `envs` entries are passed directly to Podman (`NAME` or `NAME=VALUE`).
 - `env_files` entries are passed to Podman via `--env-file`.
 - `dynamic_ports`, `DUNGEON_DYNAMIC_PORTS`, and repeatable `--dynamic-port <name>` each add a dynamic port. Names must be lower-case ASCII identifiers (`[a-z][a-z0-9_]*`); `difit` adds `-p 127.0.0.1:X:X` and `DUNGEON_PORT_FOR_DIFIT=X`.
-- Dynamic-port listeners are reserved until Dungeon starts Podman. They are not retained by `--debug`; persisted containers keep their selected mapping and must be recreated if it later conflicts on restart.
+- Dynamic-port listeners are reserved until Dungeon starts Podman. They are not retained by `--debug`.
 - The published host port is loopback-only. Services using a dynamic port must listen on `0.0.0.0` inside the container so Podman can forward traffic to them.
 - `mounts`, `caches`, `envs`, `env_files`, `ports`, `dynamic_ports`, `podman_args`, `run_args`, and network allowlists extend the base settings when enabled.
 - `command` and `image` use the last enabled group when multiple are set.
@@ -261,14 +258,6 @@ Use `sudo dungeon-install ...` inside the container when the agent needs extra A
 ### Default configuration
 
 The default config is embedded at build time from [`src/config/defaults.toml`](./src/config/defaults.toml) and is also the reference for all available groups and settings.
-
-## Persistence
-
-Use `dungeon run --persist` to tell the selected engine to keep a container instead of deleting it after the shell session closes or the run command terminates.
-
-Persisted containers are tied to the current folder: they are named `dungeon-<folder_name>-<path_hash>`. When you run `dungeon run --persisted` (no other run arguments are allowed), dungeon restarts the container and opens a shell session for the container matching the current directory, if it exists.
-
-This enables project-level persisted containers if you prefer them over temporary containers.
 
 ## Cache
 

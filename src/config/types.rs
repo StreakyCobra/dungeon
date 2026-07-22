@@ -59,7 +59,5 @@ pub struct Sources {
 pub struct ResolvedConfig {
     pub settings: Settings,
     pub paths: Vec<String>,
-    pub persist_mode: crate::container::persist::PersistMode,
-    pub container_name: String,
     pub skip_cwd: bool,
 }

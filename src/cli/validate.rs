@@ -5,43 +5,21 @@ use clap::ArgMatches;
 
 use crate::{
     config::{self, Settings},
-    container::persist::PersistMode,
     error::AppError,
 };
 
 use super::constants::{
-    FLAG_ALLOW_DNS, FLAG_DEBUG, FLAG_DENY_DNS, FLAG_DISCARD, FLAG_IPV6, FLAG_MOUNT_GIT_METADATA,
-    FLAG_NO_IPV6, FLAG_NO_MOUNT_GIT_METADATA, FLAG_PERSISTED, FLAG_SKIP_CWD, RESERVED_GROUP_NAMES,
+    FLAG_ALLOW_DNS, FLAG_DENY_DNS, FLAG_IPV6, FLAG_MOUNT_GIT_METADATA, FLAG_NO_IPV6,
+    FLAG_NO_MOUNT_GIT_METADATA, FLAG_SKIP_CWD, RESERVED_GROUP_NAMES,
 };
 
-pub(crate) fn validate_persist_flags(
+pub(crate) fn validate_skip_cwd_with_paths(
     matches: &ArgMatches,
-    has_config_overrides: bool,
-    has_group_overrides: bool,
     paths: &[String],
 ) -> Result<(), AppError> {
-    if (matches.get_flag(FLAG_PERSISTED) || matches.get_flag(FLAG_DISCARD))
-        && (has_config_overrides || has_group_overrides || !paths.is_empty())
-    {
-        return Err(AppError::message(
-            "ERROR: --persisted and --discard do not accept config, group, or path arguments",
-        ));
-    }
     if matches.get_flag(FLAG_SKIP_CWD) && !paths.is_empty() {
         return Err(AppError::message(
             "ERROR: --skip-cwd cannot be used with explicit paths",
-        ));
-    }
-    Ok(())
-}
-
-pub(crate) fn validate_debug_flags(
-    matches: &ArgMatches,
-    persist_mode: PersistMode,
-) -> Result<(), AppError> {
-    if matches.get_flag(FLAG_DEBUG) && persist_mode != PersistMode::None {
-        return Err(AppError::message(
-            "ERROR: --debug cannot be combined with persistence flags",
         ));
     }
     Ok(())
@@ -157,30 +135,4 @@ fn is_valid_host_or_cidr(value: &str) -> bool {
         IpAddr::V4(_) => prefix <= 32,
         IpAddr::V6(_) => prefix <= 128,
     }
-}
-
-pub(crate) fn resolve_persist_mode_from_flags(
-    persist: bool,
-    persisted: bool,
-    discard: bool,
-) -> Result<PersistMode, AppError> {
-    let total = [persist, persisted, discard]
-        .iter()
-        .filter(|flag| **flag)
-        .count();
-    if total > 1 {
-        return Err(AppError::message(
-            "ERROR: --persist, --persisted, and --discard are mutually exclusive",
-        ));
-    }
-    if discard {
-        return Ok(PersistMode::Discard);
-    }
-    if persisted {
-        return Ok(PersistMode::Reuse);
-    }
-    if persist {
-        return Ok(PersistMode::Create);
-    }
-    Ok(PersistMode::None)
 }

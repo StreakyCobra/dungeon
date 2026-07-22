@@ -7,9 +7,6 @@ pub(crate) const SUBCOMMAND_CACHE_RESET: &str = "reset";
 pub(crate) const FLAG_HELP: &str = "help";
 pub(crate) const FLAG_VERSION: &str = "version";
 pub(crate) const FLAG_DEBUG: &str = "debug";
-pub(crate) const FLAG_PERSIST: &str = "persist";
-pub(crate) const FLAG_PERSISTED: &str = "persisted";
-pub(crate) const FLAG_DISCARD: &str = "discard";
 pub(crate) const FLAG_COMMAND: &str = "command";
 pub(crate) const FLAG_IMAGE: &str = "image";
 pub(crate) const FLAG_PORT: &str = "port";
@@ -39,9 +36,6 @@ pub(crate) const RESERVED_GROUP_NAMES: &[&str] = &[
     FLAG_HELP,
     FLAG_VERSION,
     FLAG_DEBUG,
-    FLAG_PERSIST,
-    FLAG_PERSISTED,
-    FLAG_DISCARD,
     FLAG_COMMAND,
     FLAG_IMAGE,
     FLAG_PORT,
