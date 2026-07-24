@@ -21,6 +21,7 @@ pub struct Settings {
     pub image: Option<String>,
     pub ports: Option<Vec<String>>,
     pub dynamic_ports: Option<Vec<String>>,
+    pub expose_host_ports: Option<Vec<String>>,
     pub cache: Option<Vec<String>>,
     pub mounts: Option<Vec<String>>,
     pub env_vars: Option<Vec<String>>,
@@ -28,10 +29,6 @@ pub struct Settings {
     pub podman_args: Option<Vec<String>>,
     pub run_args: Option<Vec<String>>,
     pub mount_git_metadata: Option<bool>,
-    pub ipv6: Option<bool>,
-    pub allow_dns: Option<bool>,
-    pub allowed_tcp_domains: Option<Vec<String>>,
-    pub allowed_tcp_hosts: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Default)]

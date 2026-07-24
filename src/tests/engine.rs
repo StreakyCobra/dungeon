@@ -1,7 +1,7 @@
 use crate::tests::support::{TestInput, assert_command, run_input};
 
 #[test]
-fn includes_bootstrap_security_args() {
+fn omits_privilege_escalation_args() {
     let input = TestInput {
         toml: "",
         args: &["run"],
@@ -13,14 +13,10 @@ fn includes_bootstrap_security_args() {
 
     let output = run_input(input);
 
-    for fragment in ["--user root", "--cap-add NET_ADMIN"] {
-        assert!(
-            output.command.contains(fragment),
-            "expected command to contain {fragment}: {}",
-            output.command
-        );
-    }
+    assert!(output.command.contains("--user dungeon"));
     for fragment in [
+        "--user root",
+        "--cap-add NET_ADMIN",
         "--cap-add NET_RAW",
         "--cap-add SYS_ADMIN",
         "--cap-add SYS_CHROOT",
@@ -267,38 +263,4 @@ env_files = ["", "  ", "./.env"]
     let expected = "podman run -it --userns=keep-id -w /workspace/blank-env-values --rm --env FOO=bar --env-file ./.env -v <CWD>:/workspace/blank-env-values localhost/dungeon zsh";
 
     assert_command(input, expected);
-}
-
-#[test]
-fn includes_network_env_for_non_default_settings() {
-    let input = TestInput {
-        toml: "",
-        args: &[
-            "run",
-            "--ipv6",
-            "--allow-dns",
-            "--allow-domain",
-            "crates.io",
-            "--allow-host",
-            "127.0.0.1",
-        ],
-        env: &[],
-        cwd_name: "network-env-project",
-        cwd_entries: &[],
-        fs_entries: &[],
-    };
-
-    let output = run_input(input);
-
-    for fragment in [
-        "--env DUNGEON_IPV6=1",
-        "--env DUNGEON_ALLOWED_TCP_DOMAINS=crates.io",
-        "--env DUNGEON_ALLOWED_TCP_HOSTS=127.0.0.1",
-    ] {
-        assert!(
-            output.command.contains(fragment),
-            "expected command to contain {fragment}: {}",
-            output.command
-        );
-    }
 }

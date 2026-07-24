@@ -59,6 +59,9 @@ fn merge_settings(base: Settings, override_settings: Settings) -> Settings {
     if let Some(values) = override_settings.dynamic_ports {
         merged.dynamic_ports = Some(append_strings(merged.dynamic_ports, values));
     }
+    if let Some(values) = override_settings.expose_host_ports {
+        merged.expose_host_ports = Some(append_strings(merged.expose_host_ports, values));
+    }
     if let Some(values) = override_settings.cache {
         merged.cache = Some(append_strings(merged.cache, values));
     }
@@ -79,18 +82,6 @@ fn merge_settings(base: Settings, override_settings: Settings) -> Settings {
     }
     if let Some(value) = override_settings.mount_git_metadata {
         merged.mount_git_metadata = Some(value);
-    }
-    if let Some(value) = override_settings.ipv6 {
-        merged.ipv6 = Some(value);
-    }
-    if let Some(value) = override_settings.allow_dns {
-        merged.allow_dns = Some(value);
-    }
-    if let Some(values) = override_settings.allowed_tcp_domains {
-        merged.allowed_tcp_domains = Some(append_strings(merged.allowed_tcp_domains, values));
-    }
-    if let Some(values) = override_settings.allowed_tcp_hosts {
-        merged.allowed_tcp_hosts = Some(append_strings(merged.allowed_tcp_hosts, values));
     }
     merged
 }

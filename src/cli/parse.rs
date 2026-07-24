@@ -10,12 +10,11 @@ use crate::{
 use super::{
     build::{base_command, print_targeted_help},
     constants::{
-        ARG_PATHS, FLAG_ALLOW_DNS, FLAG_ALLOW_DOMAIN, FLAG_ALLOW_HOST, FLAG_CACHE, FLAG_COMMAND,
-        FLAG_CONTEXT, FLAG_DEBUG, FLAG_DENY_DNS, FLAG_DYNAMIC_PORT, FLAG_ENV, FLAG_ENV_FILE,
-        FLAG_IMAGE, FLAG_IPV6, FLAG_MOUNT, FLAG_MOUNT_GIT_METADATA, FLAG_NO_CACHE, FLAG_NO_IPV6,
-        FLAG_NO_MOUNT_GIT_METADATA, FLAG_PODMAN_ARG, FLAG_PORT, FLAG_RUN_ARG, FLAG_SKIP_CWD,
-        FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE,
-        SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
+        ARG_PATHS, FLAG_CACHE, FLAG_COMMAND, FLAG_CONTEXT, FLAG_DEBUG, FLAG_DYNAMIC_PORT, FLAG_ENV,
+        FLAG_ENV_FILE, FLAG_EXPOSE_HOST_PORT, FLAG_IMAGE, FLAG_MOUNT, FLAG_MOUNT_GIT_METADATA,
+        FLAG_NO_CACHE, FLAG_NO_MOUNT_GIT_METADATA, FLAG_PODMAN_ARG, FLAG_PORT, FLAG_RUN_ARG,
+        FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET,
+        SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
     },
     types::{Action, CacheResetAction, GroupFlag, ImageBuildAction, ParsedCLI},
     validate::{
@@ -234,6 +233,9 @@ fn settings_from_matches(matches: &ArgMatches) -> Result<Settings, AppError> {
         config::validate_dynamic_port_names(&names, "--dynamic-port")?;
         settings.dynamic_ports = Some(names);
     }
+    if let Some(values) = matches.get_many::<String>(FLAG_EXPOSE_HOST_PORT) {
+        settings.expose_host_ports = Some(values.map(|value| value.to_string()).collect());
+    }
     if let Some(values) = matches.get_many::<String>(FLAG_CACHE) {
         settings.cache = Some(values.map(|value| value.to_string()).collect());
     }
@@ -258,25 +260,6 @@ fn settings_from_matches(matches: &ArgMatches) -> Result<Settings, AppError> {
     if matches.get_flag(FLAG_NO_MOUNT_GIT_METADATA) {
         settings.mount_git_metadata = Some(false);
     }
-    if matches.get_flag(FLAG_IPV6) {
-        settings.ipv6 = Some(true);
-    }
-    if matches.get_flag(FLAG_NO_IPV6) {
-        settings.ipv6 = Some(false);
-    }
-    if matches.get_flag(FLAG_ALLOW_DNS) {
-        settings.allow_dns = Some(true);
-    }
-    if matches.get_flag(FLAG_DENY_DNS) {
-        settings.allow_dns = Some(false);
-    }
-    if let Some(values) = matches.get_many::<String>(FLAG_ALLOW_DOMAIN) {
-        settings.allowed_tcp_domains = Some(values.map(|value| value.to_string()).collect());
-    }
-    if let Some(values) = matches.get_many::<String>(FLAG_ALLOW_HOST) {
-        settings.allowed_tcp_hosts = Some(values.map(|value| value.to_string()).collect());
-    }
-
     Ok(settings)
 }
 

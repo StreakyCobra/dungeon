@@ -86,6 +86,23 @@ ports = [1234]
 }
 
 #[test]
+fn errors_on_non_string_exposed_host_port_entries() {
+    let input = TestInput {
+        toml: r#"
+[general]
+expose_host_ports = [8080]
+"#,
+        args: &["run"],
+        env: &[],
+        cwd_name: "non-string-exposed-host-port",
+        cwd_entries: &[],
+        fs_entries: &[],
+    };
+
+    assert_input_error_contains(input, "general.expose_host_ports must be a list of strings");
+}
+
+#[test]
 fn errors_on_unknown_group_key() {
     let input = TestInput {
         toml: r#"

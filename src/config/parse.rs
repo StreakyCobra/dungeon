@@ -50,6 +50,9 @@ pub fn load_from_env() -> Result<Config, AppError> {
         super::validate_dynamic_port_names(&names, "DUNGEON_DYNAMIC_PORTS")?;
         cfg.settings.dynamic_ports = Some(names);
     }
+    if let Ok(value) = env::var(format!("{}EXPOSE_HOST_PORTS", ENV_PREFIX)) {
+        cfg.settings.expose_host_ports = Some(split_env_list(&value));
+    }
     if let Ok(value) = env::var(format!("{}CACHES", ENV_PREFIX)) {
         cfg.settings.cache = Some(split_env_list(&value));
     }
@@ -71,18 +74,6 @@ pub fn load_from_env() -> Result<Config, AppError> {
     if let Ok(value) = env::var(format!("{}MOUNT_GIT_METADATA", ENV_PREFIX)) {
         cfg.settings.mount_git_metadata =
             Some(parse_bool_value("mount_git_metadata", value.trim())?);
-    }
-    if let Ok(value) = env::var(format!("{}IPV6", ENV_PREFIX)) {
-        cfg.settings.ipv6 = Some(parse_bool_value("ipv6", value.trim())?);
-    }
-    if let Ok(value) = env::var(format!("{}ALLOW_DNS", ENV_PREFIX)) {
-        cfg.settings.allow_dns = Some(parse_bool_value("allow_dns", value.trim())?);
-    }
-    if let Ok(value) = env::var(format!("{}ALLOWED_TCP_DOMAINS", ENV_PREFIX)) {
-        cfg.settings.allowed_tcp_domains = Some(split_env_list(&value));
-    }
-    if let Ok(value) = env::var(format!("{}ALLOWED_TCP_HOSTS", ENV_PREFIX)) {
-        cfg.settings.allowed_tcp_hosts = Some(split_env_list(&value));
     }
     if let Ok(value) = env::var(format!("{}INCLUDE_GROUPS", ENV_PREFIX)) {
         cfg.include_groups = Some(split_env_list(&value));
@@ -208,6 +199,10 @@ fn parse_settings_key(
             settings.dynamic_ports = Some(names);
             Ok(true)
         }
+        "expose_host_ports" => {
+            settings.expose_host_ports = Some(parse_string_vec(scope, key, value)?);
+            Ok(true)
+        }
         "podman_args" => {
             settings.podman_args = Some(parse_string_vec(scope, key, value)?);
             Ok(true)
@@ -218,22 +213,6 @@ fn parse_settings_key(
         }
         "mount_git_metadata" => {
             settings.mount_git_metadata = Some(parse_bool(scope, key, value)?);
-            Ok(true)
-        }
-        "ipv6" => {
-            settings.ipv6 = Some(parse_bool(scope, key, value)?);
-            Ok(true)
-        }
-        "allow_dns" => {
-            settings.allow_dns = Some(parse_bool(scope, key, value)?);
-            Ok(true)
-        }
-        "allowed_tcp_domains" => {
-            settings.allowed_tcp_domains = Some(parse_string_vec(scope, key, value)?);
-            Ok(true)
-        }
-        "allowed_tcp_hosts" => {
-            settings.allowed_tcp_hosts = Some(parse_string_vec(scope, key, value)?);
             Ok(true)
         }
         _ => Ok(false),

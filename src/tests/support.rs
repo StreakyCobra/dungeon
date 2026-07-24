@@ -1,7 +1,7 @@
 use std::{
     collections::BTreeMap,
     env,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{Mutex, OnceLock},
 };
 
@@ -128,33 +128,15 @@ pub fn acquire_test_lock() -> std::sync::MutexGuard<'static, ()> {
         .unwrap_or_else(|err| err.into_inner())
 }
 
-fn normalize_command(command: &str, cwd: &PathBuf, home: &PathBuf, root: &PathBuf) -> String {
-    let normalized = command
+fn normalize_command(command: &str, cwd: &Path, home: &Path, root: &Path) -> String {
+    command
         .replace(cwd.to_string_lossy().as_ref(), "<CWD>")
         .replace(home.to_string_lossy().as_ref(), "<HOME>")
         .replace(root.to_string_lossy().as_ref(), "<TMP>")
-        .replace("--user root ", "")
-        .replace("--cap-add NET_ADMIN ", "");
-
-    let (uid, gid) = host_uid_gid();
-    normalized.replace(&format!("--user {}:{}", uid, gid), "--user <UID>:<GID>")
+        .replace("--user dungeon ", "")
 }
 
-fn host_uid_gid() -> (u32, u32) {
-    #[cfg(unix)]
-    {
-        let uid = unsafe { libc::geteuid() };
-        let gid = unsafe { libc::getegid() };
-        (uid, gid)
-    }
-
-    #[cfg(not(unix))]
-    {
-        (1000, 1000)
-    }
-}
-
-fn create_cwd_entries(cwd: &PathBuf, entries: &[&str]) -> Result<(), std::io::Error> {
+fn create_cwd_entries(cwd: &Path, entries: &[&str]) -> Result<(), std::io::Error> {
     for entry in entries {
         let trimmed = entry.trim();
         if trimmed.is_empty() {
@@ -201,7 +183,7 @@ fn create_fs_entries(
     Ok(())
 }
 
-fn with_cwd<T>(cwd: &PathBuf, f: impl FnOnce() -> Result<T, AppError>) -> Result<T, AppError> {
+fn with_cwd<T>(cwd: &Path, f: impl FnOnce() -> Result<T, AppError>) -> Result<T, AppError> {
     let original = env::current_dir().map_err(AppError::Io)?;
     env::set_current_dir(cwd).map_err(AppError::Io)?;
     let result = f();
@@ -214,7 +196,7 @@ struct EnvGuard {
 }
 
 impl EnvGuard {
-    fn new(home: &PathBuf, config_home: &PathBuf, vars: &[(&str, &str)]) -> Self {
+    fn new(home: &Path, config_home: &Path, vars: &[(&str, &str)]) -> Self {
         let mut previous = BTreeMap::new();
         let mut set_var = |key: &str, value: Option<&str>| {
             previous.insert(key.to_string(), env::var(key).ok());
@@ -260,11 +242,14 @@ impl Drop for EnvGuard {
 }
 
 const DUNGEON_ENV_KEYS: &[&str] = &[
+    "CONTAINER_CONNECTION",
+    "CONTAINER_HOST",
     "DUNGEON_ENGINE",
     "DUNGEON_COMMAND",
     "DUNGEON_IMAGE",
     "DUNGEON_PORTS",
     "DUNGEON_DYNAMIC_PORTS",
+    "DUNGEON_EXPOSE_HOST_PORTS",
     "DUNGEON_CACHES",
     "DUNGEON_MOUNTS",
     "DUNGEON_ENVS",
@@ -272,9 +257,5 @@ const DUNGEON_ENV_KEYS: &[&str] = &[
     "DUNGEON_PODMAN_ARGS",
     "DUNGEON_RUN_ARGS",
     "DUNGEON_MOUNT_GIT_METADATA",
-    "DUNGEON_IPV6",
-    "DUNGEON_ALLOW_DNS",
-    "DUNGEON_ALLOWED_TCP_DOMAINS",
-    "DUNGEON_ALLOWED_TCP_HOSTS",
     "DUNGEON_INCLUDE_GROUPS",
 ];

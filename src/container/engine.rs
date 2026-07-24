@@ -1,6 +1,5 @@
 use std::{
     collections::HashSet,
-    io::Read,
     net::TcpListener,
     path::{Component, Path, PathBuf},
 };
@@ -11,11 +10,6 @@ use crate::{
 };
 
 const WORKSPACE_ROOT: &str = "/workspace";
-const DEFAULT_NETWORK_IPV6: bool = false;
-const DEFAULT_NETWORK_ALLOW_DNS: bool = true;
-// passt forwards all ports below its ephemeral range when krun is enabled.
-const DYNAMIC_PORT_START: u16 = 20_000;
-const DYNAMIC_PORT_END: u16 = 32_767;
 
 #[derive(Debug, Clone)]
 pub struct CommandSpec {
@@ -53,23 +47,7 @@ pub fn reserve_dynamic_ports(settings: &mut Settings) -> Result<DynamicPortReser
 }
 
 fn reserve_dynamic_port() -> Result<TcpListener, AppError> {
-    let mut random = [0; 2];
-    std::fs::File::open("/dev/urandom")?.read_exact(&mut random)?;
-    let port_count = DYNAMIC_PORT_END - DYNAMIC_PORT_START + 1;
-    let start = u16::from_ne_bytes(random) % port_count;
-
-    for offset in 0..port_count {
-        let port = DYNAMIC_PORT_START + (start + offset) % port_count;
-        match TcpListener::bind(("127.0.0.1", port)) {
-            Ok(listener) => return Ok(listener),
-            Err(err) if err.kind() == std::io::ErrorKind::AddrInUse => continue,
-            Err(err) => return Err(err.into()),
-        }
-    }
-
-    Err(AppError::message(
-        "unable to reserve a dynamic port outside passt's ephemeral range",
-    ))
+    TcpListener::bind(("127.0.0.1", 0)).map_err(AppError::from)
 }
 
 pub fn run_reserved_container_command(
@@ -138,24 +116,24 @@ pub fn build_container_command(
         dirs::home_dir().ok_or_else(|| AppError::message("unable to resolve home directory"))?;
     let engine = settings.engine.unwrap_or_default();
     let (workdir, mounts) = resolve_workdir_and_mounts(settings, paths, skip_cwd, &cwd, &home)?;
-
     let mut args = vec!["run".to_string(), "-it".to_string()];
-    append_engine_security_args(&mut args);
     append_engine_identity_args(&mut args, engine);
     args.push("-w".to_string());
     args.push(workdir);
 
     args.push("--rm".to_string());
+    append_exposed_host_port_args(
+        &mut args,
+        settings.expose_host_ports.as_deref().unwrap_or(&[]),
+    );
 
     append_env_args(&mut args, settings.env_vars.as_deref().unwrap_or(&[]));
-    append_network_env_args(&mut args, settings);
     append_repeated_flag_args(
         &mut args,
         "--env-file",
         settings.env_files.as_deref().unwrap_or(&[]),
     );
     append_repeated_flag_args(&mut args, "-p", settings.ports.as_deref().unwrap_or(&[]));
-
     if let Some(args_list) = settings.run_args.as_deref() {
         args.extend(args_list.iter().cloned());
     }
@@ -172,13 +150,6 @@ pub fn build_container_command(
     append_command(&mut args, settings.command.as_deref());
 
     Ok(build_podman_command(settings, args))
-}
-
-fn append_engine_security_args(args: &mut Vec<String>) {
-    args.push("--user".to_string());
-    args.push("root".to_string());
-    args.push("--cap-add".to_string());
-    args.push("NET_ADMIN".to_string());
 }
 
 pub fn run_container_command(spec: CommandSpec) -> Result<(), AppError> {
@@ -358,7 +329,11 @@ fn resolve_git_mount_source(git_dir: &Path) -> Result<PathBuf, AppError> {
 
 fn append_engine_identity_args(args: &mut Vec<String>, engine: Engine) {
     match engine {
-        Engine::Podman => args.push("--userns=keep-id".to_string()),
+        Engine::Podman => {
+            args.push("--userns=keep-id".to_string());
+            args.push("--user".to_string());
+            args.push("dungeon".to_string());
+        }
     }
 }
 
@@ -382,38 +357,6 @@ fn env_spec_has_name(spec: &str, name: &str) -> bool {
     key == name
 }
 
-fn append_network_env_args(args: &mut Vec<String>, settings: &Settings) {
-    if let Some(ipv6) = settings.ipv6
-        && ipv6 != DEFAULT_NETWORK_IPV6
-    {
-        push_env_arg(args, "DUNGEON_IPV6", if ipv6 { "1" } else { "0" });
-    }
-    if let Some(allow_dns) = settings.allow_dns
-        && allow_dns != DEFAULT_NETWORK_ALLOW_DNS
-    {
-        push_env_arg(args, "DUNGEON_ALLOW_DNS", if allow_dns { "1" } else { "0" });
-    }
-    if let Some(domains) = settings
-        .allowed_tcp_domains
-        .as_ref()
-        .filter(|values| !values.is_empty())
-    {
-        push_env_arg(args, "DUNGEON_ALLOWED_TCP_DOMAINS", &domains.join(","));
-    }
-    if let Some(hosts) = settings
-        .allowed_tcp_hosts
-        .as_ref()
-        .filter(|values| !values.is_empty())
-    {
-        push_env_arg(args, "DUNGEON_ALLOWED_TCP_HOSTS", &hosts.join(","));
-    }
-}
-
-fn push_env_arg(args: &mut Vec<String>, key: &str, value: &str) {
-    args.push("--env".to_string());
-    args.push(format!("{}={}", key, value));
-}
-
 fn append_repeated_flag_args(args: &mut Vec<String>, flag: &str, values: &[String]) {
     for value in values {
         let trimmed = value.trim();
@@ -422,6 +365,19 @@ fn append_repeated_flag_args(args: &mut Vec<String>, flag: &str, values: &[Strin
         }
         args.push(flag.to_string());
         args.push(trimmed.to_string());
+    }
+}
+
+fn append_exposed_host_port_args(args: &mut Vec<String>, specs: &[String]) {
+    let options = specs
+        .iter()
+        .map(|spec| spec.trim())
+        .filter(|spec| !spec.is_empty())
+        .flat_map(|spec| ["-T", spec])
+        .collect::<Vec<_>>();
+
+    if !options.is_empty() {
+        args.push(format!("--network=pasta:{}", options.join(",")));
     }
 }
 

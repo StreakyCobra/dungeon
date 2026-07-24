@@ -12,7 +12,6 @@ RUN pacman -Syu --noconfirm \
       less \
       npm \
       nvim \
-      nftables \
       pre-commit \
       ripgrep \
       starship \
@@ -23,7 +22,7 @@ RUN pacman -Syu --noconfirm \
 
 # Setup user
 RUN groupadd -g 1000 dungeon && \
-    useradd -m -u 1000 -g 1000 -G tty -s /bin/zsh dungeon && \
+    useradd -m -u 1000 -g 1000 -s /bin/zsh dungeon && \
     install -d -o dungeon -g dungeon \
       /home/dungeon/.cache \
       /home/dungeon/.cache/npm \
@@ -43,7 +42,6 @@ COPY images/dungeon-bootstrap /usr/local/bin/dungeon-bootstrap
 COPY images/dungeon-install /usr/local/bin/dungeon-install
 COPY images/dot-zimrc /home/dungeon/.zimrc
 COPY images/dot-zshrc /home/dungeon/.zshrc
-COPY images/krun_vm.json /.krun_vm.json
 RUN chmod 0755 /usr/local/bin/dungeon-bootstrap /usr/local/bin/dungeon-install
 
 # Setup ZSH
@@ -56,6 +54,9 @@ WORKDIR /workspace
 ENV NPM_CONFIG_PREFIX=/home/dungeon/.npm-global
 ENV NPM_CONFIG_CACHE=/home/dungeon/.cache/npm
 ENV UV_CACHE_DIR=/home/dungeon/.cache/uv
+ENV HOME=/home/dungeon
+ENV USER=dungeon
+ENV LOGNAME=dungeon
 ENV EDITOR=nvim
 ENV PATH=/home/dungeon/.npm-global/bin:$PATH
 
@@ -97,3 +98,4 @@ RUN git config --global user.name "dungeon" && \
     git config --global user.email "dungeon@example.com"
 
 ENTRYPOINT ["/usr/local/bin/dungeon-bootstrap"]
+CMD ["zsh"]

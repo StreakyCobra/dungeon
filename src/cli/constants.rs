@@ -11,6 +11,7 @@ pub(crate) const FLAG_COMMAND: &str = "command";
 pub(crate) const FLAG_IMAGE: &str = "image";
 pub(crate) const FLAG_PORT: &str = "port";
 pub(crate) const FLAG_DYNAMIC_PORT: &str = "dynamic-port";
+pub(crate) const FLAG_EXPOSE_HOST_PORT: &str = "expose-host-port";
 pub(crate) const FLAG_CACHE: &str = "cache";
 pub(crate) const FLAG_MOUNT: &str = "mount";
 pub(crate) const FLAG_ENV: &str = "env";
@@ -20,12 +21,6 @@ pub(crate) const FLAG_RUN_ARG: &str = "run-arg";
 pub(crate) const FLAG_SKIP_CWD: &str = "skip-cwd";
 pub(crate) const FLAG_MOUNT_GIT_METADATA: &str = "mount-git-metadata";
 pub(crate) const FLAG_NO_MOUNT_GIT_METADATA: &str = "no-mount-git-metadata";
-pub(crate) const FLAG_IPV6: &str = "ipv6";
-pub(crate) const FLAG_NO_IPV6: &str = "no-ipv6";
-pub(crate) const FLAG_ALLOW_DNS: &str = "allow-dns";
-pub(crate) const FLAG_DENY_DNS: &str = "deny-dns";
-pub(crate) const FLAG_ALLOW_DOMAIN: &str = "allow-domain";
-pub(crate) const FLAG_ALLOW_HOST: &str = "allow-host";
 pub(crate) const FLAG_TAG: &str = "tag";
 pub(crate) const FLAG_NO_CACHE: &str = "no-cache";
 pub(crate) const FLAG_CONTEXT: &str = "context";
@@ -40,6 +35,7 @@ pub(crate) const RESERVED_GROUP_NAMES: &[&str] = &[
     FLAG_IMAGE,
     FLAG_PORT,
     FLAG_DYNAMIC_PORT,
+    FLAG_EXPOSE_HOST_PORT,
     FLAG_CACHE,
     FLAG_MOUNT,
     FLAG_ENV,
@@ -49,12 +45,6 @@ pub(crate) const RESERVED_GROUP_NAMES: &[&str] = &[
     FLAG_SKIP_CWD,
     FLAG_MOUNT_GIT_METADATA,
     FLAG_NO_MOUNT_GIT_METADATA,
-    FLAG_IPV6,
-    FLAG_NO_IPV6,
-    FLAG_ALLOW_DNS,
-    FLAG_DENY_DNS,
-    FLAG_ALLOW_DOMAIN,
-    FLAG_ALLOW_HOST,
     FLAG_TAG,
     FLAG_NO_CACHE,
     FLAG_CONTEXT,

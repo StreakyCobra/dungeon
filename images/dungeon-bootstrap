@@ -2,203 +2,26 @@
 setopt errexit nounset pipefail
 IFS=$'\n\t'
 
-runtime_user="${DUNGEON_RUNTIME_USER:-dungeon}"
-ipv6_enabled="${DUNGEON_IPV6:-0}"
-allow_dns="${DUNGEON_ALLOW_DNS:-1}"
-allowed_domains_raw="${DUNGEON_ALLOWED_TCP_DOMAINS:-}"
-allowed_hosts_raw="${DUNGEON_ALLOWED_TCP_HOSTS:-}"
-
-runtime_passwd_entry=$(getent passwd "$runtime_user")
-if [[ -z $runtime_passwd_entry ]]; then
-    printf 'dungeon-bootstrap: runtime user not found: %s\n' "$runtime_user" >&2
-    exit 1
-fi
-
-runtime_home=$(printf '%s\n' "$runtime_passwd_entry" | cut -d: -f6)
-if [[ -z $runtime_home ]]; then
-    printf 'dungeon-bootstrap: runtime home not found for user: %s\n' "$runtime_user" >&2
-    exit 1
-fi
-
 if (( $# == 0 )); then
     set -- zsh
 fi
 
-read_csv_values() {
-    local raw=$1
-    local -a values
-
-    values=(${=raw//,/ })
-    printf '%s\n' "${(@ou)${(@)values:#}}"
-}
-
-is_safe_nft_address() {
-    local address=$1
-
-    [[ $address =~ '^[0-9A-Fa-f:.]+(/[0-9]{1,3})?$' ]]
-}
-
-add_allowed_address() {
-    local address=$1
-
-    if ! is_safe_nft_address "$address"; then
-        printf 'dungeon-bootstrap: invalid allowed address: %s\n' "$address" >&2
-        exit 1
-    fi
-
-    if [[ $address == *:* ]]; then
-        [[ $ipv6_enabled == 1 ]] && allowed_ipv6+=("$address")
-    else
-        allowed_ipv4+=("$address")
-    fi
-}
-
-add_allowed_domain() {
-    local domain=$1
-    local line ip
-
-    while IFS= read -r line; do
-        ip=${line%%[[:space:]]*}
-        [[ -z $ip ]] && continue
-        add_allowed_address "$ip"
-    done < <(getent ahosts "$domain" | sort -u)
-}
-
-write_firewall_rules() {
-    local ruleset=$1
-    local restricted=$2
-    local address
-
-    {
-        printf '%s\n' 'destroy table inet dungeon'
-        printf '%s\n' 'table inet dungeon {'
-        printf '%s\n' '  chain input { type filter hook input priority filter; policy accept;'
-        printf '%s\n' '    iif lo accept'
-        printf '%s\n' '    ct state established,related accept'
-        if [[ $ipv6_enabled != 1 ]]; then
-            printf '%s\n' '    meta nfproto ipv6 reject with icmpx type port-unreachable'
-        fi
-        if [[ $restricted == 1 ]]; then
-            printf '%s\n' '    reject with icmpx type port-unreachable'
-        fi
-        printf '%s\n' '  }'
-
-        printf '%s\n' '  chain forward { type filter hook forward priority filter; policy accept;'
-        printf '%s\n' '    ct state established,related accept'
-        if [[ $ipv6_enabled != 1 ]]; then
-            printf '%s\n' '    meta nfproto ipv6 reject with icmpx type port-unreachable'
-        fi
-        if [[ $restricted == 1 ]]; then
-            printf '%s\n' '    reject with icmpx type port-unreachable'
-        fi
-        printf '%s\n' '  }'
-
-        printf '%s\n' '  chain output { type filter hook output priority filter; policy accept;'
-        printf '%s\n' '    oif lo accept'
-        printf '%s\n' '    ct state established,related accept'
-        if [[ $ipv6_enabled != 1 ]]; then
-            printf '%s\n' '    meta nfproto ipv6 reject with icmpx type port-unreachable'
-        fi
-        if [[ $restricted == 1 ]]; then
-            if [[ $allow_dns == 1 ]]; then
-                printf '%s\n' '    udp dport 53 accept'
-                printf '%s\n' '    tcp dport 53 accept'
-            fi
-            for address in $allowed_ipv4; do
-                printf '    ip daddr %s tcp dport 0-65535 accept\n' "$address"
-            done
-            for address in $allowed_ipv6; do
-                printf '    ip6 daddr %s tcp dport 0-65535 accept\n' "$address"
-            done
-            printf '%s\n' '    reject with icmpx type port-unreachable'
-        elif [[ $allow_dns != 1 ]]; then
-            printf '%s\n' '    udp dport 53 reject with icmpx type port-unreachable'
-            printf '%s\n' '    tcp dport 53 reject with icmpx type port-unreachable'
-        fi
-        printf '%s\n' '  }'
-        printf '%s\n' '}'
-    } > "$ruleset"
-}
-
-configure_firewall() {
-    local ruleset restricted=0
-
-    if ! command -v nft >/dev/null; then
-        printf '%s\n' 'dungeon-bootstrap: nft is required for the network policy' >&2
-        exit 1
-    fi
-
-    allowed_ipv4=(${(@ou)allowed_ipv4})
-    allowed_ipv6=(${(@ou)allowed_ipv6})
-    (( ${#allowed_ipv4[@]} != 0 || ${#allowed_ipv6[@]} != 0 )) && restricted=1
-
-    ruleset=$(mktemp)
-    trap 'rm -f "$ruleset"' EXIT
-    write_firewall_rules "$ruleset" "$restricted"
-    if ! nft -f "$ruleset"; then
-        printf '%s\n' 'dungeon-bootstrap: nftables is unavailable; krun requires libkrunfw 5.5.0 or newer' >&2
-        exit 1
-    fi
-    rm -f "$ruleset"
-    trap - EXIT
-}
-
-grant_runtime_tty_access() {
-    local tty_path
-
-    if ! tty_path=$(tty 2>/dev/null); then
-        return
-    fi
-
-    [[ -c $tty_path ]] || return
-    chgrp tty "$tty_path" 2>/dev/null || true
-    chmod g+rw "$tty_path" 2>/dev/null || true
-}
-
-allowed_domains=(${${(f)"$(read_csv_values "$allowed_domains_raw")"}:#})
-allowed_hosts=(${${(f)"$(read_csv_values "$allowed_hosts_raw")"}:#})
-allowed_ipv4=()
-allowed_ipv6=()
-
-for host in $allowed_hosts; do
-    add_allowed_address "$host"
-done
-for domain in $allowed_domains; do
-    add_allowed_domain "$domain"
-done
-
-configure_firewall
-grant_runtime_tty_access
-
-if [[ -d "$runtime_home/.emacs.d" ]]; then
-    printf 'dungeon-bootstrap: starting emacs in background\n' >&2
-    env HOME="$runtime_home" USER="$runtime_user" LOGNAME="$runtime_user" \
-        setpriv \
-        --reuid "$runtime_user" \
-        --regid "$runtime_user" \
-        --init-groups \
-        --inh-caps=-all \
-        --ambient-caps=-all \
-        --bounding-set=-net_admin \
-        -- zsh -lc '
-            while true; do
-                emacs --fg-daemon >>/tmp/dungeon-emacs-daemon.log 2>&1
-                printf "dungeon-bootstrap: emacs daemon stopped, restarting\\n" >>/tmp/dungeon-emacs-daemon.log
-                sleep 1
-            done
-        ' </dev/null >/tmp/dungeon-emacs-monitor.log 2>&1 &
+# libkrun can start the OCI entrypoint as root even when Podman was given
+# --user dungeon. Native runtimes already enter here as the requested user.
+if (( EUID != 0 )); then
+    exec "$@"
 fi
 
-# Drop bootstrap-only firewall administration before handing control to the
-# unprivileged runtime user. Keep the remaining bounding set and no_new_privs
-# unset so the image's narrow `sudo dungeon-install ...` rule and setuid
-# bubblewrap path remain usable.
-exec env HOME="$runtime_home" USER="$runtime_user" LOGNAME="$runtime_user" \
+if tty_path=$(tty 2>/dev/null) && [[ -c $tty_path ]]; then
+    chown dungeon "$tty_path" 2>/dev/null || true
+    chmod u+rw "$tty_path" 2>/dev/null || true
+fi
+
+exec env HOME=/home/dungeon USER=dungeon LOGNAME=dungeon \
     setpriv \
-    --reuid "$runtime_user" \
-    --regid "$runtime_user" \
+    --reuid dungeon \
+    --regid dungeon \
     --init-groups \
     --inh-caps=-all \
     --ambient-caps=-all \
-    --bounding-set=-net_admin \
     -- "$@"

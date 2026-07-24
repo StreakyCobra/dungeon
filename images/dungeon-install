@@ -6,7 +6,7 @@ if (( $# == 0 )); then
     exit 1
 fi
 
-denylist=(iptables iproute2 nftables sudo doas)
+denylist=(sudo doas)
 packages=()
 
 for package in "$@"; do

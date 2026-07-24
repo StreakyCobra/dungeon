@@ -40,7 +40,7 @@ pub struct GroupFlag {
 
 pub fn build_version() -> String {
     let version = env!("CARGO_PKG_VERSION");
-    if version != "" {
+    if !version.is_empty() {
         return version.to_string();
     }
     "dev".to_string()
