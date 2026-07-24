@@ -9,7 +9,7 @@
 This is the Podman command to create a temporary container, mount the current directory, and make Codex config and auth available:
 
 ```shell
-podman run -it --rm --userns=keep-id --user dungeon \
+podman run -it --rm --userns=keep-id --user root \
   -w /workspace/myrepo \
   -v "$HOME:/home/dungeon/.codex" \
   -v "$PWD:/workspace/myrepo" \
@@ -92,7 +92,7 @@ Container files live in `images/`:
 The image provides the base setup to work with dungeon and use AI agents inside. It is meant to be customized to include the tools you usually need for your projects.
 
 Notable defaults:
-- Containers run as the unprivileged `dungeon` user with `HOME=/home/dungeon`, so the image's Zsh and Zim configuration loads normally. A minimal entrypoint drops privileges if libkrun starts it as root.
+- Containers run as the unprivileged `dungeon` user with `HOME=/home/dungeon`, so the image's Zsh and Zim configuration loads normally. Dungeon starts a minimal entrypoint as namespaced root and immediately drops privileges before running the requested command.
 - passwordless sudo is limited to `sudo dungeon-install ...`, a small wrapper around `pacman` with a denylist for security-sensitive packages.
 - `bubblewrap` is installed and configured so Codex can use its sandbox inside the container.
 
@@ -242,10 +242,10 @@ Environment overrides use:
 
 ## Runtime behavior
 
-- `dungeon run` requests the image's unprivileged `dungeon` user; the image entrypoint enforces that identity when libkrun starts it as root.
+- `dungeon run` starts the minimal image entrypoint as namespaced root so it can retain the capability bounding set required by setuid tools, then immediately switches to the unprivileged `dungeon` user.
 - Dungeon does not add capabilities or install an in-container firewall.
 - The runtime intentionally preserves the image's narrow `sudo dungeon-install ...` path; broader root access still is not granted.
-- The Podman command uses `--userns=keep-id --user dungeon`, preserving the user namespace while starting directly as the image's runtime user.
+- The Podman command uses `--userns=keep-id --user root`; `dungeon-bootstrap` is the only root process and hands control to the image's `dungeon` user before running the requested command.
 - The minimal `dungeon-bootstrap` entrypoint only repairs TTY ownership when needed and switches a root process to `dungeon`; it contains no firewall or service startup logic.
 - `mount_git_metadata = true` is intended for Git worktrees and other checkouts with `.git` files that point outside the mounted workspace. It currently supports absolute `gitdir:` paths only.
 - Codex can rely on `bubblewrap`; there is no `CODEX_UNSAFE_ALLOW_NO_SANDBOX` fallback configured.
