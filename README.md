@@ -9,8 +9,7 @@
 This is the Podman command to create a temporary container, mount the current directory, and make Codex config and auth available:
 
 ```shell
-podman run -it --rm --user root --userns=keep-id \
-  --cap-add NET_ADMIN \
+podman run -it --rm --userns=keep-id --user dungeon \
   -w /workspace/myrepo \
   -v "$HOME:/home/dungeon/.codex" \
   -v "$PWD:/workspace/myrepo" \
@@ -93,7 +92,7 @@ Container files live in `images/`:
 The image provides the base setup to work with dungeon and use AI agents inside. It is meant to be customized to include the tools you usually need for your projects.
 
 Notable defaults:
-- `dungeon` always starts the container through a root bootstrap that installs the network policy, then drops to the unprivileged `dungeon` user.
+- Containers run as the unprivileged `dungeon` user with `HOME=/home/dungeon`, so the image's Zsh and Zim configuration loads normally. A minimal entrypoint drops privileges if libkrun starts it as root.
 - passwordless sudo is limited to `sudo dungeon-install ...`, a small wrapper around `pacman` with a denylist for security-sensitive packages.
 - `bubblewrap` is installed and configured so Codex can use its sandbox inside the container.
 
@@ -113,7 +112,7 @@ There are several ways to configure dungeon, in order of precedence:
 - [Configuration file](#configuration-file)
 - [Default configuration](#default-configuration)
 
-For `dungeon run`, single settings like `command`, `image`, and the `network` booleans override lower-level configuration. List settings like ports, dynamic ports, mounts, and network allowlists are merged with lower-level configuration.
+For `dungeon run`, single settings like `command` and `image` override lower-level configuration. List settings like ports, dynamic ports, exposed host ports, and mounts are merged with lower-level configuration.
 
 Configuration file, environment variables, and included groups apply to `dungeon run`; image and cache commands also use applicable global settings such as `podman_args`.
 
@@ -126,7 +125,7 @@ Run-session flags live under `dungeon run`:
 - `--debug` to print the generated command instead of running it.
 - `--command`, `--image`, `--port`, `--dynamic-port`, `--cache`, `--mount`, `--env`, `--env-file`, `--podman-arg`, `--run-arg`, `--mount-git-metadata`, `--no-mount-git-metadata` to customize container.
 - `--skip-cwd` to skip mounting the current directory.
-- `--ipv6`, `--no-ipv6`, `--allow-dns`, `--deny-dns`, `--allow-domain`, `--allow-host` to customize the outbound network policy.
+- repeatable `--expose-host-port <spec>` to expose host-loopback TCP services or ranges inside the container.
 - group flags (for example `--codex`)
 
 Image and cache management:
@@ -146,17 +145,14 @@ image = "localhost/dungeon"
 mount_git_metadata = false
 ports = ["127.0.0.1:8888:8888"]
 dynamic_ports = ["difit"]
+expose_host_ports = ["8080", "18080:8080", "8000-8010"]
 caches = [".cache/pip:rw"]
 mounts = ["~/projects:/home/dungeon/projects:rw"]
 envs = ["OPENAI_API_KEY", "SECRET=abc123"]
 env_files = [".env", "secrets.env"]
-podman_args = ["-c", "agent-vm"]
+podman_args = ["--log-level=warn"]
 run_args = ["--cap-add=SYS_PTRACE"]
 include_groups = ["ai"]
-ipv6 = false
-allow_dns = true
-allowed_tcp_domains = ["crates.io", "index.crates.io"]
-allowed_tcp_hosts = ["10.0.0.0/8"]
 
 [ai]
 include_groups = ["codex", "difit"]
@@ -166,8 +162,6 @@ mounts = ["~/.codex:/home/dungeon/.codex:rw"]
 
 [difit]
 dynamic_ports = ["difit"]
-
-allowed_tcp_domains = ["api.openai.com"]
 
 [obsidian]
 mounts = ["~/my_vault:/home/dungeon/obsidian:ro"]
@@ -199,20 +193,14 @@ Group behavior:
 - `dynamic_ports`, `DUNGEON_DYNAMIC_PORTS`, and repeatable `--dynamic-port <name>` each add a dynamic port. Names must be lower-case ASCII identifiers (`[a-z][a-z0-9_]*`); `difit` adds `-p 127.0.0.1:X:X` and `DUNGEON_PORT_FOR_DIFIT=X`.
 - Dynamic-port listeners are reserved until Dungeon starts Podman. They are not retained by `--debug`.
 - The published host port is loopback-only. Services using a dynamic port must listen on `0.0.0.0` inside the container so Podman can forward traffic to them.
-- `mounts`, `caches`, `envs`, `env_files`, `ports`, `dynamic_ports`, `podman_args`, `run_args`, and network allowlists extend the base settings when enabled.
+- `expose_host_ports`, `DUNGEON_EXPOSE_HOST_PORTS`, and repeatable `--expose-host-port <spec>` expose host-loopback TCP services or ranges inside the container through pasta reverse forwarding.
+- An exposed host port specification can be a port (`8080`), a translated port (`18080:8080` maps container port 18080 to host port 8080), a range (`8000-8010`), or equal-sized translated ranges (`10000-10010:20000-20010`). Ports must be between 1 and 65535.
+- Exposed host ports generate repeated pasta arguments directly, for example `--network=pasta:-T,8080,-T,18080:8080`. Each mapping must be comma-free because Podman uses commas to split pasta arguments. Explicit `--network` or `--net` values in `run_args` conflict with this setting. Advanced pasta expressions such as addresses, `all`, `auto`, exclusions, and comma-containing specifications are not supported.
+- Use `127.0.0.1` inside the container for an IPv4-only host service. `localhost` can resolve to `::1`, which forwards to host IPv6 loopback instead.
+- Exposing a host port deliberately grants container processes access to that host-loopback service. It is separate from HTTP reverse proxying and from `ports`, which publish container services to the host.
+- `mounts`, `caches`, `envs`, `env_files`, `ports`, `dynamic_ports`, `expose_host_ports`, `podman_args`, and `run_args` extend the base settings when enabled.
 - `command` and `image` use the last enabled group when multiple are set.
-- `mount_git_metadata`, `ipv6`, and `allow_dns` use the highest-precedence value.
-
-### Network policy
-
-`dungeon` always starts with its firewall/bootstrap path enabled.
-
-- If `allowed_tcp_domains` and `allowed_tcp_hosts` are both empty after merging all config layers, egress is unrestricted for enabled families.
-- If either list is non-empty, egress is restricted to the merged allowlist.
-- `ipv6 = false` disables IPv6 entirely.
-- `ipv6 = true` enables IPv6 and applies the same filtering model as IPv4.
-- `allow_dns = true` allows container DNS queries by default.
-- `allow_dns = false` blocks container DNS queries after bootstrap has finished resolving any configured domains.
+- `mount_git_metadata` uses the highest-precedence value.
 
 ### libkrun
 
@@ -229,9 +217,11 @@ run_args = [
 
 Start it with `dungeon run --krun`. `krun.ram_mib` sets guest RAM; `--memory` also leaves room for the runtime outside the guest.
 
-The image configures libkrun to use `passt`, which gives the guest a virtual network interface. Dungeon applies its nftables policy inside that guest, so the domain, host, DNS, and IPv6 restrictions continue to apply under krun.
+The image does not request a virtual network interface, so libkrun uses Transparent Socket Impersonation (TSI). Guest TCP and UDP operations are proxied by the VMM from Podman's network namespace. This avoids a nested passt process and allows `expose_host_ports` to work under krun without an additional annotation.
 
-The Linux system running Podman locally must provide KVM access, `passt`, a krun-enabled crun runtime, and libkrunfw 5.5.0 or newer. Earlier libkrunfw kernels do not include the required nftables netfilter support. Use a current crun build with passt DHCP and DNS support. Podman's remote client, including Podman machines selected with `-c` or `--connection`, does not support `--runtime`; run this configuration against a local Podman service instead.
+TSI keeps the KVM boundary and Podman's user, mount, and network namespaces, but Dungeon does not filter egress inside the guest. The workload can make any TCP, UDP, DNS, IPv4, or IPv6 connection allowed by the outer Podman network. TSI can also proxy absolute-path Unix sockets visible and accessible in the VMM's mount namespace, so do not mount sensitive engine, SSH-agent, or desktop sockets unless that access is intentional.
+
+The Linux system running Podman locally must provide KVM access, a krun-enabled crun runtime, and libkrunfw. Exposed host ports additionally require pasta. Podman's remote client, including Podman machines selected with `-c` or `--connection`, does not support `--runtime`; run this configuration against a local Podman service instead.
 
 ### Environment variables
 
@@ -240,6 +230,7 @@ Environment overrides use:
 - `DUNGEON_IMAGE`
 - `DUNGEON_PORTS` (comma-separated)
 - `DUNGEON_DYNAMIC_PORTS` (comma-separated)
+- `DUNGEON_EXPOSE_HOST_PORTS` (comma-separated)
 - `DUNGEON_CACHES` (comma-separated)
 - `DUNGEON_MOUNTS` (comma-separated)
 - `DUNGEON_ENVS` (comma-separated)
@@ -247,19 +238,15 @@ Environment overrides use:
 - `DUNGEON_PODMAN_ARGS` (comma-separated)
 - `DUNGEON_RUN_ARGS` (comma-separated)
 - `DUNGEON_MOUNT_GIT_METADATA`
-- `DUNGEON_IPV6`
-- `DUNGEON_ALLOW_DNS`
-- `DUNGEON_ALLOWED_TCP_DOMAINS` (comma-separated)
-- `DUNGEON_ALLOWED_TCP_HOSTS` (comma-separated)
 - `DUNGEON_INCLUDE_GROUPS` (comma-separated)
 
 ## Runtime behavior
 
-- `dungeon run` always starts the container as root, installs the firewall policy, drops capabilities, and then switches to the `dungeon` user.
-- The firewall uses nftables. With `--runtime=krun`, it filters traffic inside the microVM and requires the libkrun prerequisites above.
+- `dungeon run` requests the image's unprivileged `dungeon` user; the image entrypoint enforces that identity when libkrun starts it as root.
+- Dungeon does not add capabilities or install an in-container firewall.
 - The runtime intentionally preserves the image's narrow `sudo dungeon-install ...` path; broader root access still is not granted.
-- The Podman command keeps `--userns=keep-id`, so bind-mounted files still line up with the host user.
-- The image entrypoint is `dungeon-bootstrap`, which applies the runtime network policy.
+- The Podman command uses `--userns=keep-id --user dungeon`, preserving the user namespace while starting directly as the image's runtime user.
+- The minimal `dungeon-bootstrap` entrypoint only repairs TTY ownership when needed and switches a root process to `dungeon`; it contains no firewall or service startup logic.
 - `mount_git_metadata = true` is intended for Git worktrees and other checkouts with `.git` files that point outside the mounted workspace. It currently supports absolute `gitdir:` paths only.
 - Codex can rely on `bubblewrap`; there is no `CODEX_UNSAFE_ALLOW_NO_SANDBOX` fallback configured.
 - The built-in `pi` group mounts `~/.pi/agent`, which covers Pi auth, settings, sessions, and installed Pi packages.

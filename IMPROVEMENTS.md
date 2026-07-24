@@ -1,13 +1,13 @@
 ## Overview
 
-`dungeon` is a Rust CLI for launching sandboxed development containers on top of Podman. It supports layered configuration, reusable group presets, image building, cache management, and an in-container bootstrap that applies network policy before dropping privileges.
+`dungeon` is a Rust CLI for launching sandboxed development containers on top of Podman. It supports layered configuration, reusable group presets, image building, cache management, and a minimal runtime-user bootstrap for libkrun.
 
 ## Main Parts
 
 - CLI parsing and command routing: `src/cli/`
 - App and config orchestration: `src/app.rs`, `src/config/`
 - Podman command construction and execution: `src/container/`
-- Container image and bootstrap scripts: `images/`
+- Container image, bootstrap, and helper scripts: `images/`
 - Tests: `src/tests/`
 - Product docs: `README.md`
 
@@ -19,7 +19,7 @@
 
 2. Add real Podman integration tests
    - Refs: `src/tests/basic_run.rs`, `src/tests/network.rs`, `src/tests/image_cache.rs`
-   - Current coverage is mostly command-shape and unit-level verification, not real container startup or bootstrap policy behavior.
+   - Current coverage is mostly command-shape and unit-level verification, not real container startup behavior.
 
 3. Add CI for formatting, linting, tests, and smoke tests
    - Refs: repository root, no `.github/` workflows present
@@ -44,7 +44,3 @@
 9. Reduce test reliance on global environment and working-directory mutation
    - Refs: `src/tests/support.rs`
    - Process-wide mutation plus locking is workable but brittle and makes cleaner parallel test execution harder.
-
-10. Remove unused complexity and dependencies
-   - Refs: `Cargo.toml`
-   - `serde` appears declared but not obviously used; there may be opportunities to simplify the dependency set and related code.
