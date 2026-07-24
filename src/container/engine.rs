@@ -332,7 +332,7 @@ fn append_engine_identity_args(args: &mut Vec<String>, engine: Engine) {
         Engine::Podman => {
             args.push("--userns=keep-id".to_string());
             args.push("--user".to_string());
-            args.push("dungeon".to_string());
+            args.push("root".to_string());
         }
     }
 }

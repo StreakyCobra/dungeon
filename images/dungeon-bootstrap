@@ -6,8 +6,8 @@ if (( $# == 0 )); then
     set -- zsh
 fi
 
-# libkrun can start the OCI entrypoint as root even when Podman was given
-# --user dungeon. Native runtimes already enter here as the requested user.
+# Dungeon starts this entrypoint as namespaced root so setuid tools retain their
+# capability bounding set. Direct image users may already enter unprivileged.
 if (( EUID != 0 )); then
     exec "$@"
 fi

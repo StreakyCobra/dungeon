@@ -1,7 +1,7 @@
 use crate::tests::support::{TestInput, assert_command, run_input};
 
 #[test]
-fn omits_privilege_escalation_args() {
+fn uses_root_only_for_the_runtime_user_bootstrap() {
     let input = TestInput {
         toml: "",
         args: &["run"],
@@ -13,9 +13,8 @@ fn omits_privilege_escalation_args() {
 
     let output = run_input(input);
 
-    assert!(output.command.contains("--user dungeon"));
+    assert!(output.command.contains("--user root"));
     for fragment in [
-        "--user root",
         "--cap-add NET_ADMIN",
         "--cap-add NET_RAW",
         "--cap-add SYS_ADMIN",

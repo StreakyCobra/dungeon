@@ -133,7 +133,7 @@ fn normalize_command(command: &str, cwd: &Path, home: &Path, root: &Path) -> Str
         .replace(cwd.to_string_lossy().as_ref(), "<CWD>")
         .replace(home.to_string_lossy().as_ref(), "<HOME>")
         .replace(root.to_string_lossy().as_ref(), "<TMP>")
-        .replace("--user dungeon ", "")
+        .replace("--user root ", "")
 }
 
 fn create_cwd_entries(cwd: &Path, entries: &[&str]) -> Result<(), std::io::Error> {
