@@ -1,6 +1,7 @@
 [general]
 engine = "podman"
 mount_git_metadata = false
+enable_ssh = false
 
 [codex]
 mounts = ["~/.codex:/home/dungeon/.codex:rw"]

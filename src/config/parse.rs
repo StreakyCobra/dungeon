@@ -75,6 +75,12 @@ pub fn load_from_env() -> Result<Config, AppError> {
         cfg.settings.mount_git_metadata =
             Some(parse_bool_value("mount_git_metadata", value.trim())?);
     }
+    if let Ok(value) = env::var(format!("{}ENABLE_SSH", ENV_PREFIX)) {
+        cfg.settings.enable_ssh = Some(parse_bool_value("enable_ssh", value.trim())?);
+    }
+    if let Ok(value) = env::var(format!("{}SSH_KEYS", ENV_PREFIX)) {
+        cfg.settings.ssh_keys = Some(split_env_lines(&value));
+    }
     if let Ok(value) = env::var(format!("{}INCLUDE_GROUPS", ENV_PREFIX)) {
         cfg.include_groups = Some(split_env_list(&value));
     }
@@ -215,6 +221,14 @@ fn parse_settings_key(
             settings.mount_git_metadata = Some(parse_bool(scope, key, value)?);
             Ok(true)
         }
+        "enable_ssh" => {
+            settings.enable_ssh = Some(parse_bool(scope, key, value)?);
+            Ok(true)
+        }
+        "ssh_keys" => {
+            settings.ssh_keys = Some(parse_string_vec(scope, key, value)?);
+            Ok(true)
+        }
         _ => Ok(false),
     }
 }
@@ -255,6 +269,15 @@ fn split_env_list(value: &str) -> Vec<String> {
         .map(|part| part.trim())
         .filter(|part| !part.is_empty())
         .map(|part| part.to_string())
+        .collect()
+}
+
+fn split_env_lines(value: &str) -> Vec<String> {
+    value
+        .lines()
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .map(str::to_string)
         .collect()
 }
 

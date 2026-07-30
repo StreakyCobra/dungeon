@@ -9,12 +9,47 @@ fi
 # Dungeon starts this entrypoint as namespaced root so setuid tools retain their
 # capability bounding set. Direct image users may already enter unprivileged.
 if (( EUID != 0 )); then
+    if [[ ${DUNGEON_SSH_ENABLED:-false} == true ]]; then
+        print -u2 -- "dungeon SSH requires the root bootstrap entrypoint"
+        exit 1
+    fi
     exec "$@"
 fi
 
 if tty_path=$(tty 2>/dev/null) && [[ -c $tty_path ]]; then
     chown dungeon "$tty_path" 2>/dev/null || true
     chmod u+rw "$tty_path" 2>/dev/null || true
+fi
+
+if [[ ${DUNGEON_SSH_ENABLED:-false} == true ]]; then
+    if [[ ! ${DUNGEON_SSH_PORT:-} =~ '^[1-9][0-9]{0,4}$' ]] \
+        || (( DUNGEON_SSH_PORT > 65535 )); then
+        print -u2 -- "dungeon SSH requires DUNGEON_SSH_PORT between 1 and 65535"
+        exit 1
+    fi
+    if [[ -z ${DUNGEON_SSH_KEYS:-} ]]; then
+        print -u2 -- "dungeon SSH requires at least one public key"
+        exit 1
+    fi
+
+    install -d -m 0700 -o dungeon -g dungeon /home/dungeon/.ssh
+    print -r -- "$DUNGEON_SSH_KEYS" > /home/dungeon/.ssh/authorized_keys
+    chown dungeon:dungeon /home/dungeon/.ssh/authorized_keys
+    chmod 0600 /home/dungeon/.ssh/authorized_keys
+    unset DUNGEON_SSH_KEYS
+
+    mkdir -p /run/sshd
+    rm -f /etc/ssh/ssh_host_*_key(N) /etc/ssh/ssh_host_*_key.pub(N)
+    ssh-keygen -A
+    /usr/bin/sshd -t -f /etc/ssh/sshd_config -p "$DUNGEON_SSH_PORT"
+    /usr/bin/sshd -f /etc/ssh/sshd_config -p "$DUNGEON_SSH_PORT"
+
+    ssh_command="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $DUNGEON_SSH_PORT dungeon@127.0.0.1"
+    print -r -- "SSH is ready: $ssh_command"
+    ssh_command_base64=$(print -rn -- "$ssh_command" | base64 | tr -d '\n')
+    printf '\033]52;c;%s\a' "$ssh_command_base64"
+    print
+    print -r -- "SSH command copied to the terminal clipboard via OSC 52."
 fi
 
 exec env HOME=/home/dungeon USER=dungeon LOGNAME=dungeon \

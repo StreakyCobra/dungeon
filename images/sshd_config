@@ -1,0 +1,16 @@
+AddressFamily inet
+ListenAddress 0.0.0.0
+PermitRootLogin no
+AllowUsers dungeon
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+AuthenticationMethods publickey
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitEmptyPasswords no
+UsePAM no
+X11Forwarding no
+AllowAgentForwarding no
+AllowTcpForwarding no
+PermitTunnel no
+PermitUserEnvironment no

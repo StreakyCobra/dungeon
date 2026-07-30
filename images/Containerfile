@@ -12,17 +12,20 @@ RUN pacman -Syu --noconfirm \
       less \
       npm \
       nvim \
+      openssh \
       pre-commit \
       ripgrep \
       starship \
       sudo \
       which \
+      zellij \
       zsh \
     && rm -rf /var/cache/pacman/pkg /var/lib/pacman/sync/*
 
 # Setup user
 RUN groupadd -g 1000 dungeon && \
     useradd -m -u 1000 -g 1000 -s /bin/zsh dungeon && \
+    usermod -p 'NP' dungeon && \
     install -d -o dungeon -g dungeon \
       /home/dungeon/.cache \
       /home/dungeon/.cache/npm \
@@ -40,6 +43,7 @@ RUN groupadd -g 1000 dungeon && \
 
 COPY images/dungeon-bootstrap /usr/local/bin/dungeon-bootstrap
 COPY images/dungeon-install /usr/local/bin/dungeon-install
+COPY images/sshd_config /etc/ssh/sshd_config
 COPY images/dot-zimrc /home/dungeon/.zimrc
 COPY images/dot-zshrc /home/dungeon/.zshrc
 RUN chmod 0755 /usr/local/bin/dungeon-bootstrap /usr/local/bin/dungeon-install

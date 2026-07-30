@@ -14,3 +14,9 @@ source ${ZIM_HOME}/init.zsh
 if (( ${+commands[starship]} )); then
   eval "$(starship init zsh)"
 fi
+
+if [[ -o interactive && -n ${SSH_CONNECTION:-} && -z ${ZELLIJ:-} && ${+commands[zellij]} -eq 1 ]]; then
+  export ZELLIJ_AUTO_ATTACH=true
+  export ZELLIJ_AUTO_EXIT=true
+  eval "$(zellij setup --generate-auto-start zsh)"
+fi

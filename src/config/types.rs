@@ -29,6 +29,8 @@ pub struct Settings {
     pub podman_args: Option<Vec<String>>,
     pub run_args: Option<Vec<String>>,
     pub mount_git_metadata: Option<bool>,
+    pub enable_ssh: Option<bool>,
+    pub ssh_keys: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Default)]

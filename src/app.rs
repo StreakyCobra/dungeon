@@ -43,7 +43,7 @@ fn run_container_session(
 
     if parsed.debug {
         let mut settings = resolved.settings.clone();
-        let reservations = container::engine::reserve_dynamic_ports(&mut settings)?;
+        let reservations = container::engine::reserve_runtime_ports(&mut settings)?;
         let spec = container::engine::build_container_command(
             &settings,
             &resolved.paths,
@@ -55,7 +55,7 @@ fn run_container_session(
     }
 
     let mut settings = resolved.settings.clone();
-    let reservations = container::engine::reserve_dynamic_ports(&mut settings)?;
+    let reservations = container::engine::reserve_runtime_ports(&mut settings)?;
     let spec =
         container::engine::build_container_command(&settings, &resolved.paths, resolved.skip_cwd)?;
     container::engine::run_reserved_container_command(spec, reservations)?;

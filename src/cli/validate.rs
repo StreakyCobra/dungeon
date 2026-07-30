@@ -25,6 +25,7 @@ pub(crate) fn validate_skip_cwd_with_paths(
 
 pub fn validate_settings(settings: &Settings) -> Result<(), AppError> {
     validate_exposed_host_ports(settings)?;
+    validate_ssh(settings)?;
     validate_remote_runtime(settings)
 }
 
@@ -73,6 +74,49 @@ fn validate_exposed_host_ports(settings: &Settings) -> Result<(), AppError> {
     }
 
     Ok(())
+}
+
+fn validate_ssh(settings: &Settings) -> Result<(), AppError> {
+    if settings.enable_ssh != Some(true) {
+        return Ok(());
+    }
+
+    let keys = settings.ssh_keys.as_deref().unwrap_or(&[]);
+    if keys.is_empty() {
+        return Err(AppError::message(
+            "ERROR: enable_ssh requires at least one ssh_keys entry",
+        ));
+    }
+
+    for key in keys {
+        if key.trim().is_empty() || key.contains('\n') || key.contains('\r') || !is_public_key(key)
+        {
+            return Err(AppError::message(
+                "ERROR: ssh_keys entries must be single-line OpenSSH public keys",
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+fn is_public_key(value: &str) -> bool {
+    let fields = value.split_ascii_whitespace().collect::<Vec<_>>();
+    let key_index = match fields.first() {
+        Some(first) if is_public_key_type(first) => 0,
+        _ if fields.get(1).is_some_and(|field| is_public_key_type(field)) => 1,
+        _ => return false,
+    };
+    fields
+        .get(key_index + 1)
+        .is_some_and(|field| !field.is_empty())
+}
+
+fn is_public_key_type(value: &str) -> bool {
+    value.starts_with("ssh-")
+        || value.starts_with("ecdsa-")
+        || value.starts_with("sk-")
+        || value.starts_with("rsa-sha2-")
 }
 
 fn is_valid_exposed_host_port_spec(spec: &str) -> bool {

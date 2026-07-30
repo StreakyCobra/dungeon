@@ -83,6 +83,12 @@ fn merge_settings(base: Settings, override_settings: Settings) -> Settings {
     if let Some(value) = override_settings.mount_git_metadata {
         merged.mount_git_metadata = Some(value);
     }
+    if let Some(value) = override_settings.enable_ssh {
+        merged.enable_ssh = Some(value);
+    }
+    if let Some(values) = override_settings.ssh_keys {
+        merged.ssh_keys = Some(append_strings(merged.ssh_keys, values));
+    }
     merged
 }
 

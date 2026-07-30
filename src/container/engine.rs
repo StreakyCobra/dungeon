@@ -1,8 +1,10 @@
 use std::{
     collections::HashSet,
-    net::TcpListener,
+    net::{SocketAddrV4, TcpListener},
     path::{Component, Path, PathBuf},
 };
+
+use socket2::{Domain, Protocol, Socket, Type};
 
 use crate::{
     config::{Engine, Settings},
@@ -10,6 +12,9 @@ use crate::{
 };
 
 const WORKSPACE_ROOT: &str = "/workspace";
+const SSH_ENABLED_ENV: &str = "DUNGEON_SSH_ENABLED";
+const SSH_PORT_ENV: &str = "DUNGEON_SSH_PORT";
+const SSH_KEYS_ENV: &str = "DUNGEON_SSH_KEYS";
 
 #[derive(Debug, Clone)]
 pub struct CommandSpec {
@@ -25,8 +30,9 @@ pub struct DynamicPortReservations {
 pub fn reserve_dynamic_ports(settings: &mut Settings) -> Result<DynamicPortReservations, AppError> {
     let mut reservations = DynamicPortReservations::default();
     let mut names = HashSet::new();
+    let dynamic_ports = settings.dynamic_ports.clone().unwrap_or_default();
 
-    for name in settings.dynamic_ports.as_deref().unwrap_or(&[]) {
+    for name in &dynamic_ports {
         if !names.insert(name) {
             continue;
         }
@@ -37,9 +43,27 @@ pub fn reserve_dynamic_ports(settings: &mut Settings) -> Result<DynamicPortReser
             .ports
             .get_or_insert_with(Vec::new)
             .push(format!("127.0.0.1:{0}:{0}", port));
-        let env_vars = settings.env_vars.get_or_insert_with(Vec::new);
-        env_vars.retain(|spec| !env_spec_has_name(spec, &env_key));
-        env_vars.push(format!("{}={}", env_key, port));
+        set_generated_env(settings, &env_key, &port.to_string());
+        reservations.listeners.push(listener);
+    }
+
+    Ok(reservations)
+}
+
+pub fn reserve_runtime_ports(settings: &mut Settings) -> Result<DynamicPortReservations, AppError> {
+    let mut reservations = reserve_dynamic_ports(settings)?;
+
+    if settings.enable_ssh == Some(true) {
+        let listener = reserve_dynamic_port()?;
+        let port = listener.local_addr()?.port();
+        settings
+            .ports
+            .get_or_insert_with(Vec::new)
+            .push(format!("127.0.0.1:{0}:{0}", port));
+        set_generated_env(settings, SSH_ENABLED_ENV, "true");
+        set_generated_env(settings, SSH_PORT_ENV, &port.to_string());
+        let authorized_keys = settings.ssh_keys.as_deref().unwrap_or(&[]).join("\n");
+        set_generated_env(settings, SSH_KEYS_ENV, &authorized_keys);
         reservations.listeners.push(listener);
     }
 
@@ -47,7 +71,11 @@ pub fn reserve_dynamic_ports(settings: &mut Settings) -> Result<DynamicPortReser
 }
 
 fn reserve_dynamic_port() -> Result<TcpListener, AppError> {
-    TcpListener::bind(("127.0.0.1", 0)).map_err(AppError::from)
+    let socket = Socket::new(Domain::IPV4, Type::STREAM, Some(Protocol::TCP))?;
+    socket.set_reuse_address(false)?;
+    socket.bind(&SocketAddrV4::new(std::net::Ipv4Addr::LOCALHOST, 0).into())?;
+    socket.listen(1)?;
+    Ok(socket.into())
 }
 
 pub fn run_reserved_container_command(
@@ -355,6 +383,12 @@ fn env_spec_has_name(spec: &str, name: &str) -> bool {
         .map(|(key, _)| key)
         .unwrap_or(trimmed);
     key == name
+}
+
+fn set_generated_env(settings: &mut Settings, name: &str, value: &str) {
+    let env_vars = settings.env_vars.get_or_insert_with(Vec::new);
+    env_vars.retain(|spec| !env_spec_has_name(spec, name));
+    env_vars.push(format!("{}={}", name, value));
 }
 
 fn append_repeated_flag_args(args: &mut Vec<String>, flag: &str, values: &[String]) {
