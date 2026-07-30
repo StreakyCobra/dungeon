@@ -1,5 +1,10 @@
 FROM docker.io/archlinux:latest AS base
 
+RUN printf '%s\n' \
+      'Server = https://mirror.metanet.ch/archlinux/$repo/os/$arch' \
+      'Server = https://mirror.puzzle.ch/archlinux/$repo/os/$arch' \
+      > /etc/pacman.d/mirrorlist
+
 # Update and install runtime packages.
 RUN --mount=type=cache,id=pacman-pkg,target=/var/cache/pacman/pkg,sharing=locked \
     pacman -Syu --noconfirm \
