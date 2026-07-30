@@ -69,10 +69,6 @@ FROM base AS agent-builder
 
 USER dungeon
 
-# Setup git
-RUN git config --global user.name "dungeon" && \
-    git config --global user.email "dungeon@example.com"
-
 # Install AI agents in a builder stage and keep only the runtime binaries.
 RUN npm i -g @openai/codex@latest \
     && npm i -g --allow-scripts=opencode-ai opencode-ai@latest \
