@@ -112,7 +112,7 @@ There are several ways to configure dungeon, in order of precedence:
 - [Configuration file](#configuration-file)
 - [Default configuration](#default-configuration)
 
-For `dungeon run`, single settings like `command` and `image` override lower-level configuration. List settings like ports, dynamic ports, exposed host ports, and mounts are merged with lower-level configuration.
+For `dungeon run`, single settings like `command`, `image`, and `enable_ssh` override lower-level configuration. List settings like ports, dynamic ports, exposed host ports, mounts, and SSH keys are merged with lower-level configuration.
 
 Configuration file, environment variables, and included groups apply to `dungeon run`; image and cache commands also use applicable global settings such as `podman_args`.
 
@@ -143,6 +143,8 @@ Example:
 command = "codex"
 image = "localhost/dungeon"
 mount_git_metadata = false
+enable_ssh = true
+ssh_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... you@example.com"]
 ports = ["127.0.0.1:8888:8888"]
 dynamic_ports = ["difit"]
 expose_host_ports = ["8080", "18080:8080", "8000-8010"]
@@ -185,6 +187,8 @@ Group behavior:
 - Each reachable group is applied once. Unknown included groups and inclusion cycles are configuration errors.
 - `mounts` entries are passed directly to Podman as `-v` arguments; dungeon only checks to prevent a home-directory mount.
 - `mount_git_metadata = true` makes dungeon inspect mounted directories for `.git` files that point outside the workspace and bind-mount the referenced Git metadata path so Git worktrees work inside the container.
+- `enable_ssh = true` starts a key-only SSH daemon before the main command. It requires at least one literal, single-line OpenSSH public key in `ssh_keys`.
+- `ssh_keys` entries are appended across configuration layers and groups. They are written to `/home/dungeon/.ssh/authorized_keys` for the temporary container only.
 - `podman_args` entries are inserted before the Podman subcommand, for example `podman -c agent-vm run ...`.
 - `--skip-cwd` prevents the implicit current-directory mount when no paths are provided.
 - `caches` entries are passed directly as `dungeon-cache:<spec>` volume mounts.
@@ -193,14 +197,14 @@ Group behavior:
 - `dynamic_ports`, `DUNGEON_DYNAMIC_PORTS`, and repeatable `--dynamic-port <name>` each add a dynamic port. Names must be lower-case ASCII identifiers (`[a-z][a-z0-9_]*`); `difit` adds `-p 127.0.0.1:X:X` and `DUNGEON_PORT_FOR_DIFIT=X`.
 - Dynamic-port listeners are reserved until Dungeon starts Podman. They are not retained by `--debug`.
 - The published host port is loopback-only. Services using a dynamic port must listen on `0.0.0.0` inside the container so Podman can forward traffic to them.
+- SSH uses the same reservation strategy: Dungeon allocates a random host loopback port, maps it to the same container port, and passes it as `DUNGEON_SSH_PORT`. Do not configure SSH with `ports` yourself.
 - `expose_host_ports`, `DUNGEON_EXPOSE_HOST_PORTS`, and repeatable `--expose-host-port <spec>` expose host-loopback TCP services or ranges inside the container through pasta reverse forwarding.
 - An exposed host port specification can be a port (`8080`), a translated port (`18080:8080` maps container port 18080 to host port 8080), a range (`8000-8010`), or equal-sized translated ranges (`10000-10010:20000-20010`). Ports must be between 1 and 65535.
 - Exposed host ports generate repeated pasta arguments directly, for example `--network=pasta:-T,8080,-T,18080:8080`. Each mapping must be comma-free because Podman uses commas to split pasta arguments. Explicit `--network` or `--net` values in `run_args` conflict with this setting. Advanced pasta expressions such as addresses, `all`, `auto`, exclusions, and comma-containing specifications are not supported.
 - Use `127.0.0.1` inside the container for an IPv4-only host service. `localhost` can resolve to `::1`, which forwards to host IPv6 loopback instead.
 - Exposing a host port deliberately grants container processes access to that host-loopback service. It is separate from HTTP reverse proxying and from `ports`, which publish container services to the host.
-- `mounts`, `caches`, `envs`, `env_files`, `ports`, `dynamic_ports`, `expose_host_ports`, `podman_args`, and `run_args` extend the base settings when enabled.
-- `command` and `image` use the last enabled group when multiple are set.
-- `mount_git_metadata` uses the highest-precedence value.
+- `mounts`, `caches`, `envs`, `env_files`, `ports`, `dynamic_ports`, `expose_host_ports`, `podman_args`, `run_args`, and `ssh_keys` extend the base settings when enabled.
+- `command`, `image`, `mount_git_metadata`, and `enable_ssh` use the highest-precedence value.
 
 ### libkrun
 
@@ -238,15 +242,33 @@ Environment overrides use:
 - `DUNGEON_PODMAN_ARGS` (comma-separated)
 - `DUNGEON_RUN_ARGS` (comma-separated)
 - `DUNGEON_MOUNT_GIT_METADATA`
+- `DUNGEON_ENABLE_SSH`
+- `DUNGEON_SSH_KEYS` (newline-separated literal public-key lines)
 - `DUNGEON_INCLUDE_GROUPS` (comma-separated)
+
+### SSH access
+
+Enable SSH in a configuration group when a runtime such as `krun` cannot support `podman exec`:
+
+```toml
+[ssh]
+enable_ssh = true
+ssh_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... you@example.com"]
+```
+
+Start with `dungeon run --ssh`. Once `sshd` is ready, the bootstrap prints the exact command to connect as `dungeon` and sends the same command to the terminal clipboard using OSC 52. Clipboard support depends on the host terminal emulator and its OSC 52 policy; the printed command remains the fallback.
+
+SSH listens only through a randomly selected `127.0.0.1` host port. Password, keyboard-interactive, root, agent forwarding, TCP forwarding, X11 forwarding, user-provided SSH environment, and tunneling are disabled. SSH host keys and `authorized_keys` exist only for the temporary container lifetime. The configured public keys appear in the generated Podman environment and are not private credentials.
+
+Interactive SSH logins automatically create or attach to a Zellij session. Zellij does not start for Dungeon's primary shell, non-interactive SSH commands, or nested Zellij sessions.
 
 ## Runtime behavior
 
-- `dungeon run` starts the minimal image entrypoint as namespaced root so it can retain the capability bounding set required by setuid tools, then immediately switches to the unprivileged `dungeon` user.
+- `dungeon run` starts the minimal image entrypoint as namespaced root so it can retain the capability bounding set required by setuid tools, then switches to the unprivileged `dungeon` user.
 - Dungeon does not add capabilities or install an in-container firewall.
 - The runtime intentionally preserves the image's narrow `sudo dungeon-install ...` path; broader root access still is not granted.
-- The Podman command uses `--userns=keep-id --user root`; `dungeon-bootstrap` is the only root process and hands control to the image's `dungeon` user before running the requested command.
-- The minimal `dungeon-bootstrap` entrypoint only repairs TTY ownership when needed and switches a root process to `dungeon`; it contains no firewall or service startup logic.
+- The Podman command uses `--userns=keep-id --user root`; `dungeon-bootstrap` is the only root process. When SSH is enabled, it creates the temporary credentials, starts `sshd`, and then hands control to the image's `dungeon` user.
+- The bootstrap starts no service unless `DUNGEON_SSH_ENABLED=true`. It does not add a firewall.
 - `mount_git_metadata = true` is intended for Git worktrees and other checkouts with `.git` files that point outside the mounted workspace. It currently supports absolute `gitdir:` paths only.
 - Codex can rely on `bubblewrap`; there is no `CODEX_UNSAFE_ALLOW_NO_SANDBOX` fallback configured.
 - The built-in `pi` group mounts `~/.pi/agent`, which covers Pi auth, settings, sessions, and installed Pi packages.
