@@ -1,7 +1,8 @@
 FROM docker.io/archlinux:latest AS base
 
 # Update and install runtime packages.
-RUN pacman -Syu --noconfirm \
+RUN --mount=type=cache,id=pacman-pkg,target=/var/cache/pacman/pkg,sharing=locked \
+    pacman -Syu --noconfirm \
     && pacman -S --noconfirm \
       bubblewrap \
       ca-certificates \
@@ -20,7 +21,7 @@ RUN pacman -Syu --noconfirm \
       which \
       zellij \
       zsh \
-    && rm -rf /var/cache/pacman/pkg /var/lib/pacman/sync/*
+    && rm -rf /var/lib/pacman/sync/*
 
 # Setup user
 RUN groupadd -g 1000 dungeon && \
