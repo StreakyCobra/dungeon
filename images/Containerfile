@@ -66,10 +66,6 @@ ENV PATH=/home/dungeon/.npm-global/bin:$PATH
 
 FROM base AS agent-builder
 
-RUN pacman -Sy --noconfirm \
-      nodejs \
-    && rm -rf /var/cache/pacman/pkg /var/lib/pacman/sync/*
-
 USER dungeon
 
 # Setup git
