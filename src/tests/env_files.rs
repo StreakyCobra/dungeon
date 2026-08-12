@@ -35,3 +35,28 @@ fn env_list_from_env_var_trims_and_drops_empty_entries() {
 
     assert_command(input, expected);
 }
+
+#[test]
+fn expands_project_placeholder_in_environment_values() {
+    let input = TestInput {
+        toml: r#"
+[general]
+envs = [
+    "OPENCODE_DB=/opencode-db/${project}/opencode.db",
+    "REPEATED=${project}-${project}",
+    "SHELL=$(basename $PWD)",
+    "HOME=${HOME}",
+    "INHERITED",
+]
+"#,
+        args: &["run"],
+        env: &[],
+        cwd_name: "my-project-folder",
+        cwd_entries: &[],
+        fs_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /workspace/my-project-folder --rm --env OPENCODE_DB=/opencode-db/my-project-folder/opencode.db --env REPEATED=my-project-folder-my-project-folder --env SHELL=$(basename $PWD) --env HOME=${HOME} --env INHERITED -v <CWD>:/workspace/my-project-folder localhost/dungeon zsh";
+
+    assert_command(input, expected);
+}

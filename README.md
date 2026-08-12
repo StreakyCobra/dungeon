@@ -205,6 +205,7 @@ Group behavior:
 - Exposing a host port deliberately grants container processes access to that host-loopback service. It is separate from HTTP reverse proxying and from `ports`, which publish container services to the host.
 - `mounts`, `caches`, `envs`, `env_files`, `ports`, `dynamic_ports`, `expose_host_ports`, `podman_args`, `run_args`, and `ssh_keys` extend the base settings when enabled.
 - `command`, `image`, `mount_git_metadata`, and `enable_ssh` use the highest-precedence value.
+- Environment values support the `${project}` placeholder, which is replaced with the basename of Dungeon's invocation directory. Expansion applies only to the value in `NAME=VALUE` entries; shell expressions such as `$(basename $PWD)` remain literal.
 
 ### libkrun
 

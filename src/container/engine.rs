@@ -143,6 +143,7 @@ pub fn build_container_command(
     let home =
         dirs::home_dir().ok_or_else(|| AppError::message("unable to resolve home directory"))?;
     let engine = settings.engine.unwrap_or_default();
+    let project = project_name(&cwd);
     let (workdir, mounts) = resolve_workdir_and_mounts(settings, paths, skip_cwd, &cwd, &home)?;
     let mut args = vec!["run".to_string(), "-it".to_string()];
     append_engine_identity_args(&mut args, engine);
@@ -155,7 +156,11 @@ pub fn build_container_command(
         settings.expose_host_ports.as_deref().unwrap_or(&[]),
     );
 
-    append_env_args(&mut args, settings.env_vars.as_deref().unwrap_or(&[]));
+    append_env_args(
+        &mut args,
+        settings.env_vars.as_deref().unwrap_or(&[]),
+        project,
+    );
     append_repeated_flag_args(
         &mut args,
         "--env-file",
@@ -211,10 +216,7 @@ fn resolve_workdir_and_mounts(
             return Ok((WORKSPACE_ROOT.to_string(), mounts));
         }
 
-        let base = cwd
-            .file_name()
-            .and_then(|s| s.to_str())
-            .unwrap_or("project");
+        let base = project_name(cwd);
         let workdir = format!("{}/{}", WORKSPACE_ROOT, base);
         push_mount(&mut mounts, format!("{}:{}", cwd.display(), workdir));
         workspace_dirs.push(cwd.to_path_buf());
@@ -365,14 +367,21 @@ fn append_engine_identity_args(args: &mut Vec<String>, engine: Engine) {
     }
 }
 
-fn append_env_args(args: &mut Vec<String>, env_specs: &[String]) {
+fn append_env_args(args: &mut Vec<String>, env_specs: &[String], project: &str) {
     for spec in env_specs {
         let trimmed = spec.trim();
         if trimmed.is_empty() {
             continue;
         }
         args.push("--env".to_string());
-        args.push(trimmed.to_string());
+        args.push(expand_env_spec(trimmed, project));
+    }
+}
+
+fn expand_env_spec(spec: &str, project: &str) -> String {
+    match spec.split_once('=') {
+        Some((name, value)) => format!("{}={}", name, value.replace("${project}", project)),
+        None => spec.to_string(),
     }
 }
 
@@ -437,6 +446,12 @@ fn absolute_path(cwd: &Path, path: &str) -> PathBuf {
     } else {
         cwd.join(raw)
     }
+}
+
+fn project_name(cwd: &Path) -> &str {
+    cwd.file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("project")
 }
 
 fn normalize_absolute_path(path: &Path) -> PathBuf {
