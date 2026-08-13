@@ -24,6 +24,7 @@ pub(crate) fn validate_skip_cwd_with_paths(
 }
 
 pub fn validate_settings(settings: &Settings) -> Result<(), AppError> {
+    config::validate_cache_specs(settings.cache.as_deref().unwrap_or(&[]), "cache")?;
     validate_exposed_host_ports(settings)?;
     validate_ssh(settings)?;
     validate_remote_runtime(settings)

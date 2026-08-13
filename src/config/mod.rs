@@ -1,8 +1,10 @@
+mod cache;
 mod groups;
 mod merge;
 mod parse;
 mod types;
 
+pub use cache::{CacheMode, CacheSpec, parse_cache_spec, validate_cache_specs};
 pub use groups::{
     merge_group_definitions, normalize_group_order, resolve_group_order, validate_group_selection,
 };
@@ -82,6 +84,35 @@ pub fn resolve_global_settings(
         &group_defs,
         &group_order,
     )
+}
+
+pub fn resolve_cache_init_settings(
+    cli_settings: &Settings,
+    sources: &LoadedConfigSources,
+) -> Result<Settings, AppError> {
+    let group_defs = merge_group_definitions(&sources.defaults.groups, &sources.file.groups)?;
+    let included = normalize_group_order(&resolve_include_groups(
+        &sources.defaults,
+        &sources.file,
+        &sources.env,
+        &Config::default(),
+    ))?;
+    validate_group_selection(&group_defs, &included)?;
+    let selected_order =
+        resolve_group_order(&included, &std::collections::BTreeMap::new(), &group_defs)?;
+    let selected = selected_order
+        .iter()
+        .collect::<std::collections::BTreeSet<_>>();
+
+    let mut settings = resolve_global_settings(cli_settings, sources)?;
+    let mut caches = settings.cache.take().unwrap_or_default();
+    for (name, group) in &group_defs {
+        if !selected.contains(name) {
+            caches.extend(group.settings.cache.clone().unwrap_or_default());
+        }
+    }
+    settings.cache = Some(caches);
+    Ok(settings)
 }
 
 pub fn load_defaults() -> Result<Config, AppError> {

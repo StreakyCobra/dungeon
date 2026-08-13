@@ -8,8 +8,8 @@ use super::constants::{
     ARG_PATHS, FLAG_CACHE, FLAG_COMMAND, FLAG_CONTEXT, FLAG_DEBUG, FLAG_DYNAMIC_PORT, FLAG_ENV,
     FLAG_ENV_FILE, FLAG_EXPOSE_HOST_PORT, FLAG_HELP, FLAG_IMAGE, FLAG_MOUNT,
     FLAG_MOUNT_GIT_METADATA, FLAG_NO_CACHE, FLAG_NO_MOUNT_GIT_METADATA, FLAG_PODMAN_ARG, FLAG_PORT,
-    FLAG_RUN_ARG, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET,
-    SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
+    FLAG_RUN_ARG, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_INIT,
+    SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
 };
 
 pub(crate) fn print_targeted_help(
@@ -48,10 +48,13 @@ pub(crate) fn print_targeted_help(
                     return Ok(true);
                 }
                 if let Some((cache_sub_name, cache_sub_matches)) = sub_matches.subcommand()
-                    && cache_sub_name == SUBCOMMAND_CACHE_RESET
                     && cache_sub_matches.get_flag(FLAG_HELP)
                 {
-                    print_help(cache_reset_subcommand())?;
+                    match cache_sub_name {
+                        SUBCOMMAND_CACHE_RESET => print_help(cache_reset_subcommand())?,
+                        SUBCOMMAND_CACHE_INIT => print_help(cache_init_subcommand())?,
+                        _ => return Ok(false),
+                    }
                     return Ok(true);
                 }
             }
@@ -315,6 +318,7 @@ fn cache_subcommand() -> Command {
                 .action(ArgAction::SetTrue),
         )
         .subcommand(cache_reset_subcommand())
+        .subcommand(cache_init_subcommand())
 }
 
 fn cache_reset_subcommand() -> Command {
@@ -327,6 +331,43 @@ fn cache_reset_subcommand() -> Command {
                 .help("Show help information")
                 .help_heading("Options")
                 .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new(FLAG_PODMAN_ARG)
+                .long(FLAG_PODMAN_ARG)
+                .help("Append an extra podman argument before the subcommand (repeatable)")
+                .allow_hyphen_values(true)
+                .num_args(1)
+                .action(ArgAction::Append),
+        )
+}
+
+fn cache_init_subcommand() -> Command {
+    Command::new(SUBCOMMAND_CACHE_INIT)
+        .disable_help_flag(true)
+        .about("Create configured cache subdirectories")
+        .arg(
+            Arg::new(FLAG_HELP)
+                .long(FLAG_HELP)
+                .help("Show help information")
+                .help_heading("Options")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new(FLAG_IMAGE)
+                .long(FLAG_IMAGE)
+                .help("Select the image used to initialize cache directories")
+                .help_heading("Configurations")
+                .num_args(1)
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new(FLAG_CACHE)
+                .long(FLAG_CACHE)
+                .help("Add a cache entry to initialize (repeatable)")
+                .help_heading("Configurations")
+                .num_args(1)
+                .action(ArgAction::Append),
         )
         .arg(
             Arg::new(FLAG_PODMAN_ARG)

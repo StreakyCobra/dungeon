@@ -82,6 +82,9 @@ dungeon run --pi --command pi
 
 # build image
 dungeon image build
+
+# create configured cache subdirectories
+dungeon cache init
 ```
 
 ## Images
@@ -112,7 +115,7 @@ There are several ways to configure dungeon, in order of precedence:
 - [Configuration file](#configuration-file)
 - [Default configuration](#default-configuration)
 
-For `dungeon run`, single settings like `command`, `image`, and `enable_ssh` override lower-level configuration. List settings like ports, dynamic ports, exposed host ports, mounts, and SSH keys are merged with lower-level configuration.
+For `dungeon run`, single settings like `command`, `image`, and `enable_ssh` override lower-level configuration. List settings like ports, dynamic ports, exposed host ports, mounts, caches, and SSH keys are merged with lower-level configuration.
 
 Configuration file, environment variables, and included groups apply to `dungeon run`; image and cache commands also use applicable global settings such as `podman_args`.
 
@@ -132,6 +135,7 @@ Image and cache management:
 
 - `dungeon image build [--tag <tag>] [--no-cache] [--context <path>]`
 - `dungeon cache reset`
+- `dungeon cache init [--image <image>] [--cache <spec>] [--podman-arg <arg>]`
 
 ### Configuration file
 
@@ -148,7 +152,12 @@ ssh_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... you@example.com"]
 ports = ["127.0.0.1:8888:8888"]
 dynamic_ports = ["difit"]
 expose_host_ports = ["8080", "18080:8080", "8000-8010"]
-caches = [".cache/pip:rw"]
+caches = [
+  "pacman:/var/cache/pacman/pkg",
+  "npm:/home/dungeon/.cache/npm",
+  "uv:/home/dungeon/.cache/uv",
+  "dungeon:/home/dungeon/.cache/dungeon",
+]
 mounts = ["~/projects:/home/dungeon/projects:rw"]
 envs = ["OPENAI_API_KEY", "SECRET=abc123"]
 env_files = [".env", "secrets.env"]
@@ -191,7 +200,11 @@ Group behavior:
 - `ssh_keys` entries are appended across configuration layers and groups. They are written to `/home/dungeon/.ssh/authorized_keys` for the temporary container only.
 - `podman_args` entries are inserted before the Podman subcommand, for example `podman -c agent-vm run ...`.
 - `--skip-cwd` prevents the implicit current-directory mount when no paths are provided.
-- `caches` entries are passed directly as `dungeon-cache:<spec>` volume mounts.
+- `caches` entries use a list syntax and are appended across configuration layers and groups.
+- A cache entry in the form `SUBPATH:ABSOLUTE_TARGET[:ro|rw]` mounts a subdirectory of `dungeon-cache`, for example `npm:/home/dungeon/.cache/npm` generates `--mount type=volume,src=dungeon-cache,dst=/home/dungeon/.cache/npm,subpath=npm`. Subpaths must be relative and cannot contain `.` or `..` components.
+- Legacy cache entries such as `/var/cache/pacman/pkg` and `/var/cache/pacman/pkg:ro` continue to generate `-v dungeon-cache:<entry>` mounts for the whole volume.
+- `dungeon cache init` creates and assigns the configured subdirectories to UID/GID 1000. It includes subpaths from general configuration, environment variables, the included configuration groups, and repeatable `--cache` flags. It also scans groups not currently enabled.
+- Run `dungeon cache init` after `dungeon cache reset` and before a session that uses a new subpath. Podman requires a volume subpath to exist before mounting it.
 - `envs` entries are passed directly to Podman (`NAME` or `NAME=VALUE`).
 - `env_files` entries are passed to Podman via `--env-file`.
 - `dynamic_ports`, `DUNGEON_DYNAMIC_PORTS`, and repeatable `--dynamic-port <name>` each add a dynamic port. Names must be lower-case ASCII identifiers (`[a-z][a-z0-9_]*`); `difit` adds `-p 127.0.0.1:X:X` and `DUNGEON_PORT_FOR_DIFIT=X`.
@@ -236,7 +249,7 @@ Environment overrides use:
 - `DUNGEON_PORTS` (comma-separated)
 - `DUNGEON_DYNAMIC_PORTS` (comma-separated)
 - `DUNGEON_EXPOSE_HOST_PORTS` (comma-separated)
-- `DUNGEON_CACHES` (comma-separated)
+- `DUNGEON_CACHES` (comma-separated cache specs using the same syntax as `caches`)
 - `DUNGEON_MOUNTS` (comma-separated)
 - `DUNGEON_ENVS` (comma-separated)
 - `DUNGEON_ENV_FILES` (comma-separated)
@@ -289,13 +302,15 @@ The default config is embedded at build time from [`src/config/defaults.toml`](.
 
 ## Cache
 
-A named volume `dungeon-cache` is used for caches. This lets you mount specific folders to cache between temporary sessions. This is typically used to speed up installing dependencies.
+A named volume `dungeon-cache` is used for caches. This lets you mount specific folders to cache between temporary sessions. This is typically used to speed up installing dependencies. Use `dungeon cache init` to create configured subdirectories before using `subpath` cache entries.
 
 Reset it with:
 
 ```shell
 dungeon cache reset
 ```
+
+Reset removes the entire volume, including all initialized subdirectories. Re-run `dungeon cache init` before using subpath cache entries.
 
 ## License
 

@@ -37,6 +37,25 @@ fn env_list_from_env_var_trims_and_drops_empty_entries() {
 }
 
 #[test]
+fn cache_subpaths_are_parsed_from_environment() {
+    let input = TestInput {
+        toml: "",
+        args: &["run"],
+        env: &[(
+            "DUNGEON_CACHES",
+            "npm:/home/dungeon/.cache/npm,uv:/home/dungeon/.cache/uv",
+        )],
+        cwd_name: "cache-environment-project",
+        cwd_entries: &[],
+        fs_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /workspace/cache-environment-project --rm --mount type=volume,src=dungeon-cache,dst=/home/dungeon/.cache/npm,subpath=npm --mount type=volume,src=dungeon-cache,dst=/home/dungeon/.cache/uv,subpath=uv -v <CWD>:/workspace/cache-environment-project localhost/dungeon zsh";
+
+    assert_command(input, expected);
+}
+
+#[test]
 fn expands_project_placeholder_in_environment_values() {
     let input = TestInput {
         toml: r#"

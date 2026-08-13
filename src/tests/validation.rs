@@ -195,6 +195,23 @@ fn cache_reset_help_is_handled() {
 }
 
 #[test]
+fn cache_init_help_is_handled() {
+    let defaults = config::Config::default();
+    let file_cfg = config::Config::default();
+    let env_cfg = config::Config::default();
+    let args = vec![
+        "cache".to_string(),
+        "init".to_string(),
+        "--help".to_string(),
+    ];
+
+    let parsed =
+        cli::parse_args_with_sources(args, &defaults, &file_cfg, &env_cfg).expect("parse args");
+
+    assert!(parsed.show_help);
+}
+
+#[test]
 fn image_requires_subcommand() {
     let defaults = config::Config::default();
     let file_cfg = config::Config::default();
@@ -220,7 +237,7 @@ fn cache_requires_subcommand() {
     let err = result.expect_err("expected cache subcommand error");
     assert!(
         err.to_string()
-            .contains("ERROR: cache requires a subcommand (use: cache reset)")
+            .contains("ERROR: cache requires a subcommand (use: cache reset or cache init)")
     );
 }
 

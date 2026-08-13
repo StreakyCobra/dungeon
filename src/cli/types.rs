@@ -20,6 +20,7 @@ pub enum Action {
     Run,
     ImageBuild(ImageBuildAction),
     CacheReset(CacheResetAction),
+    CacheInit(CacheInitAction),
 }
 
 #[derive(Debug, Clone)]
@@ -31,6 +32,9 @@ pub struct ImageBuildAction {
 
 #[derive(Debug, Clone)]
 pub struct CacheResetAction;
+
+#[derive(Debug, Clone)]
+pub struct CacheInitAction;
 
 #[derive(Default, Clone, Debug)]
 pub struct GroupFlag {

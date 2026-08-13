@@ -13,10 +13,10 @@ use super::{
         ARG_PATHS, FLAG_CACHE, FLAG_COMMAND, FLAG_CONTEXT, FLAG_DEBUG, FLAG_DYNAMIC_PORT, FLAG_ENV,
         FLAG_ENV_FILE, FLAG_EXPOSE_HOST_PORT, FLAG_IMAGE, FLAG_MOUNT, FLAG_MOUNT_GIT_METADATA,
         FLAG_NO_CACHE, FLAG_NO_MOUNT_GIT_METADATA, FLAG_PODMAN_ARG, FLAG_PORT, FLAG_RUN_ARG,
-        FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_RESET,
-        SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
+        FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_INIT,
+        SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
     },
-    types::{Action, CacheResetAction, GroupFlag, ImageBuildAction, ParsedCLI},
+    types::{Action, CacheInitAction, CacheResetAction, GroupFlag, ImageBuildAction, ParsedCLI},
     validate::{
         validate_cli_flag_conflicts, validate_cli_settings, validate_group_names,
         validate_skip_cwd_with_paths,
@@ -159,19 +159,29 @@ fn parse_image_action(matches: &ArgMatches) -> Result<ParsedCLI, AppError> {
 
 fn parse_cache_action(matches: &ArgMatches) -> Result<ParsedCLI, AppError> {
     let (sub_name, _sub_matches) = matches.subcommand().ok_or_else(|| {
-        AppError::message("ERROR: cache requires a subcommand (use: cache reset)")
+        AppError::message("ERROR: cache requires a subcommand (use: cache reset or cache init)")
     })?;
 
-    if sub_name != SUBCOMMAND_CACHE_RESET {
-        return Err(AppError::message(format!(
-            "ERROR: unknown cache subcommand '{}'",
-            sub_name
-        )));
-    }
+    let (action, settings) = match sub_name {
+        SUBCOMMAND_CACHE_RESET => (
+            Action::CacheReset(CacheResetAction),
+            podman_settings_from_matches(_sub_matches),
+        ),
+        SUBCOMMAND_CACHE_INIT => (
+            Action::CacheInit(CacheInitAction),
+            cache_init_settings_from_matches(_sub_matches)?,
+        ),
+        _ => {
+            return Err(AppError::message(format!(
+                "ERROR: unknown cache subcommand '{}'",
+                sub_name
+            )));
+        }
+    };
 
     Ok(ParsedCLI {
-        action: Action::CacheReset(CacheResetAction),
-        settings: podman_settings_from_matches(_sub_matches),
+        action,
+        settings,
         paths: Vec::new(),
         show_help: false,
         show_version: false,
@@ -237,7 +247,9 @@ fn settings_from_matches(matches: &ArgMatches) -> Result<Settings, AppError> {
         settings.expose_host_ports = Some(values.map(|value| value.to_string()).collect());
     }
     if let Some(values) = matches.get_many::<String>(FLAG_CACHE) {
-        settings.cache = Some(values.map(|value| value.to_string()).collect());
+        let caches = values.map(|value| value.to_string()).collect::<Vec<_>>();
+        config::validate_cache_specs(&caches, "--cache")?;
+        settings.cache = Some(caches);
     }
     if let Some(values) = matches.get_many::<String>(FLAG_MOUNT) {
         settings.mounts = Some(values.map(|value| value.to_string()).collect());
@@ -271,4 +283,17 @@ fn podman_settings_from_matches(matches: &ArgMatches) -> Settings {
     }
 
     settings
+}
+
+fn cache_init_settings_from_matches(matches: &ArgMatches) -> Result<Settings, AppError> {
+    let mut settings = podman_settings_from_matches(matches);
+    if let Some(value) = matches.get_one::<String>(FLAG_IMAGE) {
+        settings.image = Some(value.to_string());
+    }
+    if let Some(values) = matches.get_many::<String>(FLAG_CACHE) {
+        let caches = values.map(|value| value.to_string()).collect::<Vec<_>>();
+        config::validate_cache_specs(&caches, "--cache")?;
+        settings.cache = Some(caches);
+    }
+    Ok(settings)
 }

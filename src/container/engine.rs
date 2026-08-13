@@ -113,6 +113,53 @@ pub fn reset_cache_volume(settings: &Settings) -> Result<(), AppError> {
     run_container_command(build_cache_reset_command(settings))
 }
 
+pub fn build_cache_init_command(settings: &Settings) -> Result<Option<CommandSpec>, AppError> {
+    let mut subpaths = Vec::new();
+    let mut seen = HashSet::new();
+    for spec in settings.cache.as_deref().unwrap_or(&[]) {
+        let crate::config::CacheSpec::Subpath { subpath, .. } =
+            crate::config::parse_cache_spec(spec)?
+        else {
+            continue;
+        };
+        if seen.insert(subpath.clone()) {
+            subpaths.push(format!("/dungeon-cache/{}", subpath));
+        }
+    }
+
+    if subpaths.is_empty() {
+        return Ok(None);
+    }
+
+    let image = settings
+        .image
+        .as_deref()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("localhost/dungeon");
+    let mut args = vec![
+        "run".to_string(),
+        "--rm".to_string(),
+        "--userns=keep-id".to_string(),
+        "--user".to_string(),
+        "root".to_string(),
+        "--entrypoint".to_string(),
+        "/usr/bin/install".to_string(),
+        "-v".to_string(),
+        "dungeon-cache:/dungeon-cache".to_string(),
+        image.to_string(),
+        "-d".to_string(),
+        "-m".to_string(),
+        "0755".to_string(),
+        "-o".to_string(),
+        "1000".to_string(),
+        "-g".to_string(),
+        "1000".to_string(),
+    ];
+    args.extend(subpaths);
+
+    Ok(Some(build_podman_command(settings, args)))
+}
+
 pub fn build_image_command(
     settings: &Settings,
     tag: &str,
@@ -203,7 +250,7 @@ fn resolve_workdir_and_mounts(
         push_mount(&mut mounts, expand_mount_spec(spec, home));
     }
     for spec in settings.cache.as_deref().unwrap_or(&[]) {
-        push_mount(&mut mounts, format!("dungeon-cache:{}", spec));
+        append_cache_mount(&mut mounts, spec)?;
     }
 
     if paths.is_empty() {
@@ -365,6 +412,32 @@ fn append_engine_identity_args(args: &mut Vec<String>, engine: Engine) {
             args.push("root".to_string());
         }
     }
+}
+
+fn append_cache_mount(mounts: &mut Vec<String>, spec: &str) -> Result<(), AppError> {
+    match crate::config::parse_cache_spec(spec)? {
+        crate::config::CacheSpec::Legacy(spec) => {
+            push_mount(mounts, format!("dungeon-cache:{}", spec));
+        }
+        crate::config::CacheSpec::Subpath {
+            subpath,
+            target,
+            mode,
+        } => {
+            let mut options = vec![
+                "type=volume".to_string(),
+                "src=dungeon-cache".to_string(),
+                format!("dst={}", target),
+                format!("subpath={}", subpath),
+            ];
+            if let Some(mode) = mode {
+                options.push(mode.podman_option().to_string());
+            }
+            mounts.push("--mount".to_string());
+            mounts.push(options.join(","));
+        }
+    }
+    Ok(())
 }
 
 fn append_env_args(args: &mut Vec<String>, env_specs: &[String], project: &str) {

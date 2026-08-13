@@ -267,3 +267,81 @@ fn cache_reset_uses_podman_args_from_included_groups() {
         "podman -c agent-vm volume rm -f dungeon-cache"
     );
 }
+
+#[test]
+fn cache_init_collects_subpaths_from_every_group() {
+    let defaults = config::Config::default();
+    let mut file_cfg = config::Config {
+        settings: config::Settings {
+            cache: Some(vec!["general:/var/cache/general".to_string()]),
+            ..config::Settings::default()
+        },
+        ..config::Config::default()
+    };
+    file_cfg.groups.insert(
+        "alpha".to_string(),
+        config::GroupConfig {
+            settings: config::Settings {
+                cache: Some(vec!["alpha:/var/cache/alpha".to_string()]),
+                ..config::Settings::default()
+            },
+            ..config::GroupConfig::default()
+        },
+    );
+    file_cfg.groups.insert(
+        "beta".to_string(),
+        config::GroupConfig {
+            settings: config::Settings {
+                cache: Some(vec![
+                    "alpha:/var/cache/alpha".to_string(),
+                    "beta:/var/cache/beta".to_string(),
+                ]),
+                ..config::Settings::default()
+            },
+            ..config::GroupConfig::default()
+        },
+    );
+    let sources = config::LoadedConfigSources {
+        defaults,
+        file: file_cfg,
+        env: config::Config::default(),
+    };
+    let args = vec![
+        "cache".to_string(),
+        "init".to_string(),
+        "--cache".to_string(),
+        "cli:/var/cache/cli".to_string(),
+        "--image".to_string(),
+        "localhost/cache-init".to_string(),
+        "--podman-arg=--log-level=debug".to_string(),
+    ];
+
+    let parsed = cli::parse_args_with_sources(args, &sources.defaults, &sources.file, &sources.env)
+        .expect("parse args");
+    assert!(matches!(parsed.action, cli::Action::CacheInit(_)));
+
+    let settings =
+        config::resolve_cache_init_settings(&parsed.settings, &sources).expect("resolve settings");
+    let spec = container::engine::build_cache_init_command(&settings)
+        .expect("build init command")
+        .expect("subpaths should produce an init command");
+
+    assert_eq!(
+        format!("{} {}", spec.program, spec.args.join(" ")),
+        "podman --log-level=debug run --rm --userns=keep-id --user root --entrypoint /usr/bin/install -v dungeon-cache:/dungeon-cache localhost/cache-init -d -m 0755 -o 1000 -g 1000 /dungeon-cache/general /dungeon-cache/cli /dungeon-cache/alpha /dungeon-cache/beta"
+    );
+}
+
+#[test]
+fn cache_init_does_not_run_without_subpaths() {
+    let settings = config::Settings {
+        cache: Some(vec!["/var/cache/pacman/pkg".to_string()]),
+        ..config::Settings::default()
+    };
+
+    assert!(
+        container::engine::build_cache_init_command(&settings)
+            .expect("build init command")
+            .is_none()
+    );
+}

@@ -103,6 +103,26 @@ expose_host_ports = [8080]
 }
 
 #[test]
+fn rejects_invalid_cache_subpath_entries() {
+    let input = TestInput {
+        toml: r#"
+[general]
+caches = ["../npm:/home/dungeon/.cache/npm"]
+"#,
+        args: &["run"],
+        env: &[],
+        cwd_name: "invalid-cache-subpath",
+        cwd_entries: &[],
+        fs_entries: &[],
+    };
+
+    assert_input_error_contains(
+        input,
+        "subpath must be a relative path without . or .. components",
+    );
+}
+
+#[test]
 fn errors_on_unknown_group_key() {
     let input = TestInput {
         toml: r#"

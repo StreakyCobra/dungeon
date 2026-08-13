@@ -31,6 +31,13 @@ pub fn run() -> Result<(), AppError> {
             let settings = crate::config::resolve_global_settings(&parsed.settings, &sources)?;
             container::engine::reset_cache_volume(&settings)
         }
+        cli::Action::CacheInit(_) => {
+            let settings = crate::config::resolve_cache_init_settings(&parsed.settings, &sources)?;
+            let Some(spec) = container::engine::build_cache_init_command(&settings)? else {
+                return Ok(());
+            };
+            container::engine::run_container_command(spec)
+        }
         cli::Action::Run => run_container_session(parsed, &sources),
     }
 }

@@ -54,7 +54,9 @@ pub fn load_from_env() -> Result<Config, AppError> {
         cfg.settings.expose_host_ports = Some(split_env_list(&value));
     }
     if let Ok(value) = env::var(format!("{}CACHES", ENV_PREFIX)) {
-        cfg.settings.cache = Some(split_env_list(&value));
+        let caches = split_env_list(&value);
+        super::validate_cache_specs(&caches, "DUNGEON_CACHES")?;
+        cfg.settings.cache = Some(caches);
     }
     if let Ok(value) = env::var(format!("{}MOUNTS", ENV_PREFIX)) {
         cfg.settings.mounts = Some(split_env_list(&value));
@@ -176,7 +178,9 @@ fn parse_settings_key(
             Ok(true)
         }
         "caches" => {
-            settings.cache = Some(parse_string_vec(scope, key, value)?);
+            let caches = parse_string_vec(scope, key, value)?;
+            super::validate_cache_specs(&caches, &format!("{}.{}", scope, key))?;
+            settings.cache = Some(caches);
             Ok(true)
         }
         "envs" => {

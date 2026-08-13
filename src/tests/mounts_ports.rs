@@ -44,3 +44,28 @@ fn pi_group_mounts_agent_dir() {
 
     assert_command(input, expected);
 }
+
+#[test]
+fn renders_cache_subpath_mounts_from_config_environment_and_cli() {
+    let input = TestInput {
+        toml: r#"
+[general]
+caches = ["pacman:/var/cache/pacman/pkg:rw"]
+"#,
+        args: &[
+            "run",
+            "--cache",
+            "npm:/home/dungeon/.cache/npm",
+            "--cache",
+            "uv:/home/dungeon/.cache/uv:ro",
+        ],
+        env: &[("DUNGEON_CACHES", "env:/home/dungeon/.cache/dungeon")],
+        cwd_name: "cache-subpath-project",
+        cwd_entries: &[],
+        fs_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /workspace/cache-subpath-project --rm --mount type=volume,src=dungeon-cache,dst=/var/cache/pacman/pkg,subpath=pacman,rw --mount type=volume,src=dungeon-cache,dst=/home/dungeon/.cache/dungeon,subpath=env --mount type=volume,src=dungeon-cache,dst=/home/dungeon/.cache/npm,subpath=npm --mount type=volume,src=dungeon-cache,dst=/home/dungeon/.cache/uv,subpath=uv,ro -v <CWD>:/workspace/cache-subpath-project localhost/dungeon zsh";
+
+    assert_command(input, expected);
+}

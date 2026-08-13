@@ -3,6 +3,7 @@ pub(crate) const SUBCOMMAND_IMAGE: &str = "image";
 pub(crate) const SUBCOMMAND_IMAGE_BUILD: &str = "build";
 pub(crate) const SUBCOMMAND_CACHE: &str = "cache";
 pub(crate) const SUBCOMMAND_CACHE_RESET: &str = "reset";
+pub(crate) const SUBCOMMAND_CACHE_INIT: &str = "init";
 
 pub(crate) const FLAG_HELP: &str = "help";
 pub(crate) const FLAG_VERSION: &str = "version";
@@ -54,4 +55,5 @@ pub(crate) const RESERVED_GROUP_NAMES: &[&str] = &[
     SUBCOMMAND_IMAGE_BUILD,
     SUBCOMMAND_CACHE,
     SUBCOMMAND_CACHE_RESET,
+    SUBCOMMAND_CACHE_INIT,
 ];
