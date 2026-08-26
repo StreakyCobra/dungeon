@@ -41,7 +41,7 @@ RUN groupadd -g 1000 dungeon && \
       /home/dungeon/.local/share \
       /home/dungeon/.local/state \
       /home/dungeon/.npm-global && \
-    mkdir -p /workspace && \
+    install -d -o dungeon -g dungeon /workspace && \
     chmod 4755 /usr/bin/bwrap && \
     install -d /etc/sudoers.d && \
     printf 'dungeon ALL=(root) NOPASSWD: /usr/local/bin/dungeon-install\n' > /etc/sudoers.d/dungeon-install && \
