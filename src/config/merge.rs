@@ -74,6 +74,9 @@ fn merge_settings(base: Settings, override_settings: Settings) -> Settings {
     if let Some(values) = override_settings.env_files {
         merged.env_files = Some(append_strings(merged.env_files, values));
     }
+    if let Some(values) = override_settings.secrets {
+        merged.secrets = Some(append_unique_strings(merged.secrets, values));
+    }
     if let Some(values) = override_settings.podman_args {
         merged.podman_args = Some(append_strings(merged.podman_args, values));
     }
@@ -95,5 +98,15 @@ fn merge_settings(base: Settings, override_settings: Settings) -> Settings {
 fn append_strings(base: Option<Vec<String>>, extra: Vec<String>) -> Vec<String> {
     let mut merged = base.unwrap_or_default();
     merged.extend(extra);
+    merged
+}
+
+fn append_unique_strings(base: Option<Vec<String>>, extra: Vec<String>) -> Vec<String> {
+    let mut merged = Vec::new();
+    for value in base.unwrap_or_default().into_iter().chain(extra) {
+        if !merged.contains(&value) {
+            merged.push(value);
+        }
+    }
     merged
 }

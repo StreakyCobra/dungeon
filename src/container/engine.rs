@@ -213,6 +213,9 @@ pub fn build_container_command(
         "--env-file",
         settings.env_files.as_deref().unwrap_or(&[]),
     );
+    for secret in settings.secrets.as_deref().unwrap_or(&[]) {
+        args.push(format!("--secret={secret},type=env,target={secret}"));
+    }
     append_repeated_flag_args(&mut args, "-p", settings.ports.as_deref().unwrap_or(&[]));
     if let Some(args_list) = settings.run_args.as_deref() {
         args.extend(args_list.iter().cloned());

@@ -79,3 +79,22 @@ envs = [
 
     assert_command(input, expected);
 }
+
+#[test]
+fn merges_secrets_from_config_environment_and_cli_without_duplicates() {
+    let input = TestInput {
+        toml: r#"
+[general]
+secrets = ["GH_TOKEN", "SHARED", "GH_TOKEN"]
+"#,
+        args: &["run", "--secret", "SHARED", "--secret", "CLI_SECRET"],
+        env: &[("DUNGEON_SECRETS", "SHARED,ENV_SECRET")],
+        cwd_name: "secrets-project",
+        cwd_entries: &[],
+        fs_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /workspace/secrets-project --rm --secret=GH_TOKEN,type=env,target=GH_TOKEN --secret=SHARED,type=env,target=SHARED --secret=ENV_SECRET,type=env,target=ENV_SECRET --secret=CLI_SECRET,type=env,target=CLI_SECRET -v <CWD>:/workspace/secrets-project localhost/dungeon zsh";
+
+    assert_command(input, expected);
+}

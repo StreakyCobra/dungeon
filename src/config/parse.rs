@@ -67,6 +67,9 @@ pub fn load_from_env() -> Result<Config, AppError> {
     if let Ok(value) = env::var(format!("{}ENV_FILES", ENV_PREFIX)) {
         cfg.settings.env_files = Some(split_env_list(&value));
     }
+    if let Ok(value) = env::var(format!("{}SECRETS", ENV_PREFIX)) {
+        cfg.settings.secrets = Some(split_env_list(&value));
+    }
     if let Ok(value) = env::var(format!("{}PODMAN_ARGS", ENV_PREFIX)) {
         cfg.settings.podman_args = Some(split_env_list(&value));
     }
@@ -189,6 +192,10 @@ fn parse_settings_key(
         }
         "env_files" => {
             settings.env_files = Some(parse_string_vec(scope, key, value)?);
+            Ok(true)
+        }
+        "secrets" => {
+            settings.secrets = Some(parse_string_vec(scope, key, value)?);
             Ok(true)
         }
         "command" => {

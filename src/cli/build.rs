@@ -8,8 +8,9 @@ use super::constants::{
     ARG_PATHS, FLAG_CACHE, FLAG_COMMAND, FLAG_CONTEXT, FLAG_DEBUG, FLAG_DYNAMIC_PORT, FLAG_ENV,
     FLAG_ENV_FILE, FLAG_EXPOSE_HOST_PORT, FLAG_HELP, FLAG_IMAGE, FLAG_MOUNT,
     FLAG_MOUNT_GIT_METADATA, FLAG_NO_CACHE, FLAG_NO_MOUNT_GIT_METADATA, FLAG_PODMAN_ARG, FLAG_PORT,
-    FLAG_RUN_ARG, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_INIT,
-    SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
+    FLAG_RUN_ARG, FLAG_SECRET, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE,
+    SUBCOMMAND_CACHE_INIT, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD,
+    SUBCOMMAND_RUN,
 };
 
 pub(crate) fn print_targeted_help(
@@ -184,6 +185,14 @@ fn run_subcommand(group_defs: &BTreeMap<String, config::GroupConfig>) -> Command
             Arg::new(FLAG_ENV_FILE)
                 .long(FLAG_ENV_FILE)
                 .help("Add a container env-file (repeatable)")
+                .help_heading("Configurations")
+                .num_args(1)
+                .action(ArgAction::Append),
+        )
+        .arg(
+            Arg::new(FLAG_SECRET)
+                .long(FLAG_SECRET)
+                .help("Expose a Podman secret as a container environment variable (repeatable)")
                 .help_heading("Configurations")
                 .num_args(1)
                 .action(ArgAction::Append),

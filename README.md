@@ -127,6 +127,7 @@ Run-session flags live under `dungeon run`:
 
 - `--debug` to print the generated command instead of running it.
 - `--command`, `--image`, `--port`, `--dynamic-port`, `--cache`, `--mount`, `--env`, `--env-file`, `--podman-arg`, `--run-arg`, `--mount-git-metadata`, `--no-mount-git-metadata` to customize container.
+- repeatable `--secret <name>` to expose a Podman secret as a container environment variable.
 - `--skip-cwd` to skip mounting the current directory.
 - repeatable `--expose-host-port <spec>` to expose host-loopback TCP services or ranges inside the container.
 - group flags (for example `--codex`)
@@ -161,6 +162,7 @@ caches = [
 mounts = ["~/projects:/home/dungeon/projects:rw"]
 envs = ["OPENAI_API_KEY", "SECRET=abc123"]
 env_files = [".env", "secrets.env"]
+secrets = ["GH_TOKEN", "SOME_OTHER"]
 podman_args = ["--log-level=warn"]
 run_args = ["--cap-add=SYS_PTRACE"]
 include_groups = ["ai"]
@@ -207,6 +209,7 @@ Group behavior:
 - Run `dungeon cache init` after `dungeon cache reset` and before a session that uses a new subpath. Podman requires a volume subpath to exist before mounting it.
 - `envs` entries are passed directly to Podman (`NAME` or `NAME=VALUE`).
 - `env_files` entries are passed to Podman via `--env-file`.
+- `secrets` entries are passed to Podman as environment-type secrets, for example `GH_TOKEN` becomes `--secret=GH_TOKEN,type=env,target=GH_TOKEN`. Duplicate secret names across configuration layers are emitted only once.
 - `dynamic_ports`, `DUNGEON_DYNAMIC_PORTS`, and repeatable `--dynamic-port <name>` each add a dynamic port. Names must be lower-case ASCII identifiers (`[a-z][a-z0-9_]*`); `difit` adds `-p 127.0.0.1:X:X` and `DUNGEON_PORT_FOR_DIFIT=X`.
 - Dynamic-port listeners are reserved until Dungeon starts Podman. They are not retained by `--debug`.
 - The published host port is loopback-only. Services using a dynamic port must listen on `0.0.0.0` inside the container so Podman can forward traffic to them.
@@ -253,6 +256,7 @@ Environment overrides use:
 - `DUNGEON_MOUNTS` (comma-separated)
 - `DUNGEON_ENVS` (comma-separated)
 - `DUNGEON_ENV_FILES` (comma-separated)
+- `DUNGEON_SECRETS` (comma-separated)
 - `DUNGEON_PODMAN_ARGS` (comma-separated)
 - `DUNGEON_RUN_ARGS` (comma-separated)
 - `DUNGEON_MOUNT_GIT_METADATA`

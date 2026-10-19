@@ -13,8 +13,9 @@ use super::{
         ARG_PATHS, FLAG_CACHE, FLAG_COMMAND, FLAG_CONTEXT, FLAG_DEBUG, FLAG_DYNAMIC_PORT, FLAG_ENV,
         FLAG_ENV_FILE, FLAG_EXPOSE_HOST_PORT, FLAG_IMAGE, FLAG_MOUNT, FLAG_MOUNT_GIT_METADATA,
         FLAG_NO_CACHE, FLAG_NO_MOUNT_GIT_METADATA, FLAG_PODMAN_ARG, FLAG_PORT, FLAG_RUN_ARG,
-        FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE, SUBCOMMAND_CACHE_INIT,
-        SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD, SUBCOMMAND_RUN,
+        FLAG_SECRET, FLAG_SKIP_CWD, FLAG_TAG, FLAG_VERSION, SUBCOMMAND_CACHE,
+        SUBCOMMAND_CACHE_INIT, SUBCOMMAND_CACHE_RESET, SUBCOMMAND_IMAGE, SUBCOMMAND_IMAGE_BUILD,
+        SUBCOMMAND_RUN,
     },
     types::{Action, CacheInitAction, CacheResetAction, GroupFlag, ImageBuildAction, ParsedCLI},
     validate::{
@@ -259,6 +260,9 @@ fn settings_from_matches(matches: &ArgMatches) -> Result<Settings, AppError> {
     }
     if let Some(values) = matches.get_many::<String>(FLAG_ENV_FILE) {
         settings.env_files = Some(values.map(|value| value.to_string()).collect());
+    }
+    if let Some(values) = matches.get_many::<String>(FLAG_SECRET) {
+        settings.secrets = Some(values.map(|value| value.to_string()).collect());
     }
     if let Some(values) = matches.get_many::<String>(FLAG_PODMAN_ARG) {
         settings.podman_args = Some(values.map(|value| value.to_string()).collect());
