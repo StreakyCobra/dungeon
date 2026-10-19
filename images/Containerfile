@@ -15,6 +15,7 @@ RUN --mount=type=cache,id=pacman-pkg,target=/var/cache/pacman/pkg,sharing=locked
       emacs-nox \
       fzf \
       git \
+      github-cli \
       less \
       npm \
       nvim \
