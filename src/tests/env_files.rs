@@ -98,3 +98,22 @@ secrets = ["GH_TOKEN", "SHARED", "GH_TOKEN"]
 
     assert_command(input, expected);
 }
+
+#[test]
+fn maps_secret_names_from_config_environment_and_cli() {
+    let input = TestInput {
+        toml: r#"
+[general]
+secrets = ["GH_TOKEN=MY_OTHER_SECRET", "UNCHANGED"]
+"#,
+        args: &["run", "--secret", "CLI_TOKEN=CLI_SECRET"],
+        env: &[("DUNGEON_SECRETS", "GH_TOKEN=MY_OTHER_SECRET,ENV_TOKEN=ENV_SECRET")],
+        cwd_name: "secrets-project",
+        cwd_entries: &[],
+        fs_entries: &[],
+    };
+
+    let expected = "podman run -it --userns=keep-id -w /workspace/secrets-project --rm --secret=MY_OTHER_SECRET,type=env,target=GH_TOKEN --secret=UNCHANGED,type=env,target=UNCHANGED --secret=ENV_SECRET,type=env,target=ENV_TOKEN --secret=CLI_SECRET,type=env,target=CLI_TOKEN -v <CWD>:/workspace/secrets-project localhost/dungeon zsh";
+
+    assert_command(input, expected);
+}
