@@ -22,6 +22,7 @@ RUN --mount=type=cache,id=pacman-pkg,target=/var/cache/pacman/pkg,sharing=locked
       openssh \
       pre-commit \
       ripgrep \
+      socat \
       starship \
       sudo \
       which \
@@ -37,6 +38,7 @@ RUN groupadd -g 1000 dungeon && \
       /home/dungeon/.cache \
       /home/dungeon/.cache/npm \
       /home/dungeon/.cache/uv \
+      /home/dungeon/.claude \
       /home/dungeon/.config \
       /home/dungeon/.local \
       /home/dungeon/.local/share \
@@ -78,21 +80,25 @@ USER dungeon
 # Install AI agents in a builder stage and keep only the runtime binaries.
 RUN npm i -g @openai/codex@latest \
     && npm i -g --allow-scripts=opencode-ai opencode-ai@latest \
+    && npm i -g --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code@latest \
     && npm i -g --ignore-scripts @earendil-works/pi-coding-agent@latest \
+    && /home/dungeon/.npm-global/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe --version \
     && rm -rf /home/dungeon/.npm-global/lib/node_modules/opencode-linux-* \
     && rm -rf /home/dungeon/.npm
 
 FROM base
 
+COPY images/claude /usr/local/bin/claude
 COPY images/codex /usr/local/bin/codex
 COPY images/opencode /usr/local/bin/opencode
 COPY images/pi /usr/local/bin/pi
-RUN chmod 0755 /usr/local/bin/codex /usr/local/bin/opencode /usr/local/bin/pi
+RUN chmod 0755 /usr/local/bin/claude /usr/local/bin/codex /usr/local/bin/opencode /usr/local/bin/pi
 
+COPY --from=agent-builder /home/dungeon/.npm-global/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe /opt/claude/claude
 COPY --from=agent-builder /home/dungeon/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor /opt/codex/vendor
 COPY --from=agent-builder /home/dungeon/.npm-global/lib/node_modules/opencode-ai/bin/opencode.exe /opt/opencode/opencode
 COPY --from=agent-builder /home/dungeon/.npm-global/lib/node_modules/@earendil-works/pi-coding-agent /opt/pi
-RUN chmod 0755 /opt/opencode/opencode
+RUN chmod 0755 /opt/claude/claude /opt/opencode/opencode
 
 USER dungeon
 
