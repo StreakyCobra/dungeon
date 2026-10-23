@@ -1,0 +1,3 @@
+[submodule "libkrunfw-mark-test"]
+	path = libkrunfw-mark-test
+	url = https://gitlab.archlinux.org/archlinux/packaging/packages/libkrunfw.git
