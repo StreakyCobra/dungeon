@@ -4,6 +4,7 @@ FROM docker.io/library/archlinux:base
 RUN pacman -Syu --noconfirm --needed \
       podman crun shadow passt slirp4netns fuse-overlayfs \
       iproute2 iptables-nft nftables ca-certificates curl python python-pip \
+      sudo \
     && pacman -Scc --noconfirm
 
 RUN chmod 4755 /usr/bin/newuidmap /usr/bin/newgidmap
@@ -22,6 +23,12 @@ RUN useradd --create-home --user-group --uid 1000 --shell /bin/bash agent \
 
 COPY guest-entrypoint.sh /usr/local/bin/guest-entrypoint
 RUN chmod 0755 /usr/local/bin/guest-entrypoint
+
+RUN install -d /etc/sudoers.d && \
+    printf 'agent ALL=(root) NOPASSWD: /usr/local/bin/agent-install\n' > /etc/sudoers.d/agent-install && \
+    chmod 0440 /etc/sudoers.d/agent-install
+COPY agent-install /usr/local/bin/agent-install
+RUN chmod 0755 /usr/local/bin/agent-install
 
 ENV HOME=/home/agent \
     XDG_RUNTIME_DIR=/run/agent-podman/runtime \
