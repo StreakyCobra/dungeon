@@ -1,12 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-# This is the guest's devtmpfs device, not a physical-host device mount.
-chgrp agent /dev/net/tun
-chmod 0660 /dev/net/tun
+# These are guest devtmpfs devices, not physical-host device mounts.
+chgrp agent /dev/net/tun /dev/fuse
+chmod 0660 /dev/net/tun /dev/fuse
 
-# Keep image extraction and Buildah temporary files off virtiofs.
-# Images and named volumes last only for this microVM session.
+# Keep runtime and Buildah temporary files on guest tmpfs.
+# Default image storage also lives here; optional tool configuration may override it.
 mkdir -p /run/agent-podman
 mount -t tmpfs -o size=2g,mode=0755 tmpfs /run/agent-podman
 install -d -o agent -g agent -m 0700 \
