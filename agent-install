@@ -1,32 +1,26 @@
-#!/usr/bin/env bash
-setopt errexit nounset pipefail
+#!/bin/bash
+set -euo pipefail
 
 if (( $# == 0 )); then
-    printf 'usage: sudo dungeon-install <package> [package...]\n' >&2
+    printf 'usage: sudo agent-install <package> [package...]\n' >&2
     exit 1
 fi
 
-denylist=(sudo doas)
-packages=()
-
 for package in "$@"; do
     if [[ $package == -* ]]; then
-        printf 'dungeon-install: flags are not allowed: %s\n' "$package" >&2
+        printf 'agent-install: flags are not allowed: %s\n' "$package" >&2
         exit 1
     fi
-    if [[ $package == */* || $package == *://* || $package == ./* || $package == ../* || $package == *.pkg.tar* ]]; then
-        printf 'dungeon-install: local paths and package files are not allowed: %s\n' "$package" >&2
+    if [[ $package == */* || $package == *.pkg.tar* ]]; then
+        printf 'agent-install: local paths and package files are not allowed: %s\n' "$package" >&2
         exit 1
     fi
-    for denied in $denylist; do
-        if [[ $package == $denied ]]; then
-            printf 'dungeon-install: package is denied: %s\n' "$package" >&2
-            exit 1
-        fi
-    done
-    packages+=("$package")
 done
 
 # Refresh package databases and upgrade in the same transaction to avoid
 # partial-upgrade issues when the base image was built with an old or empty sync DB.
-exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin HOME=/root pacman -Syu --needed --noconfirm "${packages[@]}"
+/usr/bin/env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin HOME=/root \
+    /usr/bin/pacman -Syu --needed --noconfirm -- "$@"
+
+# A shadow upgrade can replace the helper permissions required by rootless Podman.
+/usr/bin/chmod 4755 /usr/bin/newuidmap /usr/bin/newgidmap
