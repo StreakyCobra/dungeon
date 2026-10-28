@@ -6,12 +6,6 @@ enable_ssh = false
 [codex]
 mounts = ["~/.codex:/home/dungeon/.codex:rw"]
 
-[claude]
-mounts = [
-  "~/.claude:/home/dungeon/.claude:rw",
-  "~/.claude.json:/home/dungeon/.claude.json:rw"
-]
-
 [opencode]
 mounts = [
   "~/.config/opencode:/home/dungeon/.config/opencode:rw",
